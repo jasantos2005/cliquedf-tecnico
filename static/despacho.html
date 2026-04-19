@@ -224,18 +224,88 @@ function iniciarApp() {
 // ── MAPA ─────────────────────────────────────────────────────
 function iniciarMapa() {
   mapa = L.map('mapa').setView([-15.7942, -47.8825], 12);
+  // Legenda
+  const legenda = L.control({position:'bottomleft'});
+  legenda.onAdd = () => {
+    const div = L.DomUtil.create('div');
+    div.innerHTML = `<div style="background:#151920;border:1px solid #252d3d;border-radius:10px;padding:10px 14px;font-family:sans-serif;font-size:12px;color:#e8eaf0">
+      <div style="font-weight:700;margin-bottom:8px;color:#6b7590;text-transform:uppercase;letter-spacing:.05em">Tipos de OS</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div>🔧 <span style="color:#3b82f6">Suporte</span></div>
+        <div>⚡ <span style="color:#22c55e">Instalação</span></div>
+        <div>🏗️ <span style="color:#f59e0b">Infra</span></div>
+        <div>📦 <span style="color:#a855f7">Retirada</span></div>
+        <div>📋 <span style="color:#6b7590">Outros</span></div>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #252d3d;font-weight:700;color:#6b7590;text-transform:uppercase;letter-spacing:.05em">Status</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:5px">
+        <div><span style="color:#ef4444">●</span> Pendente</div>
+        <div><span style="color:#f59e0b">●</span> Deslocamento</div>
+        <div><span style="color:#3b82f6">●</span> Execução</div>
+        <div><span style="color:#22c55e">●</span> Finalizada</div>
+      </div>
+    </div>`;
+    return div;
+  };
+  legenda.addTo(mapa);
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'© OpenStreetMap', maxZoom:19
   }).addTo(mapa);
 }
 
-function iconeOS(status) {
-  const cores = {pendente:'#ef4444',deslocamento:'#f59e0b',execucao:'#3b82f6',finalizada:'#22c55e'};
-  const cor = cores[status] || '#6b7590';
+// Mapeamento assunto → tipo
+const ASSUNTO_TIPO = {
+  // suporte
+  20:'suporte',21:'suporte',44:'suporte',47:'suporte',94:'suporte',103:'suporte',
+  104:'suporte',105:'suporte',107:'suporte',113:'suporte',184:'suporte',
+  203:'suporte',240:'suporte',245:'suporte',248:'suporte',17:'suporte',27:'suporte',
+  // instalacao/servico
+  2:'instalacao',14:'instalacao',15:'instalacao',26:'instalacao',30:'instalacao',
+  48:'instalacao',49:'instalacao',92:'instalacao',101:'instalacao',110:'instalacao',
+  220:'instalacao',227:'instalacao',239:'instalacao',
+  // infra
+  3:'infra',7:'infra',16:'infra',138:'infra',143:'infra',145:'infra',146:'infra',
+  148:'infra',151:'infra',152:'infra',153:'infra',154:'infra',155:'infra',
+  156:'infra',157:'infra',158:'infra',159:'infra',160:'infra',161:'infra',
+  162:'infra',163:'infra',164:'infra',165:'infra',166:'infra',167:'infra',
+  168:'infra',169:'infra',170:'infra',171:'infra',172:'infra',173:'infra',
+  174:'infra',175:'infra',176:'infra',177:'infra',178:'infra',179:'infra',
+  180:'infra',181:'infra',182:'infra',183:'infra',185:'infra',186:'infra',
+  187:'infra',188:'infra',221:'infra',222:'infra',232:'infra',242:'infra',
+  243:'infra',244:'infra',247:'infra',
+  // retiradas
+  6:'retirada',22:'retirada',39:'retirada',40:'retirada',89:'retirada',
+  111:'retirada',127:'retirada',
+};
+
+const TIPO_CONFIG = {
+  suporte:    { emoji:'🔧', cor:'#3b82f6', label:'Suporte'    },
+  instalacao: { emoji:'⚡', cor:'#22c55e', label:'Instalação' },
+  infra:      { emoji:'🏗️', cor:'#f59e0b', label:'Infra'      },
+  retirada:   { emoji:'📦', cor:'#a855f7', label:'Retirada'   },
+  default:    { emoji:'📋', cor:'#6b7590', label:'OS'         },
+};
+
+const STATUS_COR = {
+  pendente:'#ef4444', deslocamento:'#f59e0b',
+  execucao:'#3b82f6', finalizada:'#22c55e'
+};
+
+function iconeOS(status, id_assunto) {
+  const tipo = ASSUNTO_TIPO[id_assunto] || 'default';
+  const cfg = TIPO_CONFIG[tipo];
+  const corStatus = STATUS_COR[status] || '#6b7590';
   return L.divIcon({
     className:'',
-    html:`<div style="background:${cor};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
-    iconSize:[14,14], iconAnchor:[7,7]
+    html:`<div style="position:relative;display:inline-block">
+      <div style="background:${cfg.cor};border:2px solid ${corStatus};border-radius:8px;
+           padding:2px 5px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.5);
+           white-space:nowrap;line-height:1">${cfg.emoji}</div>
+      <div style="position:absolute;bottom:-4px;right:-4px;width:8px;height:8px;
+           border-radius:50%;background:${corStatus};border:1px solid #fff"></div>
+    </div>`,
+    iconSize:[32,28], iconAnchor:[16,28]
   });
 }
 
@@ -306,7 +376,7 @@ function renderMapa() {
   osCache.forEach(o => {
     if (!filtros.has(o.status_hub)) return;
     if (!o.lat || !o.lon) return;
-    const m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub)})
+    const m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub, o.id_assunto)})
       .addTo(mapa)
       .bindTooltip(`<b>OS #${o.ixc_os_id}</b><br>${o.cliente_nome}<br>${o.assunto_nome}`, {direction:'top'})
       .on('click', () => selecionarOS(o.ixc_os_id));
