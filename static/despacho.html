@@ -123,10 +123,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <div style="display:flex;gap:4px;align-items:center">
       <span style="font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase">Tipo:</span>
       <button class="filtro-btn active" id="ft-suporte" onclick="toggleTipo('suporte',this)">🔧 Suporte</button>
-      <button class="filtro-btn active" id="ft-instalacao" onclick="toggleTipo('instalacao',this)">⚡ Instalação</button>
+      <button class="filtro-btn active" id="ft-instalacao" onclick="toggleTipo('instalacao',this)">⚡ Serviço</button>
       <button class="filtro-btn active" id="ft-infra" onclick="toggleTipo('infra',this)">🏗️ Infra</button>
       <button class="filtro-btn active" id="ft-retirada" onclick="toggleTipo('retirada',this)">📦 Retirada</button>
-      <button class="filtro-btn active" id="ft-retencao" onclick="toggleTipo('retencao',this)">🤝 Retenção</button>
+      <button class="filtro-btn active" id="ft-instalacao2" onclick="toggleTipo('instalacao',this)" style="display:none"></button>
       <button class="filtro-btn active" id="ft-default" onclick="toggleTipo('default',this)">📋 Outros</button>
     </div>
     <div style="display:flex;gap:4px;align-items:center;margin-left:auto">
@@ -253,7 +253,7 @@ function iniciarMapa() {
       <div style="font-weight:700;margin-bottom:8px;color:#6b7590;text-transform:uppercase;letter-spacing:.05em">Tipos de OS</div>
       <div style="display:flex;flex-direction:column;gap:5px">
         <div>🔧 <span style="color:#3b82f6">Suporte</span></div>
-        <div>⚡ <span style="color:#22c55e">Instalação</span></div>
+        <div>⚡ <span style="color:#22c55e">Serviço</span></div>
         <div>🏗️ <span style="color:#f59e0b">Infra</span></div>
         <div>📦 <span style="color:#a855f7">Retirada</span></div>
         <div>📋 <span style="color:#6b7590">Outros</span></div>
@@ -538,7 +538,7 @@ function fecharModal() { document.getElementById('modal-atribuir').style.display
 
 // ── FILTROS ───────────────────────────────────────────────────
 let filtrosStatus = new Set(['pendente','deslocamento','agendada','reagendada','execucao']);
-let filtrosTipo = new Set(['suporte','instalacao','infra','retirada','retencao','default']);
+let filtrosTipo = new Set(['suporte','instalacao','infra','retirada','default']);
 let mostrarTecnicos = true;
 
 function toggleStatus(status, btn) {
@@ -566,13 +566,13 @@ function toggleStatus(status, btn) {
 function toggleTipo(tipo, btn) {
   // Se clicou no unico ativo, ativa todos
   if (filtrosTipo.has(tipo) && filtrosTipo.size === 1) {
-    ['suporte','instalacao','infra','retirada','retencao','default'].forEach(t => filtrosTipo.add(t));
+    ['suporte','instalacao','infra','retirada','default'].forEach(t => filtrosTipo.add(t));
     document.querySelectorAll('[id^="ft-"]').forEach(b => b.classList.add('active'));
     renderSidebar(); renderMapa();
     return;
   }
   // Se todos ativos, desativa todos e ativa so o clicado
-  const todos = ['suporte','instalacao','infra','retirada','retencao','default'];
+  const todos = ['suporte','instalacao','infra','retirada','default'];
   if (filtrosTipo.size === todos.length) {
     filtrosTipo.clear();
     filtrosTipo.add(tipo);
