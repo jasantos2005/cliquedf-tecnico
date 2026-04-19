@@ -254,29 +254,34 @@ function iniciarMapa() {
   }).addTo(mapa);
 }
 
-// Mapeamento assunto → tipo
+// Mapeamento assunto → tipo (baseado na planilha Cliquedf)
 const ASSUNTO_TIPO = {
-  // suporte
-  20:'suporte',21:'suporte',44:'suporte',47:'suporte',94:'suporte',103:'suporte',
-  104:'suporte',105:'suporte',107:'suporte',113:'suporte',184:'suporte',
-  203:'suporte',240:'suporte',245:'suporte',248:'suporte',17:'suporte',27:'suporte',
+  // suporte (cliente com problema)
+  1:'suporte',5:'suporte',9:'suporte',17:'suporte',20:'suporte',21:'suporte',
+  44:'suporte',47:'suporte',53:'suporte',54:'suporte',91:'suporte',
+  101:'suporte',102:'suporte',103:'suporte',104:'suporte',105:'suporte',
+  107:'suporte',113:'suporte',203:'suporte',226:'suporte',
   // instalacao/servico
-  2:'instalacao',14:'instalacao',15:'instalacao',26:'instalacao',30:'instalacao',
-  48:'instalacao',49:'instalacao',92:'instalacao',101:'instalacao',110:'instalacao',
-  220:'instalacao',227:'instalacao',239:'instalacao',
-  // infra
-  3:'infra',7:'infra',16:'infra',138:'infra',143:'infra',145:'infra',146:'infra',
-  148:'infra',151:'infra',152:'infra',153:'infra',154:'infra',155:'infra',
-  156:'infra',157:'infra',158:'infra',159:'infra',160:'infra',161:'infra',
-  162:'infra',163:'infra',164:'infra',165:'infra',166:'infra',167:'infra',
-  168:'infra',169:'infra',170:'infra',171:'infra',172:'infra',173:'infra',
-  174:'infra',175:'infra',176:'infra',177:'infra',178:'infra',179:'infra',
-  180:'infra',181:'infra',182:'infra',183:'infra',185:'infra',186:'infra',
-  187:'infra',188:'infra',221:'infra',222:'infra',232:'infra',242:'infra',
-  243:'infra',244:'infra',247:'infra',
-  // retiradas
-  6:'retirada',22:'retirada',39:'retirada',40:'retirada',89:'retirada',
-  111:'retirada',127:'retirada',
+  2:'instalacao',3:'instalacao',4:'instalacao',8:'instalacao',14:'instalacao',
+  15:'instalacao',18:'instalacao',19:'instalacao',22:'instalacao',26:'instalacao',
+  27:'instalacao',28:'instalacao',29:'instalacao',30:'instalacao',39:'instalacao',
+  48:'instalacao',49:'instalacao',68:'instalacao',89:'instalacao',
+  101:'instalacao',110:'instalacao',111:'instalacao',127:'instalacao',
+  220:'instalacao',227:'instalacao',239:'instalacao',246:'instalacao',
+  // infra/estrutura
+  6:'infra',7:'infra',16:'infra',40:'infra',138:'infra',140:'infra',141:'infra',
+  142:'infra',143:'infra',144:'infra',145:'infra',146:'infra',147:'infra',
+  148:'infra',149:'infra',150:'infra',151:'infra',152:'infra',153:'infra',
+  154:'infra',155:'infra',156:'infra',157:'infra',158:'infra',159:'infra',
+  160:'infra',161:'infra',162:'infra',163:'infra',164:'infra',165:'infra',
+  166:'infra',167:'infra',168:'infra',169:'infra',170:'infra',171:'infra',
+  172:'infra',173:'infra',174:'infra',175:'infra',176:'infra',177:'infra',
+  178:'infra',179:'infra',180:'infra',181:'infra',182:'infra',183:'infra',
+  184:'infra',185:'infra',186:'infra',187:'infra',188:'infra',221:'infra',
+  222:'infra',223:'infra',240:'infra',241:'infra',242:'infra',243:'infra',
+  244:'infra',245:'infra',247:'infra',
+  // retenção
+  248:'retencao',
 };
 
 const TIPO_CONFIG = {
@@ -284,6 +289,7 @@ const TIPO_CONFIG = {
   instalacao: { emoji:'⚡', cor:'#22c55e', label:'Instalação' },
   infra:      { emoji:'🏗️', cor:'#f59e0b', label:'Infra'      },
   retirada:   { emoji:'📦', cor:'#a855f7', label:'Retirada'   },
+  retencao:   { emoji:'🤝', cor:'#e8521a', label:'Retenção'   },
   default:    { emoji:'📋', cor:'#6b7590', label:'OS'         },
 };
 
