@@ -24,14 +24,14 @@ def run():
                o.endereco, o.bairro, o.referencia,
                cl.razao AS cliente_nome,
                cl.telefone_celular AS telefone,
-               a.assunto AS assunto_nome
+               a.assunto AS assunto_nome,
+               TIMESTAMPDIFF(HOUR, o.data_abertura, NOW()) AS horas_abertas
         FROM su_oss_chamado o
         JOIN cliente cl ON cl.id = o.id_cliente
         JOIN su_oss_assunto a ON a.id = o.id_assunto
-        WHERE o.status IN ('A','D','E')
-          AND o.id_assunto IN (1,2,3,4,5,6,7,8,9,14,15,16,17,18,19,20,21,22,26,27,28,29,30,39,40,44,47,48,49,53,54,68,89,91,101,102,103,104,105,107,110,111,113,127,138,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,203,220,221,222,223,226,227,239,240,241,242,243,244,245,246,247,248)
-          AND (o.id_tecnico IN ({ids_str}) OR o.id_tecnico = 0 OR o.id_tecnico IS NULL)
-          AND DATE(o.data_abertura) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        WHERE o.status IN ('A','EN','AG','RAG')
+          AND o.id_assunto IN (15,16,17,18,19,20,21,22,39,49,53,89,110,111,226,227)
+
     """)
 
     db = get_db()
@@ -40,10 +40,11 @@ def run():
 
     for o in os_rows:
         status_hub = {
-            'A': 'pendente',
-            'D': 'deslocamento',
-            'E': 'execucao',
-            'F': 'finalizada'
+            'A':   'pendente',
+            'EN':  'deslocamento',
+            'AG':  'agendada',
+            'RAG': 'reagendada',
+            'F':   'finalizada'
         }.get(o['status'], 'pendente')
 
         existente = db.execute(
@@ -57,8 +58,8 @@ def run():
                     id_assunto, assunto_nome, status_ixc, status_hub,
                     cliente_nome, endereco, bairro, referencia, telefone,
                     lat, lon, data_abertura, data_agenda,
-                    obs_abertura, sincronizado_em
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    obs_abertura, sincronizado_em, horas_abertas, sla_estourado
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 o['id'], o['id_tecnico'], o['id_cliente'], o['id_contrato_kit'],
                 o['id_assunto'], o['assunto_nome'], o['status'], status_hub,
@@ -69,7 +70,9 @@ def run():
                 str(o['data_abertura'])[:16] if o['data_abertura'] else None,
                 str(o['data_agenda'])[:16] if o['data_agenda'] else None,
                 o['mensagem'],
-                datetime.now().strftime("%d/%m/%Y %H:%M")
+                datetime.now().strftime("%d/%m/%Y %H:%M"),
+                float(o.get('horas_abertas') or 0),
+                1 if float(o.get('horas_abertas') or 0) > 48 else 0
             ))
             novos += 1
         else:
