@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Despacho — Hub Técnico</title>
+<title>Controle de OS — Hub Técnico</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
@@ -92,7 +92,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 <div id="login-page">
   <div class="login-card">
     <div class="login-title">Hub<span>Técnico</span></div>
-    <div class="login-sub">Painel de Despacho — Cliquedf</div>
+    <div class="login-sub">Controle de OS — Cliquedf</div>
     <div class="field">
       <label>Login</label>
       <input type="text" id="inp-login" placeholder="login">
@@ -110,21 +110,37 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 <div id="app-page">
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="topbar-title">Hub<span>Técnico</span> — Despacho</div>
+    <div class="topbar-title">Hub<span>Técnico</span> — Controle de OS</div>
     <div id="tb-hora" style="font-size:.8rem;color:var(--muted)">—</div>
-    <button class="filtro-btn active" id="f-pendente" onclick="toggleFiltro('pendente',this)">🔴 Pendentes <span class="badge" id="cnt-pendente">0</span></button>
-    <button class="filtro-btn active" id="f-deslocamento" onclick="toggleFiltro('deslocamento',this)">🟡 Deslocamento <span class="badge" id="cnt-deslocamento">0</span></button>
-    <button class="filtro-btn active" id="f-execucao" onclick="toggleFiltro('execucao',this)">🔵 Execução <span class="badge" id="cnt-execucao">0</span></button>
-    <button class="filtro-btn" id="f-finalizada" onclick="toggleFiltro('finalizada',this)">✅ Finalizadas <span class="badge" id="cnt-finalizada">0</span></button>
-    <button class="filtro-btn active" id="f-tecnicos" onclick="toggleFiltro('tecnicos',this)">🚗 Técnicos</button>
-    <button class="btn btn-sm btn-outline" onclick="carregarDados()">↻ Atualizar</button>
-    <button class="btn btn-sm btn-outline" onclick="logout()">Sair</button>
+    <div style="display:flex;gap:4px;align-items:center">
+      <span style="font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase">Status:</span>
+      <button class="filtro-btn active" id="f-pendente" onclick="toggleStatus('pendente',this)">🔴 Pendentes <span class="badge" id="cnt-pendente">0</span></button>
+      <button class="filtro-btn active" id="f-deslocamento" onclick="toggleStatus('deslocamento',this)">🟡 Deslocamento <span class="badge" id="cnt-deslocamento">0</span></button>
+      <button class="filtro-btn active" id="f-agendada" onclick="toggleStatus('agendada',this)">📅 Agendada <span class="badge" id="cnt-agendada">0</span></button>
+      <button class="filtro-btn active" id="f-execucao" onclick="toggleStatus('execucao',this)">🔵 Execução <span class="badge" id="cnt-execucao">0</span></button>
+      <button class="filtro-btn" id="f-finalizada" onclick="toggleStatus('finalizada',this)">✅ Finalizadas <span class="badge" id="cnt-finalizada">0</span></button>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center">
+      <span style="font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase">Tipo:</span>
+      <button class="filtro-btn active" id="ft-suporte" onclick="toggleTipo('suporte',this)">🔧 Suporte</button>
+      <button class="filtro-btn active" id="ft-instalacao" onclick="toggleTipo('instalacao',this)">⚡ Instalação</button>
+      <button class="filtro-btn active" id="ft-infra" onclick="toggleTipo('infra',this)">🏗️ Infra</button>
+      <button class="filtro-btn active" id="ft-retirada" onclick="toggleTipo('retirada',this)">📦 Retirada</button>
+      <button class="filtro-btn active" id="ft-retencao" onclick="toggleTipo('retencao',this)">🤝 Retenção</button>
+      <button class="filtro-btn active" id="ft-default" onclick="toggleTipo('default',this)">📋 Outros</button>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;margin-left:auto">
+      <button class="filtro-btn active" id="f-tecnicos" onclick="toggleTecnicos(this)">🚗 Técnicos</button>
+      <button class="btn btn-sm btn-outline" onclick="carregarDados()">↻ Atualizar</button>
+      <button class="btn btn-sm btn-outline" onclick="logout()">Sair</button>
+    </div>
   </div>
 
   <!-- STATS -->
   <div class="stats-bar">
     <div class="stat"><span class="stat-num r" id="st-pendente">0</span> Pendentes</div>
     <div class="stat"><span class="stat-num y" id="st-deslocamento">0</span> Deslocamento</div>
+    <div class="stat"><span class="stat-num" style="color:#a855f7" id="st-agendada">0</span> Agendada</div>
     <div class="stat"><span class="stat-num b" id="st-execucao">0</span> Execução</div>
     <div class="stat"><span class="stat-num g" id="st-finalizada">0</span> Finalizadas</div>
     <div class="stat" style="margin-left:auto"><span class="stat-num" id="st-tecnicos">0</span> Técnicos ativos</div>
@@ -344,20 +360,28 @@ async function carregarDados() {
 }
 
 function atualizarStats(s) {
-  document.getElementById('st-pendente').textContent = s.pendentes||0;
-  document.getElementById('st-deslocamento').textContent = s.deslocamento||0;
-  document.getElementById('st-execucao').textContent = s.execucao||0;
-  document.getElementById('st-finalizada').textContent = s.finalizadas||0;
+  // Contar direto do cache para precisão
+  const cnt = {pendente:0, deslocamento:0, agendada:0, reagendada:0, execucao:0, finalizada:0};
+  osCache.forEach(o => { if(cnt[o.status_hub]!==undefined) cnt[o.status_hub]++; });
+  document.getElementById('st-pendente').textContent = cnt.pendente;
+  document.getElementById('st-deslocamento').textContent = cnt.deslocamento;
+  document.getElementById('st-agendada').textContent = (cnt.agendada||0)+(cnt.reagendada||0);
+  document.getElementById('st-execucao').textContent = cnt.execucao;
+  document.getElementById('st-finalizada').textContent = cnt.finalizada;
   document.getElementById('st-tecnicos').textContent = tecnicosCache.length;
-  document.getElementById('cnt-pendente').textContent = s.pendentes||0;
-  document.getElementById('cnt-deslocamento').textContent = s.deslocamento||0;
-  document.getElementById('cnt-execucao').textContent = s.execucao||0;
-  document.getElementById('cnt-finalizada').textContent = s.finalizadas||0;
+  document.getElementById('cnt-pendente').textContent = cnt.pendente;
+  document.getElementById('cnt-deslocamento').textContent = cnt.deslocamento;
+  document.getElementById('cnt-agendada').textContent = (cnt.agendada||0)+(cnt.reagendada||0);
+  document.getElementById('cnt-execucao').textContent = cnt.execucao;
+  document.getElementById('cnt-finalizada').textContent = cnt.finalizada;
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────
 function renderSidebar() {
-  const filtradas = osCache.filter(o => filtros.has(o.status_hub));
+  const filtradas = osCache.filter(o => {
+    const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
+    return filtrosStatus.has(o.status_hub) && filtrosTipo.has(tipo);
+  });
   const lista = document.getElementById('lista-os');
   if (!filtradas.length) { lista.innerHTML='<div style="padding:20px;color:var(--muted);font-size:.85rem;text-align:center">Nenhuma OS</div>'; return; }
   lista.innerHTML = filtradas.map(o => `
@@ -384,7 +408,8 @@ function renderMapa() {
 
   // OS
   osCache.forEach(o => {
-    if (!filtros.has(o.status_hub)) return;
+    const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
+    if (!filtrosStatus.has(o.status_hub) || !filtrosTipo.has(tipo)) return;
     if (!o.lat || !o.lon) return;
     const m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub, o.id_assunto, o.sla_estourado)})
       .addTo(mapa)
@@ -394,7 +419,7 @@ function renderMapa() {
   });
 
   // Técnicos
-  if (filtros.has('tecnicos')) {
+  if (mostrarTecnicos) {
     tecnicosCache.forEach(t => {
       if (!t.lat || !t.lon) return;
       const m = L.marker([t.lat, t.lon], {icon: iconeTecnico(t.status_tecnico)})
@@ -498,12 +523,32 @@ async function atribuirOS(id_tecnico) {
 function fecharModal() { document.getElementById('modal-atribuir').style.display='none'; }
 
 // ── FILTROS ───────────────────────────────────────────────────
-function toggleFiltro(tipo, btn) {
-  if (filtros.has(tipo)) filtros.delete(tipo);
-  else filtros.add(tipo);
-  btn.classList.toggle('active', filtros.has(tipo));
-  renderSidebar();
+let filtrosStatus = new Set(['pendente','deslocamento','agendada','reagendada','execucao']);
+let filtrosTipo = new Set(['suporte','instalacao','infra','retirada','retencao','default']);
+let mostrarTecnicos = true;
+
+function toggleStatus(status, btn) {
+  if (filtrosStatus.has(status)) filtrosStatus.delete(status);
+  else filtrosStatus.add(status);
+  btn.classList.toggle('active', filtrosStatus.has(status));
+  renderSidebar(); renderMapa();
+}
+
+function toggleTipo(tipo, btn) {
+  if (filtrosTipo.has(tipo)) filtrosTipo.delete(tipo);
+  else filtrosTipo.add(tipo);
+  btn.classList.toggle('active', filtrosTipo.has(tipo));
+  renderSidebar(); renderMapa();
+}
+
+function toggleTecnicos(btn) {
+  mostrarTecnicos = !mostrarTecnicos;
+  btn.classList.toggle('active', mostrarTecnicos);
   renderMapa();
+}
+
+function toggleFiltro(tipo, btn) {
+  toggleStatus(tipo, btn);
 }
 
 // ── HELPERS ──────────────────────────────────────────────────

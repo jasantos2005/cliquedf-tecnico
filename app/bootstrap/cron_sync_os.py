@@ -30,6 +30,7 @@ def run():
         JOIN cliente cl ON cl.id = o.id_cliente
         JOIN su_oss_assunto a ON a.id = o.id_assunto
         WHERE o.status IN ('A','EN','AG','RAG')
+          AND (o.id_tecnico = 0 OR o.id_tecnico IN (13,17,32,35,47,50,55,56,60,46))
           AND o.id_assunto IN (15,16,17,18,19,20,21,22,39,49,53,89,110,111,226,227)
 
     """)
@@ -39,13 +40,26 @@ def run():
     atualizados = 0
 
     for o in os_rows:
-        status_hub = {
-            'A':   'pendente',
-            'EN':  'deslocamento',
-            'AG':  'agendada',
-            'RAG': 'reagendada',
-            'F':   'finalizada'
-        }.get(o['status'], 'pendente')
+        # Status IXC:
+        # A = Aberta (sem técnico = pendente)
+        # AG = Agendada (tem técnico + data)
+        # EN = Encaminhada (técnico atribuído, a caminho)
+        # RAG = Reagendada
+        # F = Finalizada
+        tem_tecnico = o['id_tecnico'] and int(o['id_tecnico']) > 0
+        status_ixc = o['status']
+        if status_ixc == 'F':
+            status_hub = 'finalizada'
+        elif status_ixc == 'AG':
+            status_hub = 'agendada'
+        elif status_ixc == 'RAG':
+            status_hub = 'reagendada'
+        elif status_ixc == 'EN' and tem_tecnico:
+            status_hub = 'deslocamento'
+        elif status_ixc == 'A' and tem_tecnico:
+            status_hub = 'execucao'
+        else:
+            status_hub = 'pendente'
 
         existente = db.execute(
             "SELECT id, status_hub FROM ht_os WHERE ixc_os_id=?", (o['id'],)
