@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Despacho — Hub Técnico</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{--bg:#0d0f14;--surface:#151920;--surface2:#1c2230;--border:#252d3d;--accent:#e8521a;--accent2:#ff6b35;--text:#e8eaf0;--muted:#6b7590;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--blue:#3b82f6;--r:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+/* LOGIN */
+#login-page{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:32px}
+.login-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px}
+.login-title{font-size:1.3rem;font-weight:800;margin-bottom:4px}
+.login-title span{color:var(--accent2)}
+.login-sub{font-size:.8rem;color:var(--muted);margin-bottom:24px}
+.field label{display:block;font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:5px}
+.field input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.95rem;padding:10px 12px;outline:none;margin-bottom:12px}
+.field input:focus{border-color:var(--accent)}
+.btn{padding:11px 20px;border-radius:8px;font-size:.88rem;font-weight:700;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-green{background:var(--green);color:#000}
+.btn-sm{padding:6px 14px;font-size:.78rem}
+/* APP */
+#app-page{display:none;height:100vh;flex-direction:column}
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.topbar-title{font-size:1rem;font-weight:800;margin-right:auto}
+.topbar-title span{color:var(--accent2)}
+/* FILTROS */
+.filtro-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.filtro-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(232,82,26,.1)}
+.filtro-btn .badge{background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;font-size:.68rem}
+/* LAYOUT */
+.main-layout{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+.sidebar{width:320px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-head{padding:12px 14px;border-bottom:1px solid var(--border);font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.sidebar-body{flex:1;overflow-y:auto}
+.sidebar-body::-webkit-scrollbar{width:3px}
+.sidebar-body::-webkit-scrollbar-thumb{background:var(--border)}
+/* OS ITEMS */
+.os-item{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.os-item:hover{background:var(--surface2)}
+.os-item.selected{background:rgba(232,82,26,.08);border-left:3px solid var(--accent)}
+.os-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.os-num{font-size:.72rem;color:var(--muted)}
+.os-status-badge{padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:700}
+.badge-pendente{background:rgba(245,158,11,.15);color:var(--yellow)}
+.badge-deslocamento{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-execucao{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-finalizada{background:rgba(107,117,144,.15);color:var(--muted)}
+.os-cliente{font-size:.88rem;font-weight:700;margin-bottom:2px}
+.os-end{font-size:.75rem;color:var(--muted);margin-bottom:4px}
+.os-meta{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted)}
+/* MAPA */
+#mapa{flex:1}
+/* PAINEL LATERAL DIREITO */
+.detail-panel{width:300px;background:var(--surface);border-left:1px solid var(--border);display:none;flex-direction:column;overflow-y:auto}
+.detail-panel.open{display:flex}
+.detail-head{padding:14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.detail-title{font-size:.92rem;font-weight:800}
+.detail-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem}
+.detail-body{padding:14px;flex:1}
+.detail-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:.83rem}
+.detail-row:last-child{border-bottom:none}
+.detail-row label{color:var(--muted)}
+/* STATS BAR */
+.stats-bar{display:flex;gap:16px;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0}
+.stat{display:flex;align-items:center;gap:6px;font-size:.8rem}
+.stat-num{font-weight:900;font-size:1rem}
+.stat-num.r{color:var(--red)}.stat-num.y{color:var(--yellow)}.stat-num.g{color:var(--green)}.stat-num.b{color:var(--blue)}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;max-width:420px;width:100%}
+.modal-title{font-size:1rem;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between}
+.tecnico-option{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:all .15s}
+.tecnico-option:hover{border-color:var(--accent);background:rgba(232,82,26,.08)}
+.tecnico-option.best{border-color:var(--green);background:rgba(34,197,94,.08)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 18px;font-size:.85rem;font-weight:600;z-index:9999}
+.toast.ok{border-color:var(--green);color:var(--green)}.toast.err{border-color:var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-title">Hub<span>Técnico</span></div>
+    <div class="login-sub">Painel de Despacho — Cliquedf</div>
+    <div class="field">
+      <label>Login</label>
+      <input type="text" id="inp-login" placeholder="login">
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="inp-senha" placeholder="••••••" onkeydown="if(event.key==='Enter')fazerLogin()">
+    </div>
+    <div id="login-err" style="color:var(--red);font-size:.8rem;margin-bottom:10px;display:none"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="fazerLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-page">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title">Hub<span>Técnico</span> — Despacho</div>
+    <div id="tb-hora" style="font-size:.8rem;color:var(--muted)">—</div>
+    <button class="filtro-btn active" id="f-pendente" onclick="toggleFiltro('pendente',this)">🔴 Pendentes <span class="badge" id="cnt-pendente">0</span></button>
+    <button class="filtro-btn active" id="f-deslocamento" onclick="toggleFiltro('deslocamento',this)">🟡 Deslocamento <span class="badge" id="cnt-deslocamento">0</span></button>
+    <button class="filtro-btn active" id="f-execucao" onclick="toggleFiltro('execucao',this)">🔵 Execução <span class="badge" id="cnt-execucao">0</span></button>
+    <button class="filtro-btn" id="f-finalizada" onclick="toggleFiltro('finalizada',this)">✅ Finalizadas <span class="badge" id="cnt-finalizada">0</span></button>
+    <button class="filtro-btn active" id="f-tecnicos" onclick="toggleFiltro('tecnicos',this)">🚗 Técnicos</button>
+    <button class="btn btn-sm btn-outline" onclick="carregarDados()">↻ Atualizar</button>
+    <button class="btn btn-sm btn-outline" onclick="logout()">Sair</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-num r" id="st-pendente">0</span> Pendentes</div>
+    <div class="stat"><span class="stat-num y" id="st-deslocamento">0</span> Deslocamento</div>
+    <div class="stat"><span class="stat-num b" id="st-execucao">0</span> Execução</div>
+    <div class="stat"><span class="stat-num g" id="st-finalizada">0</span> Finalizadas</div>
+    <div class="stat" style="margin-left:auto"><span class="stat-num" id="st-tecnicos">0</span> Técnicos ativos</div>
+  </div>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="main-layout">
+    <!-- SIDEBAR OS -->
+    <div class="sidebar">
+      <div class="sidebar-head">OS do dia</div>
+      <div class="sidebar-body" id="lista-os"></div>
+    </div>
+
+    <!-- MAPA -->
+    <div id="mapa"></div>
+
+    <!-- PAINEL DETALHE -->
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-head">
+        <div class="detail-title" id="detail-title">Detalhes</div>
+        <button class="detail-close" onclick="fecharDetalhe()">✕</button>
+      </div>
+      <div class="detail-body" id="detail-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ATRIBUIR -->
+<div class="modal-bg" id="modal-atribuir" style="display:none">
+  <div class="modal">
+    <div class="modal-title">
+      <span>👷 Atribuir OS</span>
+      <button onclick="fecharModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+    </div>
+    <div id="modal-os-info" style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:14px;font-size:.85rem"></div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px;font-weight:700">TÉCNICOS DISPONÍVEIS</div>
+    <div id="lista-tecnicos-modal"></div>
+  </div>
+</div>
+
+<script>
+// ── ESTADO ──────────────────────────────────────────────────
+let usuario = null;
+let mapa = null;
+let marcadores = {};
+let marcadoresTec = {};
+let osCache = [];
+let tecnicosCache = [];
+let filtros = new Set(['pendente','deslocamento','execucao','tecnicos']);
+let osAtribuirId = null;
+
+// ── AUTH ─────────────────────────────────────────────────────
+function token() { return localStorage.getItem('ht_despacho_token') || ''; }
+
+function api(path, opts={}) {
+  return fetch(path, {
+    ...opts,
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token(),...(opts.headers||{})}
+  }).then(r=>r.json());
+}
+
+async function fazerLogin() {
+  const login = document.getElementById('inp-login').value.trim();
+  const senha = document.getElementById('inp-senha').value;
+  const err = document.getElementById('login-err');
+  try {
+    const r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login,senha})}).then(r=>r.json());
+    if (r.detail){err.textContent=r.detail;err.style.display='block';return;}
+    if (r.usuario.nivel < 50){err.textContent='Acesso restrito ao supervisor';err.style.display='block';return;}
+    localStorage.setItem('ht_despacho_token', r.token);
+    localStorage.setItem('ht_despacho_usuario', JSON.stringify(r.usuario));
+    usuario = r.usuario;
+    iniciarApp();
+  } catch(e){err.textContent='Erro de conexão';err.style.display='block';}
+}
+
+function logout(){localStorage.removeItem('ht_despacho_token');location.reload();}
+
+// ── INIT ─────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const t = localStorage.getItem('ht_despacho_token');
+  const u = localStorage.getItem('ht_despacho_usuario');
+  if (t && u) { usuario=JSON.parse(u); iniciarApp(); }
+  setInterval(()=>{
+    const now = new Date();
+    document.getElementById('tb-hora').textContent = now.toLocaleTimeString('pt-BR');
+  }, 1000);
+});
+
+function iniciarApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'flex';
+  iniciarMapa();
+  carregarDados();
+  setInterval(carregarDados, 15000);
+}
+
+// ── MAPA ─────────────────────────────────────────────────────
+function iniciarMapa() {
+  mapa = L.map('mapa').setView([-15.7942, -47.8825], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap', maxZoom:19
+  }).addTo(mapa);
+}
+
+function iconeOS(status) {
+  const cores = {pendente:'#ef4444',deslocamento:'#f59e0b',execucao:'#3b82f6',finalizada:'#22c55e'};
+  const cor = cores[status] || '#6b7590';
+  return L.divIcon({
+    className:'',
+    html:`<div style="background:${cor};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+    iconSize:[14,14], iconAnchor:[7,7]
+  });
+}
+
+function iconeTecnico(status) {
+  const emoji = status==='atendimento'?'🔧':status==='em_rota'?'🚗':'🅿️';
+  return L.divIcon({
+    className:'',
+    html:`<div style="background:#1c2230;border:2px solid #e8521a;border-radius:8px;padding:2px 6px;font-size:16px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5)">${emoji}</div>`,
+    iconSize:[36,28], iconAnchor:[18,14]
+  });
+}
+
+// ── DADOS ─────────────────────────────────────────────────────
+async function carregarDados() {
+  try {
+    const [dados, gps] = await Promise.all([
+      api('/api/despacho/mapa'),
+      api('/api/gps/posicoes')
+    ]);
+    osCache = dados.os || [];
+    tecnicosCache = gps || [];
+    atualizarStats(dados.stats || {});
+    renderSidebar();
+    renderMapa();
+  } catch(e) { console.log('Erro ao carregar:', e); }
+}
+
+function atualizarStats(s) {
+  document.getElementById('st-pendente').textContent = s.pendentes||0;
+  document.getElementById('st-deslocamento').textContent = s.deslocamento||0;
+  document.getElementById('st-execucao').textContent = s.execucao||0;
+  document.getElementById('st-finalizada').textContent = s.finalizadas||0;
+  document.getElementById('st-tecnicos').textContent = tecnicosCache.length;
+  document.getElementById('cnt-pendente').textContent = s.pendentes||0;
+  document.getElementById('cnt-deslocamento').textContent = s.deslocamento||0;
+  document.getElementById('cnt-execucao').textContent = s.execucao||0;
+  document.getElementById('cnt-finalizada').textContent = s.finalizadas||0;
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────
+function renderSidebar() {
+  const filtradas = osCache.filter(o => filtros.has(o.status_hub));
+  const lista = document.getElementById('lista-os');
+  if (!filtradas.length) { lista.innerHTML='<div style="padding:20px;color:var(--muted);font-size:.85rem;text-align:center">Nenhuma OS</div>'; return; }
+  lista.innerHTML = filtradas.map(o => `
+    <div class="os-item" onclick="selecionarOS(${o.ixc_os_id})" id="osi-${o.ixc_os_id}">
+      <div class="os-item-top">
+        <span class="os-num">OS #${o.ixc_os_id}</span>
+        <span class="os-status-badge badge-${o.status_hub}">${labelStatus(o.status_hub)}</span>
+      </div>
+      <div class="os-cliente">${o.cliente_nome||'—'}</div>
+      <div class="os-end">📍 ${o.endereco||'—'} ${o.bairro?'· '+o.bairro:''}</div>
+      <div class="os-meta">
+        <span>${o.assunto_nome||'—'}</span>
+        <span>${o.tecnico_nome||'Sem técnico'}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── MAPA MARKERS ─────────────────────────────────────────────
+function renderMapa() {
+  // Limpar markers antigos
+  Object.values(marcadores).forEach(m => mapa.removeLayer(m));
+  Object.values(marcadoresTec).forEach(m => mapa.removeLayer(m));
+  marcadores = {}; marcadoresTec = {};
+
+  // OS
+  osCache.forEach(o => {
+    if (!filtros.has(o.status_hub)) return;
+    if (!o.lat || !o.lon) return;
+    const m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub)})
+      .addTo(mapa)
+      .bindTooltip(`<b>OS #${o.ixc_os_id}</b><br>${o.cliente_nome}<br>${o.assunto_nome}`, {direction:'top'})
+      .on('click', () => selecionarOS(o.ixc_os_id));
+    marcadores[o.ixc_os_id] = m;
+  });
+
+  // Técnicos
+  if (filtros.has('tecnicos')) {
+    tecnicosCache.forEach(t => {
+      if (!t.lat || !t.lon) return;
+      const m = L.marker([t.lat, t.lon], {icon: iconeTecnico(t.status_tecnico)})
+        .addTo(mapa)
+        .bindTooltip(`<b>${t.tecnico_nome}</b><br>${t.velocidade||0} km/h<br>${t.registrado_em||''}`, {direction:'top'})
+        .on('click', () => mostrarDetalhesTecnico(t));
+      marcadoresTec[t.id_tecnico] = m;
+    });
+  }
+}
+
+// ── SELECIONAR OS ─────────────────────────────────────────────
+function selecionarOS(ixc_os_id) {
+  const os = osCache.find(o=>o.ixc_os_id===ixc_os_id);
+  if (!os) return;
+  document.querySelectorAll('.os-item').forEach(i=>i.classList.remove('selected'));
+  document.getElementById('osi-'+ixc_os_id)?.classList.add('selected');
+  if (os.lat && os.lon) mapa.setView([os.lat, os.lon], 15);
+  mostrarDetalhesOS(os);
+}
+
+function mostrarDetalhesOS(os) {
+  const panel = document.getElementById('detail-panel');
+  document.getElementById('detail-title').textContent = 'OS #'+os.ixc_os_id;
+  document.getElementById('detail-body').innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:.95rem;margin-bottom:4px">${os.cliente_nome}</div>
+      <div style="font-size:.82rem;color:var(--muted)">📍 ${os.endereco||'—'} ${os.bairro?'· '+os.bairro:''}</div>
+      ${os.telefone?`<div style="font-size:.82rem;margin-top:4px">📞 ${os.telefone}</div>`:''}
+    </div>
+    <div style="margin-bottom:14px">
+      <div class="detail-row"><label>Assunto</label><span>${os.assunto_nome||'—'}</span></div>
+      <div class="detail-row"><label>Status</label><span>${labelStatus(os.status_hub)}</span></div>
+      <div class="detail-row"><label>Técnico</label><span>${os.tecnico_nome||'Não atribuído'}</span></div>
+      <div class="detail-row"><label>Abertura</label><span>${(os.data_abertura||'—').substring(0,16)}</span></div>
+      ${os.data_agenda?`<div class="detail-row"><label>Agendada</label><span>${os.data_agenda.substring(0,16)}</span></div>`:''}
+    </div>
+    ${os.obs_abertura?`<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:.8rem;color:var(--muted);margin-bottom:14px">${os.obs_abertura}</div>`:''}
+    <div style="display:grid;gap:8px">
+      ${os.status_hub==='pendente'?`<button class="btn btn-primary" style="width:100%" onclick="abrirAtribuir(${os.ixc_os_id})">👷 Atribuir técnico</button>`:''}
+      ${os.lat&&os.lon?`<button class="btn btn-outline" style="width:100%" onclick="mapa.setView([${os.lat},${os.lon}],16)">📍 Centralizar no mapa</button>`:''}
+    </div>`;
+  panel.classList.add('open');
+}
+
+function mostrarDetalhesTecnico(t) {
+  const panel = document.getElementById('detail-panel');
+  document.getElementById('detail-title').textContent = t.tecnico_nome;
+  const osAtivas = osCache.filter(o=>o.id_tecnico && o.tecnico_nome===t.tecnico_nome && o.status_hub!=='finalizada');
+  document.getElementById('detail-body').innerHTML = `
+    <div style="margin-bottom:14px">
+      <div class="detail-row"><label>Status</label><span>${labelStatusTec(t.status_tecnico)}</span></div>
+      <div class="detail-row"><label>Velocidade</label><span>${t.velocidade||0} km/h</span></div>
+      <div class="detail-row"><label>Última pos.</label><span>${(t.registrado_em||'—').substring(0,16)}</span></div>
+      <div class="detail-row"><label>OS ativas</label><span>${osAtivas.length}</span></div>
+    </div>
+    ${osAtivas.length?`
+    <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">OS em aberto</div>
+    ${osAtivas.map(o=>`
+      <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer" onclick="selecionarOS(${o.ixc_os_id})">
+        <div style="font-size:.8rem;font-weight:700">OS #${o.ixc_os_id}</div>
+        <div style="font-size:.75rem;color:var(--muted)">${o.cliente_nome} — ${labelStatus(o.status_hub)}</div>
+      </div>`).join('')}`:''}`;
+  panel.classList.add('open');
+}
+
+function fecharDetalhe() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.querySelectorAll('.os-item').forEach(i=>i.classList.remove('selected'));
+}
+
+// ── ATRIBUIR OS ───────────────────────────────────────────────
+async function abrirAtribuir(ixc_os_id) {
+  osAtribuirId = ixc_os_id;
+  const os = osCache.find(o=>o.ixc_os_id===ixc_os_id);
+  document.getElementById('modal-os-info').innerHTML = `
+    <b>OS #${ixc_os_id}</b> — ${os?.assunto_nome||'—'}<br>
+    <span style="color:var(--muted)">${os?.cliente_nome} · ${os?.endereco||'—'}</span>`;
+  try {
+    const sugestoes = await api('/api/despacho/sugerir-tecnico/'+ixc_os_id);
+    document.getElementById('lista-tecnicos-modal').innerHTML = sugestoes.map((t,i)=>`
+      <div class="tecnico-option ${i===0?'best':''}" onclick="atribuirOS(${t.id})">
+        <div>
+          <div style="font-weight:700;font-size:.88rem">${i===0?'⭐ ':''} ${t.nome}</div>
+          <div style="font-size:.75rem;color:var(--muted)">${t.distancia_km} km · ${t.os_ativas} OS ativas</div>
+        </div>
+        <button class="btn btn-sm btn-primary">Atribuir</button>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:.85rem">Nenhum técnico disponível</div>';
+  } catch(e) {}
+  document.getElementById('modal-atribuir').style.display = 'flex';
+}
+
+async function atribuirOS(id_tecnico) {
+  await api('/api/os/'+osAtribuirId+'/atribuir',{method:'POST',body:JSON.stringify({id_tecnico})});
+  fecharModal();
+  fecharDetalhe();
+  carregarDados();
+  toast('OS atribuída com sucesso!','ok');
+}
+
+function fecharModal() { document.getElementById('modal-atribuir').style.display='none'; }
+
+// ── FILTROS ───────────────────────────────────────────────────
+function toggleFiltro(tipo, btn) {
+  if (filtros.has(tipo)) filtros.delete(tipo);
+  else filtros.add(tipo);
+  btn.classList.toggle('active', filtros.has(tipo));
+  renderSidebar();
+  renderMapa();
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function labelStatus(s) {
+  return {pendente:'🔴 Pendente',deslocamento:'🟡 Deslocamento',execucao:'🔵 Execução',finalizada:'✅ Finalizada'}[s]||s;
+}
+function labelStatusTec(s) {
+  return {livre:'🅿️ Livre',em_rota:'🚗 Em rota',atendimento:'🔧 Em atendimento',offline:'📵 Offline'}[s]||s;
+}
+
+function toast(msg, tipo='ok') {
+  const t = document.createElement('div');
+  t.className='toast '+tipo; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},2500);
+}
+</script>
+</body>
+</html>

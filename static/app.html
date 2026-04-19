@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0f14">
+<title>Hub Técnico</title>
+<style>
+:root{--bg:#0d0f14;--surface:#151920;--surface2:#1c2230;--border:#252d3d;--accent:#e8521a;--accent2:#ff6b35;--text:#e8eaf0;--muted:#6b7590;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--r:12px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto}
+/* LOGIN */
+#login-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 20px}
+.login-logo{font-size:2rem;font-weight:900;margin-bottom:8px}
+.login-logo span{color:var(--accent2)}
+.login-sub{font-size:.85rem;color:var(--muted);margin-bottom:32px}
+.login-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.field input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1rem;padding:12px 14px;outline:none}
+.field input:focus{border-color:var(--accent)}
+.btn{width:100%;padding:14px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:active{opacity:.85}
+.btn-green{background:var(--green);color:#000}
+.btn-red{background:var(--red);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+/* APP */
+#app-page{display:none;padding-bottom:80px}
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.topbar-title{font-size:1rem;font-weight:700}
+.online-badge{display:flex;align-items:center;gap:6px;font-size:.75rem;font-weight:600}
+.online-dot{width:8px;height:8px;border-radius:50%}
+.online-dot.online{background:var(--green)}
+.online-dot.offline{background:var(--red)}
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100}
+.nav-btn{flex:1;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:.65rem;font-weight:600;transition:color .15s}
+.nav-btn.active{color:var(--accent2)}
+.nav-btn svg{width:22px;height:22px}
+/* PAGES */
+.page{display:none;padding:16px 20px}
+.page.active{display:block}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.card-head{padding:10px 14px;background:var(--surface2);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border)}
+.card-body{padding:14px}
+/* OS CARD */
+.os-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.os-card:active{border-color:var(--accent)}
+.os-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.os-num{font-size:.8rem;color:var(--muted)}
+.os-status{padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700}
+.os-status.pendente{background:rgba(245,158,11,.15);color:var(--yellow)}
+.os-status.deslocamento{background:rgba(59,130,246,.15);color:#3b82f6}
+.os-status.execucao{background:rgba(34,197,94,.15);color:var(--green)}
+.os-status.finalizada{background:rgba(107,117,144,.15);color:var(--muted)}
+.os-cliente{font-size:.95rem;font-weight:700;margin-bottom:4px}
+.os-end{font-size:.8rem;color:var(--muted);margin-bottom:6px}
+.os-assunto{display:inline-block;padding:3px 10px;background:rgba(232,82,26,.15);color:var(--accent2);border-radius:20px;font-size:.72rem;font-weight:700}
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center}
+.kpi-num{font-size:1.8rem;font-weight:900;line-height:1}
+.kpi-label{font-size:.72rem;color:var(--muted);margin-top:4px}
+/* STEPS */
+.steps{display:flex;gap:4px;margin-bottom:20px}
+.step{flex:1;height:4px;border-radius:2px;background:var(--border)}
+.step.done{background:var(--green)}
+.step.active{background:var(--accent)}
+/* CHECKLIST */
+.chk-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.chk-item:last-child{border-bottom:none}
+.chk-item input{width:18px;height:18px;accent-color:var(--green);flex-shrink:0;margin-top:2px}
+.chk-item label{font-size:.88rem;cursor:pointer;line-height:1.4}
+/* FOTO */
+.foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.foto-box{aspect-ratio:1;background:var(--surface2);border:2px dashed var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative}
+.foto-box img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.foto-box-icon{font-size:1.8rem;margin-bottom:4px}
+.foto-box-label{font-size:.72rem;color:var(--muted)}
+/* ASSINATURA */
+#canvas-assinatura{background:#fff;border-radius:10px;width:100%;touch-action:none}
+/* MISC */
+textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.9rem;padding:10px 12px;outline:none;font-family:inherit;resize:vertical}
+textarea:focus,select:focus{border-color:var(--accent)}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:.9rem}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:.85rem;font-weight:600;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end}
+.modal{background:var(--surface);border-radius:var(--r) var(--r) 0 0;padding:24px 20px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:1rem;font-weight:800;margin-bottom:16px}
+.sep{height:1px;background:var(--border);margin:12px 0}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div class="login-logo">Hub<span>Técnico</span></div>
+  <div class="login-sub">Cliquedf Telecom</div>
+  <div class="login-card">
+    <div class="field"><label>Login</label><input type="text" id="inp-login" placeholder="seu.login"></div>
+    <div class="field"><label>Senha</label><input type="password" id="inp-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+    <div id="login-err" style="color:var(--red);font-size:.82rem;margin-bottom:12px;display:none"></div>
+    <button class="btn btn-primary" onclick="fazerLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-page">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="tb-nome">Técnico</div>
+      <div style="font-size:.72rem;color:var(--muted)" id="tb-data">—</div>
+    </div>
+    <div class="online-badge">
+      <div class="online-dot" id="online-dot"></div>
+      <span id="online-label">—</span>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="page-home" class="page active">
+    <div class="kpi-row" id="home-kpis">
+      <div class="kpi"><div class="kpi-num" id="kpi-pendentes">0</div><div class="kpi-label">Pendentes</div></div>
+      <div class="kpi"><div class="kpi-num" id="kpi-finalizadas" style="color:var(--green)">0</div><div class="kpi-label">Finalizadas hoje</div></div>
+    </div>
+    <div id="home-proxima"></div>
+    <div style="margin-top:16px">
+      <button class="btn btn-outline" onclick="navTo('os')">Ver todas as OS →</button>
+    </div>
+  </div>
+
+  <!-- OS -->
+  <div id="page-os" class="page">
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Suas ordens de serviço</div>
+    <div id="lista-os"></div>
+  </div>
+
+  <!-- ESTOQUE -->
+  <div id="page-estoque" class="page">
+    <div class="card">
+      <div class="card-head">📦 Meu Estoque</div>
+      <div class="card-body" id="lista-estoque"><div class="loading">Carregando...</div></div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:8px" onclick="abrirRequisicao()">+ Fazer Requisição</button>
+  </div>
+
+  <!-- PERFIL -->
+  <div id="page-perfil" class="page">
+    <div class="card">
+      <div class="card-body">
+        <div style="font-size:1.1rem;font-weight:800;margin-bottom:4px" id="perfil-nome">—</div>
+        <div style="font-size:.8rem;color:var(--muted)" id="perfil-login">—</div>
+      </div>
+    </div>
+    <button class="btn btn-outline" style="margin-bottom:10px" onclick="location.reload()">Sincronizar dados</button>
+    <button class="btn btn-red" onclick="logout()">Sair</button>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-home" onclick="navTo('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Início
+    </button>
+    <button class="nav-btn" id="nav-os" onclick="navTo('os')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      OS
+    </button>
+    <button class="nav-btn" id="nav-estoque" onclick="navTo('estoque');carregarEstoque()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+      Estoque
+    </button>
+    <button class="nav-btn" id="nav-perfil" onclick="navTo('perfil')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Perfil
+    </button>
+  </div>
+</div>
+
+<!-- MODAL EXECUCAO OS -->
+<div class="modal-bg" id="modal-os" style="display:none">
+  <div class="modal" id="modal-os-content"></div>
+</div>
+
+<script>
+// ── ESTADO ──────────────────────────────────────────────────
+let usuario = null;
+let osData = [];
+let osAtual = null;
+let execStep = 0;
+let execData = { checklist:[], fotos_antes:[], fotos_depois:[], assinatura:null, solucao:'', obs:'', materiais:[] };
+let isOnline = navigator.onLine;
+
+const CHECKLISTS = {
+  20: ['Rádio/ONU offline no sistema','Cliente bloqueado por inadimplência','Queda de energia recente','Roteador ligado (verificar luzes)','Orientado a reiniciar roteador (2min)','Outros dispositivos sem acesso','Cabo conectado corretamente','Problema persiste — técnico necessário'],
+  21: ['Cliente próximo do roteador','Lentidão em todos os dispositivos','Usando Wi-Fi (não cabo)','Teste de velocidade realizado','Franquia verificada no sistema','Muitos dispositivos conectados','Orientado a reiniciar roteador','Problema persiste — técnico necessário'],
+  16: ['Barreira interna (fiação na residência)','Sem sinal na TV','Problema no app/streaming','Equipamento com defeito','Endereço confirmado para visita','Melhor horário confirmado','Descrição detalhada registrada'],
+  248: ['Motivo do cancelamento identificado','Tempo de cliente verificado','Histórico de problemas verificado','Oferta de desconto apresentada','Oferta de upgrade apresentada','Cliente aceitou proposta','Cliente recusou — motivo registrado'],
+  227: ['Equipamentos verificados','Sinal testado','ONU configurada','Velocidade testada','Cliente orientado sobre uso','Assinatura coletada'],
+};
+
+// ── AUTH ─────────────────────────────────────────────────────
+function token() { return localStorage.getItem('ht_token') || ''; }
+
+function api(path, opts={}) {
+  return fetch(path, {
+    ...opts,
+    headers: {'Content-Type':'application/json','Authorization':'Bearer '+token(),...(opts.headers||{})}
+  }).then(r => r.json());
+}
+
+async function fazerLogin() {
+  const login = document.getElementById('inp-login').value.trim();
+  const senha = document.getElementById('inp-senha').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  try {
+    const r = await fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({login, senha})
+    }).then(r=>r.json());
+    if (r.detail) { err.textContent = r.detail; err.style.display='block'; return; }
+    localStorage.setItem('ht_token', r.token);
+    localStorage.setItem('ht_usuario', JSON.stringify(r.usuario));
+    usuario = r.usuario;
+    iniciarApp();
+  } catch(e) { err.textContent='Erro de conexão'; err.style.display='block'; }
+}
+
+function logout() {
+  localStorage.removeItem('ht_token');
+  localStorage.removeItem('ht_usuario');
+  location.reload();
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const t = localStorage.getItem('ht_token');
+  const u = localStorage.getItem('ht_usuario');
+  if (t && u) { usuario = JSON.parse(u); iniciarApp(); }
+
+  window.addEventListener('online',  () => { isOnline=true;  atualizarOnline(); });
+  window.addEventListener('offline', () => { isOnline=false; atualizarOnline(); });
+});
+
+function iniciarApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'block';
+  document.getElementById('tb-nome').textContent = usuario.nome;
+  document.getElementById('tb-data').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('perfil-nome').textContent = usuario.nome;
+  document.getElementById('perfil-login').textContent = 'Login: ' + (usuario.login || '—');
+  atualizarOnline();
+  carregarOS();
+  iniciarGPS();
+}
+
+function atualizarOnline() {
+  const dot = document.getElementById('online-dot');
+  const lbl = document.getElementById('online-label');
+  dot.className = 'online-dot ' + (isOnline ? 'online' : 'offline');
+  lbl.textContent = isOnline ? 'Online' : 'Offline';
+}
+
+// ── NAV ──────────────────────────────────────────────────────
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page)?.classList.add('active');
+}
+
+// ── OS ───────────────────────────────────────────────────────
+async function carregarOS() {
+  try {
+    const rows = await api('/api/os/minhas');
+    osData = rows;
+    renderOS();
+    renderHome();
+  } catch(e) { console.log('Offline — usando cache'); }
+}
+
+function renderOS() {
+  const lista = document.getElementById('lista-os');
+  const ativas = osData.filter(o => o.status_hub !== 'finalizada');
+  if (!ativas.length) { lista.innerHTML = '<div class="empty">Nenhuma OS pendente 🎉</div>'; return; }
+  lista.innerHTML = ativas.map(o => `
+    <div class="os-card" onclick="abrirOS(${o.ixc_os_id})">
+      <div class="os-card-top">
+        <div class="os-num">OS #${o.ixc_os_id}</div>
+        <span class="os-status ${o.status_hub}">${labelStatus(o.status_hub)}</span>
+      </div>
+      <div class="os-cliente">${o.cliente_nome||'—'}</div>
+      <div class="os-end">📍 ${o.endereco||'—'} ${o.bairro?'· '+o.bairro:''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="os-assunto">${o.assunto_nome||'—'}</span>
+        <span style="font-size:.75rem;color:var(--muted)">${(o.data_agenda||o.data_abertura||'').substring(0,16)}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderHome() {
+  const pendentes = osData.filter(o=>o.status_hub==='pendente').length;
+  const finalizadas = osData.filter(o=>o.status_hub==='finalizada').length;
+  document.getElementById('kpi-pendentes').textContent = pendentes;
+  document.getElementById('kpi-finalizadas').textContent = finalizadas;
+
+  const proxima = osData.find(o=>o.status_hub==='deslocamento') ||
+                  osData.find(o=>o.status_hub==='execucao') ||
+                  osData.find(o=>o.status_hub==='pendente');
+  const box = document.getElementById('home-proxima');
+  if (proxima) {
+    box.innerHTML = `
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase">Próxima OS</div>
+      <div class="os-card" onclick="abrirOS(${proxima.ixc_os_id})">
+        <div class="os-card-top">
+          <div class="os-num">OS #${proxima.ixc_os_id}</div>
+          <span class="os-status ${proxima.status_hub}">${labelStatus(proxima.status_hub)}</span>
+        </div>
+        <div class="os-cliente">${proxima.cliente_nome||'—'}</div>
+        <div class="os-end">📍 ${proxima.endereco||'—'}</div>
+        <span class="os-assunto">${proxima.assunto_nome||'—'}</span>
+      </div>`;
+  } else {
+    box.innerHTML = '<div class="empty">Sem OS pendentes hoje 🎉</div>';
+  }
+}
+
+function labelStatus(s) {
+  return {pendente:'⏳ Pendente',deslocamento:'🚗 A caminho',execucao:'🔧 Em execução',finalizada:'✅ Finalizada'}[s]||s;
+}
+
+// ── MODAL OS ─────────────────────────────────────────────────
+async function abrirOS(ixc_os_id) {
+  const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
+  if (!os) return;
+  osAtual = os;
+  const modal = document.getElementById('modal-os');
+  modal.style.display = 'flex';
+
+  if (os.status_hub === 'pendente') renderModalDetalhes(os);
+  else if (os.status_hub === 'deslocamento') renderModalDeslocamento(os);
+  else if (os.status_hub === 'execucao') iniciarExecucao(os);
+  else renderModalFinalizada(os);
+}
+
+function fecharModal() {
+  document.getElementById('modal-os').style.display = 'none';
+}
+
+function renderModalDetalhes(os) {
+  document.getElementById('modal-os-content').innerHTML = `
+    <div class="modal-title">OS #${os.ixc_os_id} — ${os.assunto_nome||'—'}</div>
+    <div style="margin-bottom:12px">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:4px">${os.cliente_nome}</div>
+      <div style="font-size:.85rem;color:var(--muted)">📍 ${os.endereco||'—'}, ${os.bairro||''}</div>
+      ${os.telefone?`<div style="font-size:.85rem;margin-top:4px">📞 <a href="tel:${os.telefone}" style="color:var(--accent2)">${os.telefone}</a></div>`:''}
+      ${os.referencia?`<div style="font-size:.82rem;color:var(--muted);margin-top:4px">🏠 ${os.referencia}</div>`:''}
+    </div>
+    ${os.obs_abertura?`<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:.83rem;margin-bottom:14px;color:var(--muted)">${os.obs_abertura}</div>`:''}
+    <div style="display:grid;gap:8px">
+      <button class="btn btn-primary" onclick="iniciarDeslocamento(${os.ixc_os_id})">🚗 Iniciar deslocamento</button>
+      ${os.endereco?`<button class="btn btn-outline" onclick="abrirMaps('${os.endereco} ${os.bairro||''}')">🗺️ Abrir no Maps</button>`:''}
+      <button class="btn btn-outline" onclick="fecharModal()">Fechar</button>
+    </div>`;
+}
+
+function renderModalDeslocamento(os) {
+  document.getElementById('modal-os-content').innerHTML = `
+    <div class="modal-title">🚗 A caminho — OS #${os.ixc_os_id}</div>
+    <div style="margin-bottom:16px">
+      <div style="font-weight:700">${os.cliente_nome}</div>
+      <div style="font-size:.85rem;color:var(--muted)">📍 ${os.endereco||'—'}</div>
+    </div>
+    <button class="btn btn-green" style="margin-bottom:8px" onclick="iniciarExecucaoBtn(${os.ixc_os_id})">🔧 Cheguei — Iniciar execução</button>
+    <button class="btn btn-outline" onclick="fecharModal()">Fechar</button>`;
+}
+
+function renderModalFinalizada(os) {
+  document.getElementById('modal-os-content').innerHTML = `
+    <div class="modal-title">✅ OS #${os.ixc_os_id} Finalizada</div>
+    <div style="color:var(--green);font-size:.9rem;margin-bottom:16px">Esta OS foi finalizada com sucesso.</div>
+    <button class="btn btn-outline" onclick="fecharModal()">Fechar</button>`;
+}
+
+async function iniciarDeslocamento(ixc_os_id) {
+  await api('/api/os/'+ixc_os_id+'/iniciar-deslocamento', {method:'POST'});
+  const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
+  if (os) os.status_hub = 'deslocamento';
+  renderOS(); renderHome();
+  renderModalDeslocamento(os);
+  toast('Deslocamento iniciado!','ok');
+}
+
+async function iniciarExecucaoBtn(ixc_os_id) {
+  const pos = await getPos();
+  await api('/api/os/'+ixc_os_id+'/iniciar-execucao', {
+    method:'POST', body:JSON.stringify({lat:pos?.lat, lon:pos?.lon})
+  });
+  const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
+  if (os) { os.status_hub = 'execucao'; osAtual = os; }
+  iniciarExecucao(os);
+}
+
+// ── EXECUCAO PASSO A PASSO ───────────────────────────────────
+function iniciarExecucao(os) {
+  execStep = 0;
+  execData = {checklist:[],fotos_antes:[],fotos_depois:[],assinatura:null,solucao:'',obs:'',materiais:[]};
+  renderStep();
+}
+
+const STEPS = ['checklist','fotos_antes','solucao','fotos_depois','assinatura','finalizar'];
+
+function renderStep() {
+  const steps = STEPS;
+  const progressHTML = steps.map((_,i)=>
+    `<div class="step ${i<execStep?'done':i===execStep?'active':''}"></div>`
+  ).join('');
+
+  const os = osAtual;
+  const chk = CHECKLISTS[os.id_assunto] || CHECKLISTS[16];
+
+  let content = '';
+  if (execStep === 0) {
+    // Checklist
+    const itens = chk.map((item,i)=>`
+      <div class="chk-item" onclick="toggleChkExec(${i})">
+        <input type="checkbox" id="ce-${i}">
+        <label for="ce-${i}">${item}</label>
+      </div>`).join('');
+    content = `
+      <div class="modal-title">✅ Checklist de atendimento</div>
+      ${itens}
+      <div style="margin-top:16px;display:grid;gap:8px">
+        <button class="btn btn-primary" onclick="proximoStep()">Próximo →</button>
+        <button class="btn btn-outline" onclick="fecharModal()">Fechar</button>
+      </div>`;
+  } else if (execStep === 1) {
+    // Fotos antes
+    content = `
+      <div class="modal-title">📸 Fotos — Antes</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Fotografe o problema encontrado</div>
+      <div class="foto-grid">
+        <div class="foto-box" onclick="tirarFoto('antes',0)" id="foto-antes-0">
+          <div class="foto-box-icon">📷</div><div class="foto-box-label">Foto 1</div>
+        </div>
+        <div class="foto-box" onclick="tirarFoto('antes',1)" id="foto-antes-1">
+          <div class="foto-box-icon">📷</div><div class="foto-box-label">Foto 2</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:8px">
+        <button class="btn btn-primary" onclick="proximoStep()">Próximo →</button>
+        <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
+      </div>`;
+  } else if (execStep === 2) {
+    // Solucao
+    content = `
+      <div class="modal-title">📝 Solução aplicada</div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:6px">Descreva a solução</label>
+        <textarea id="inp-solucao" rows="4" placeholder="Ex: Substituído cabo danificado, sinal normalizado...">${execData.solucao}</textarea>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:6px">Observações (opcional)</label>
+        <textarea id="inp-obs" rows="2" placeholder="Informações adicionais...">${execData.obs}</textarea>
+      </div>
+      <div style="display:grid;gap:8px">
+        <button class="btn btn-primary" onclick="salvarSolucao()">Próximo →</button>
+        <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
+      </div>`;
+  } else if (execStep === 3) {
+    // Fotos depois
+    content = `
+      <div class="modal-title">📸 Fotos — Depois</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Fotografe o resultado final</div>
+      <div class="foto-grid">
+        <div class="foto-box" onclick="tirarFoto('depois',0)" id="foto-depois-0">
+          <div class="foto-box-icon">📷</div><div class="foto-box-label">Foto 1</div>
+        </div>
+        <div class="foto-box" onclick="tirarFoto('depois',1)" id="foto-depois-1">
+          <div class="foto-box-icon">📷</div><div class="foto-box-label">Foto 2</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:8px">
+        <button class="btn btn-primary" onclick="proximoStep()">Próximo →</button>
+        <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
+      </div>`;
+  } else if (execStep === 4) {
+    // Assinatura
+    content = `
+      <div class="modal-title">✍️ Assinatura do cliente</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Solicite a assinatura do cliente</div>
+      <canvas id="canvas-assinatura" width="400" height="160"></canvas>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <button class="btn btn-outline" onclick="limparAssinatura()">🗑 Limpar</button>
+        <button class="btn btn-primary" onclick="salvarAssinatura()">Confirmar →</button>
+      </div>
+      <button class="btn btn-outline" style="margin-top:8px" onclick="voltarStep()">← Voltar</button>`;
+    setTimeout(initCanvas, 100);
+  } else if (execStep === 5) {
+    // Finalizar
+    const marcados = execData.checklist.filter(c=>c.marcado).length;
+    content = `
+      <div class="modal-title">🏁 Finalizar OS</div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px">
+        <div style="font-size:.85rem;margin-bottom:6px">✅ Checklist: ${marcados}/${CHECKLISTS[osAtual.id_assunto]?.length||0} itens</div>
+        <div style="font-size:.85rem;margin-bottom:6px">📸 Fotos antes: ${execData.fotos_antes.length} | Depois: ${execData.fotos_depois.length}</div>
+        <div style="font-size:.85rem;margin-bottom:6px">📝 Solução: ${execData.solucao?'✅':'❌ necessário'}</div>
+        <div style="font-size:.85rem">✍️ Assinatura: ${execData.assinatura?'✅':'—'}</div>
+      </div>
+      ${!execData.solucao?'<div style="color:var(--red);font-size:.82rem;margin-bottom:12px">⚠️ Preencha a solução antes de finalizar</div>':''}
+      <div style="display:grid;gap:8px">
+        <button class="btn btn-green" onclick="finalizarOS()" ${!execData.solucao?'disabled style="opacity:.5"':''}>✅ Finalizar e enviar ao IXC</button>
+        <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
+      </div>`;
+  }
+
+  document.getElementById('modal-os-content').innerHTML = `
+    <div style="display:flex;gap:4px;margin-bottom:16px">${progressHTML}</div>
+    ${content}`;
+}
+
+function toggleChkExec(i) {
+  const cb = document.getElementById('ce-'+i);
+  cb.checked = !cb.checked;
+}
+
+function proximoStep() {
+  if (execStep === 0) {
+    const chk = CHECKLISTS[osAtual.id_assunto] || CHECKLISTS[16];
+    execData.checklist = chk.map((texto,i)=>({
+      texto, marcado: document.getElementById('ce-'+i)?.checked||false
+    }));
+  }
+  execStep++;
+  renderStep();
+}
+
+function voltarStep() { execStep = Math.max(0, execStep-1); renderStep(); }
+
+function salvarSolucao() {
+  execData.solucao = document.getElementById('inp-solucao')?.value.trim()||'';
+  execData.obs = document.getElementById('inp-obs')?.value.trim()||'';
+  execStep++;
+  renderStep();
+}
+
+// Fotos
+function tirarFoto(tipo, idx) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      comprimirImagem(ev.target.result, base64 => {
+        if (tipo==='antes') execData.fotos_antes[idx] = base64;
+        else execData.fotos_depois[idx] = base64;
+        const box = document.getElementById(`foto-${tipo}-${idx}`);
+        if (box) box.innerHTML = `<img src="${base64}">`;
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function comprimirImagem(src, cb) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const max = 800;
+    let w = img.width, h = img.height;
+    if (w > max) { h = h*max/w; w = max; }
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    cb(canvas.toDataURL('image/jpeg', 0.7));
+  };
+  img.src = src;
+}
+
+// Assinatura
+let canvasCtx, isDrawing=false, lastX=0, lastY=0;
+function initCanvas() {
+  const c = document.getElementById('canvas-assinatura');
+  if (!c) return;
+  canvasCtx = c.getContext('2d');
+  canvasCtx.strokeStyle = '#000'; canvasCtx.lineWidth = 2; canvasCtx.lineCap = 'round';
+  c.style.width = '100%';
+  c.addEventListener('touchstart', e=>{ isDrawing=true; const t=e.touches[0]; const r=c.getBoundingClientRect(); lastX=(t.clientX-r.left)*(c.width/r.width); lastY=(t.clientY-r.top)*(c.height/r.height); e.preventDefault(); }, {passive:false});
+  c.addEventListener('touchmove', e=>{ if(!isDrawing) return; const t=e.touches[0]; const r=c.getBoundingClientRect(); const x=(t.clientX-r.left)*(c.width/r.width); const y=(t.clientY-r.top)*(c.height/r.height); canvasCtx.beginPath(); canvasCtx.moveTo(lastX,lastY); canvasCtx.lineTo(x,y); canvasCtx.stroke(); lastX=x; lastY=y; e.preventDefault(); }, {passive:false});
+  c.addEventListener('touchend', ()=>isDrawing=false);
+}
+
+function limparAssinatura() {
+  const c = document.getElementById('canvas-assinatura');
+  if (c) canvasCtx.clearRect(0, 0, c.width, c.height);
+}
+
+function salvarAssinatura() {
+  const c = document.getElementById('canvas-assinatura');
+  if (c) execData.assinatura = c.toDataURL('image/png');
+  execStep++;
+  renderStep();
+}
+
+// Finalizar
+async function finalizarOS() {
+  if (!execData.solucao) { toast('Preencha a solução','err'); return; }
+  const pos = await getPos();
+  try {
+    const r = await api('/api/os/'+osAtual.ixc_os_id+'/finalizar', {
+      method:'POST',
+      body: JSON.stringify({...execData, lat:pos?.lat, lon:pos?.lon})
+    });
+    if (r.ok) {
+      const os = osData.find(o=>o.ixc_os_id===osAtual.ixc_os_id);
+      if (os) os.status_hub = 'finalizada';
+      fecharModal();
+      renderOS(); renderHome();
+      toast('OS finalizada com sucesso!','ok');
+    }
+  } catch(e) { toast('Erro ao finalizar','err'); }
+}
+
+// ── GPS ──────────────────────────────────────────────────────
+let wsGPS = null;
+function iniciarGPS() {
+  if (!navigator.geolocation || !usuario) return;
+  navigator.geolocation.watchPosition(pos => {
+    const data = {
+      lat: pos.coords.latitude,
+      lon: pos.coords.longitude,
+      velocidade: Math.round((pos.coords.speed||0)*3.6),
+      status: getStatusTecnico(),
+      ixc_os_id: osAtual?.ixc_os_id || null
+    };
+    enviarPosicao(data);
+  }, null, {enableHighAccuracy:true, maximumAge:10000});
+}
+
+function getStatusTecnico() {
+  if (!osAtual) return 'livre';
+  if (osAtual.status_hub === 'deslocamento') return 'em_rota';
+  if (osAtual.status_hub === 'execucao') return 'atendimento';
+  return 'livre';
+}
+
+async function enviarPosicao(data) {
+  try {
+    await fetch('/api/gps/posicao', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},
+      body: JSON.stringify({...data, id_tecnico: usuario.id})
+    });
+  } catch(e) {}
+}
+
+// ── ESTOQUE ──────────────────────────────────────────────────
+async function carregarEstoque() {
+  try {
+    const rows = await api('/api/estoque/meu');
+    const box = document.getElementById('lista-estoque');
+    if (!rows.length) { box.innerHTML='<div class="empty">Estoque vazio</div>'; return; }
+    box.innerHTML = rows.map(r=>`
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:.88rem">${r.produto_nome}</div>
+        <div style="font-weight:700;color:${r.quantidade<=0?'var(--red)':'var(--text)'}">${r.quantidade} ${r.unidade}</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+function abrirRequisicao() { toast('Em breve: Requisição de materiais','ok'); }
+
+// ── HELPERS ──────────────────────────────────────────────────
+function getPos() {
+  return new Promise(res => {
+    if (!navigator.geolocation) return res(null);
+    navigator.geolocation.getCurrentPosition(
+      p => res({lat:p.coords.latitude, lon:p.coords.longitude}),
+      () => res(null), {timeout:5000}
+    );
+  });
+}
+
+function abrirMaps(endereco) {
+  window.open(`https://maps.google.com/?q=${encodeURIComponent(endereco)}`, '_blank');
+}
+
+function toast(msg, tipo='ok') {
+  const t = document.createElement('div');
+  t.className = 'toast '+tipo; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 2500);
+}
+</script>
+</body>
+</html>
