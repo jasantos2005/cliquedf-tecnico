@@ -188,6 +188,14 @@ if ('serviceWorker' in navigator) {
     <div id="lista-historico"></div>
   </div>
 
+  <!-- MODO OFFLINE (flutuante) -->
+  <div id="btn-modo-offline-wrap" style="position:fixed;bottom:80px;right:16px;z-index:999">
+    <button id="btn-modo-offline" onclick="toggleModoOffline()"
+      style="padding:10px 16px;border-radius:24px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:.78rem;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,.3)">
+      📵 Modo Offline
+    </button>
+  </div>
+
   <!-- PERFIL -->
   <div id="page-perfil" class="page">
     <div class="card">
@@ -239,6 +247,7 @@ let execStep = 0;
 let execData = { checklist:[], fotos:[], assinatura:null, solucao:'', obs:'', materiais:[] };
 let isOnline = navigator.onLine;
 let filtroDia = 'hoje';
+let modoOffline = localStorage.getItem('modo_offline') === '1';
 
 const CHECKLISTS = {
   20: ['Rádio/ONU offline no sistema','Cliente bloqueado por inadimplência','Queda de energia recente','Roteador ligado (verificar luzes)','Orientado a reiniciar roteador (2min)','Outros dispositivos sem acesso','Cabo conectado corretamente','Problema persiste — técnico necessário'],
@@ -378,6 +387,7 @@ function iniciarApp() {
   atualizarOnline();
   carregarOS();
   iniciarGPS();
+  atualizarBtnOffline();
 }
 
 function atualizarOnline() {
@@ -399,7 +409,7 @@ function navTo(page) {
 async function carregarOS() {
   try {
     let rows;
-    if (!navigator.onLine) {
+    if (!navigator.onLine || modoOffline) {
       rows = await carregarOSCache();
       toast('Modo offline — exibindo OS salvas', 'ok');
     } else {
@@ -473,6 +483,34 @@ function renderHome() {
       </div>`;
   } else {
     box.innerHTML = '<div class="empty">Sem OS pendentes hoje 🎉</div>';
+  }
+}
+
+function toggleModoOffline() {
+  modoOffline = !modoOffline;
+  localStorage.setItem('modo_offline', modoOffline ? '1' : '0');
+  atualizarBtnOffline();
+  if (!modoOffline) {
+    sincronizarFila();
+    carregarOS();
+  } else {
+    toast('Modo offline ativado — ações serão salvas localmente','ok');
+  }
+}
+
+function atualizarBtnOffline() {
+  const btn = document.getElementById('btn-modo-offline');
+  if (!btn) return;
+  if (modoOffline) {
+    btn.style.background = 'rgba(239,68,68,.2)';
+    btn.style.color = 'var(--red)';
+    btn.style.borderColor = 'var(--red)';
+    btn.textContent = '📵 Offline ON';
+  } else {
+    btn.style.background = 'transparent';
+    btn.style.color = 'var(--muted)';
+    btn.style.borderColor = 'var(--border)';
+    btn.textContent = '📵 Offline';
   }
 }
 
@@ -593,10 +631,7 @@ async function iniciarDeslocamento(ixc_os_id) {
   const ultimoKm = r.ultimo_km || 0;
   const hoje = new Date().toLocaleDateString('pt-BR');
   const primeiroHoje = !localStorage.getItem('km_dia_'+hoje);
-  const checklistVeiculo = primeiroHoje ? '<div style="margin-bottom:14px"><div style="font-size:.82rem;font-weight:700;color:var(--yellow);margin-bottom:10px">🚗 Checklist do veículo</div>' +
-    ['Água do radiador verificada','Pneus em boas condições','Óleo do motor verificado','Lanternas e faróis funcionando','Documentos em dia'].map((item,i)=>
-      '<div class="chk-item" onclick="toggleChkVeiculo('+i+')"><input type="checkbox" id="cv-'+i+'"><label for="cv-'+i+'">'+item+'</label></div>'
-    ).join('') + '</div>' : '';
+  const checklistVeiculo = '';
   document.getElementById('modal-os-content').innerHTML =
     '<div class="modal-title">🚗 Iniciar Deslocamento</div>' +
     checklistVeiculo +
@@ -617,18 +652,31 @@ async function confirmarDeslocamento(ixc_os_id, primeiroHoje) {
   const km = parseFloat(document.getElementById('inp-km-saida').value);
   if (!km || km <= 0) { toast('Informe o KM do veículo','err'); return; }
   if (primeiroHoje) {
-    const marcados = [0,1,2,3,4].filter(i => document.getElementById('cv-'+i)?.checked).length;
-    if (marcados < 5) { toast('Verifique todos os itens do veículo','err'); return; }
     localStorage.setItem('km_dia_'+new Date().toLocaleDateString('pt-BR'), km);
   }
   try {
-    const r = await api('/api/os/'+ixc_os_id+'/iniciar-deslocamento-km', {method:'POST',body:JSON.stringify({km})});
-    if (r.detail) { toast(r.detail,'err'); return; }
+    let r = {ok:false};
+    if (navigator.onLine && !modoOffline) {
+      r = await api('/api/os/'+ixc_os_id+'/iniciar-deslocamento-km', {method:'POST',body:JSON.stringify({km})});
+      if (r.detail) { toast(r.detail,'err'); return; }
+    } else {
+      // Salvar na fila offline
+      const db = await abrirIDB();
+      const tx = db.transaction('fila_offline','readwrite');
+      tx.objectStore('fila_offline').add({
+        url:'/api/os/'+ixc_os_id+'/iniciar-deslocamento-km',
+        method:'POST', body:JSON.stringify({km}),
+        timestamp: Date.now()
+      });
+      r = {ok:true, offline:true};
+      toast('Sem internet — deslocamento salvo, será enviado ao conectar','ok');
+    }
     const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
     if (os) os.status_hub = 'deslocamento';
+    salvarOSCache(osData);
     renderOS(); renderHome();
     renderModalDeslocamento(os);
-    toast('Deslocamento iniciado!','ok');
+    if (navigator.onLine) toast('Deslocamento iniciado!','ok');
   } catch(e) { toast('Erro ao iniciar deslocamento','err'); }
 }
 
@@ -650,14 +698,19 @@ async function confirmarExecucao(ixc_os_id) {
   if (!km || km <= 0) { toast('Informe o KM do veículo','err'); return; }
   const pos = await getPos();
   try {
-    const r = await api('/api/os/'+ixc_os_id+'/iniciar-execucao-km', {
-      method:'POST', body:JSON.stringify({km, lat:pos?.lat, lon:pos?.lon})
-    });
-    if (r.detail) { toast(r.detail,'err'); return; }
+    let r = {ok:false};
+    if (navigator.onLine && !modoOffline) {
+      r = await api('/api/os/'+ixc_os_id+'/iniciar-execucao-km', {method:'POST',body:JSON.stringify({km,lat:pos?.lat,lon:pos?.lon})});
+      if (r.detail) { toast(r.detail,'err'); return; }
+    } else {
+      salvarFilaOffline({url:'/api/os/'+ixc_os_id+'/iniciar-execucao-km',method:'POST',body:JSON.stringify({km,lat:pos?.lat,lon:pos?.lon})});
+      toast('Offline — execução salva, será enviada ao conectar','ok');
+    }
     const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
     if (os) { os.status_hub = 'execucao'; osAtual = os; }
+    salvarOSCache(osData);
     iniciarExecucao(os);
-    toast('Execução iniciada! Deslocamento: '+(r.km_deslocamento||0).toFixed(1)+'km','ok');
+    if (navigator.onLine) toast('Execução iniciada! Deslocamento: '+(r.km_deslocamento||0).toFixed(1)+'km','ok');
   } catch(e) { toast('Erro ao iniciar execução','err'); }
 }
 
