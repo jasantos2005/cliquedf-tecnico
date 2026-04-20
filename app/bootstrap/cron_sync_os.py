@@ -20,7 +20,7 @@ def run():
         SELECT o.id, o.status, o.id_assunto, o.id_tecnico,
                o.id_cliente, o.id_contrato_kit,
                o.data_abertura, o.data_agenda,
-               o.mensagem, o.latitude, o.longitude,
+               o.mensagem, o.latitude, o.longitude, o.data_reservada,
                o.endereco, o.bairro, o.referencia,
                cl.razao AS cliente_nome,
                cl.telefone_celular AS telefone,
@@ -66,16 +66,26 @@ def run():
         ).fetchone()
 
         if not existente:
+            # Converter ixc_funcionario_id para id do banco
+            id_tecnico_banco = None
+            if o['id_tecnico']:
+                tec = db.execute(
+                    "SELECT id FROM ht_usuarios WHERE ixc_funcionario_id=?",
+                    (o['id_tecnico'],)
+                ).fetchone()
+                if tec:
+                    id_tecnico_banco = tec['id']
+
             db.execute("""
                 INSERT INTO ht_os (
-                    ixc_os_id, ixc_tecnico_id, ixc_cliente_id, id_contrato_kit,
+                    ixc_os_id, ixc_tecnico_id, id_tecnico, ixc_cliente_id, id_contrato_kit,
                     id_assunto, assunto_nome, status_ixc, status_hub,
                     cliente_nome, endereco, bairro, referencia, telefone,
                     lat, lon, data_abertura, data_agenda,
-                    obs_abertura, sincronizado_em, horas_abertas, sla_estourado
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    obs_abertura, sincronizado_em, horas_abertas, sla_estourado, data_reservada
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
-                o['id'], o['id_tecnico'], o['id_cliente'], o['id_contrato_kit'],
+                o['id'], o['id_tecnico'], id_tecnico_banco, o['id_cliente'], o['id_contrato_kit'],
                 o['id_assunto'], o['assunto_nome'], o['status'], status_hub,
                 o['cliente_nome'], o['endereco'], o['bairro'], o['referencia'],
                 o['telefone'],
@@ -86,7 +96,8 @@ def run():
                 o['mensagem'],
                 datetime.now().strftime("%d/%m/%Y %H:%M"),
                 float(o.get('horas_abertas') or 0),
-                1 if float(o.get('horas_abertas') or 0) > 48 else 0
+                1 if float(o.get('horas_abertas') or 0) > 48 else 0,
+                str(o.get('data_reservada') or '')[:16] or None
             ))
             novos += 1
         else:
