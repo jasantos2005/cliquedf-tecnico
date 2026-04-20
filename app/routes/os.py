@@ -110,13 +110,14 @@ def iniciar_execucao(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico)
     return {"ok": True}
 
 class FinalizarInput(BaseModel):
-    checklist: list
-    fotos_antes: list
-    fotos_depois: list
+    checklist: list = []
+    fotos: list = []
+    fotos_antes: list = []
+    fotos_depois: list = []
     assinatura: Optional[str] = None
-    solucao: str
-    obs: Optional[str] = ""
-    materiais: Optional[list] = []
+    solucao: str = ''
+    obs: str = ''
+    materiais: list = []
     lat: Optional[float] = None
     lon: Optional[float] = None
 
@@ -127,17 +128,17 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
     if not os_row: raise HTTPException(404, "OS não encontrada")
 
     # Atualiza execucao
+    fotos = data.fotos if data.fotos else (data.fotos_antes + data.fotos_depois)
     db.execute("""
         INSERT OR REPLACE INTO ht_os_execucao
-            (ixc_os_id, checklist_json, fotos_antes_json, fotos_depois_json,
+            (ixc_os_id, checklist_json, fotos_json,
              assinatura_base64, solucao_registrada, obs_tecnico,
              finalizada_em, lat_chegada, lon_chegada)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?)
     """, (
         ixc_os_id,
         json.dumps(data.checklist, ensure_ascii=False),
-        json.dumps(data.fotos_antes, ensure_ascii=False),
-        json.dumps(data.fotos_depois, ensure_ascii=False),
+        json.dumps(fotos, ensure_ascii=False),
         data.assinatura,
         data.solucao,
         data.obs,

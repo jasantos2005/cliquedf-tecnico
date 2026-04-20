@@ -620,22 +620,20 @@ function renderStep() {
         <button class="btn btn-outline" onclick="fecharModal()">Fechar</button>
       </div>`;
   } else if (execStep === 1) {
-    // Fotos antes
-    content = `
-      <div class="modal-title">📸 Fotos — Antes</div>
-      <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Fotografe o problema encontrado</div>
-      <div class="foto-grid">
-        <div class="foto-box" onclick="tirarFoto('antes',0)" id="foto-antes-0">
-          <div class="foto-box-icon">📷</div><div class="foto-box-label">Foto 1</div>
-        </div>
-        <div class="foto-box" onclick="tirarFoto('antes',1)" id="foto-antes-1">
-          <div class="foto-box-icon">📷</div><div class="foto-box-label">Foto 2</div>
-        </div>
-      </div>
-      <div style="display:grid;gap:8px">
-        <button class="btn btn-primary" onclick="proximoStep()">Próximo →</button>
-        <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
-      </div>`;
+    // Fotos
+    content = '<div class="modal-title">📸 Fotos do serviço</div>' +
+      '<div id="foto-grid-container" class="foto-grid"></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">' +
+      '<button class="btn btn-outline" onclick="document.getElementById(\'inp-foto-camera\').click()">📷 Câmera</button>' +
+      '<button class="btn btn-outline" onclick="document.getElementById(\'inp-foto-galeria\').click()">🖼️ Galeria</button>' +
+      '</div>' +
+      '<input type="file" id="inp-foto-galeria" accept="image/*" multiple style="display:none" onchange="processarFotosGaleria(this)">' +
+      '<input type="file" id="inp-foto-camera" accept="image/*" capture="environment" style="display:none" onchange="processarFotoCamera(this)">' +
+      '<div style="font-size:.75rem;color:var(--muted);margin-bottom:10px;text-align:center" id="foto-count">'+execData.fotos.length+' foto(s)</div>' +
+      '<div style="display:grid;gap:8px">' +
+      '<button class="btn btn-primary" onclick="proximoStep()">Próximo →</button>' +
+      '<button class="btn btn-outline" onclick="voltarStep()">← Voltar</button></div>';
+    setTimeout(renderFotoGrid, 50);
   } else if (execStep === 2) {
     // Solucao
     content = `
@@ -650,23 +648,6 @@ function renderStep() {
       </div>
       <div style="display:grid;gap:8px">
         <button class="btn btn-primary" onclick="salvarSolucao()">Próximo →</button>
-        <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
-      </div>`;
-  } else if (execStep === 3) {
-    // Fotos depois
-    content = `
-      <div class="modal-title">📸 Fotos — Depois</div>
-      <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Fotografe o resultado final</div>
-      <div class="foto-grid">
-        <div class="foto-box" onclick="tirarFoto('depois',0)" id="foto-depois-0">
-          <div class="foto-box-icon">📷</div><div class="foto-box-label">Foto 1</div>
-        </div>
-        <div class="foto-box" onclick="tirarFoto('depois',1)" id="foto-depois-1">
-          <div class="foto-box-icon">📷</div><div class="foto-box-label">Foto 2</div>
-        </div>
-      </div>
-      <div style="display:grid;gap:8px">
-        <button class="btn btn-primary" onclick="proximoStep()">Próximo →</button>
         <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
       </div>`;
   } else if (execStep === 4) {
@@ -791,7 +772,8 @@ function salvarAssinatura() {
 // Finalizar
 async function finalizarOS() {
   if (!execData.solucao) { toast('Preencha a solução','err'); return; }
-  const pos = await getPos();
+  let pos = null;
+  try { pos = await Promise.race([getPos(), new Promise(r=>setTimeout(()=>r(null),3000))]); } catch(e){}
   try {
     const r = await api('/api/os/'+osAtual.ixc_os_id+'/finalizar', {
       method:'POST',
@@ -800,11 +782,14 @@ async function finalizarOS() {
     if (r.ok) {
       const os = osData.find(o=>o.ixc_os_id===osAtual.ixc_os_id);
       if (os) os.status_hub = 'finalizada';
+      osAtual = null;
       fecharModal();
       renderOS(); renderHome();
-      toast('OS finalizada com sucesso!','ok');
+      toast('OS finalizada com sucesso! ✅','ok');
+    } else {
+      toast(r.detail || 'Erro ao finalizar','err');
     }
-  } catch(e) { toast('Erro ao finalizar','err'); }
+  } catch(e) { toast('Erro ao finalizar: '+e.message,'err'); }
 }
 
 // ── GPS ──────────────────────────────────────────────────────
