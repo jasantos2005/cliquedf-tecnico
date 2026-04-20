@@ -313,9 +313,10 @@ function navTo(page) {
 async function carregarOS() {
   try {
     const rows = await api('/api/os/minhas');
-    osData = rows;
-    renderOS();
-    renderHome();
+    rows.sort((a,b)=>(a.data_reservada||a.data_agenda||a.data_abertura||'9999').localeCompare(b.data_reservada||b.data_agenda||b.data_abertura||'9999'));
+    let ordem=1;
+    rows.forEach(o=>{if(['pendente','agendada','reagendada'].includes(o.status_hub))o._ordem=ordem++;else o._ordem=0;});
+    osData=rows; renderOS(); renderHome();
   } catch(e) { console.log('Offline — usando cache'); }
 }
 
@@ -335,7 +336,7 @@ function renderOS() {
         <div class="os-num">OS #${o.ixc_os_id}</div>
         <span class="os-status ${o.status_hub}">${labelStatus(o.status_hub)}</span>
       </div>
-      <div class="os-cliente">${o.cliente_nome||'—'}</div>
+      <div class="os-cliente">${o._ordem>0?'<span style="background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;margin-right:6px">'+o._ordem+'</span>':''} ${o.cliente_nome||'—'}</div>
       <div class="os-end">📍 ${o.endereco||'—'} ${o.bairro?'· '+o.bairro:''}</div>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="os-assunto">${o.assunto_nome||'—'}</span>
