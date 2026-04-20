@@ -229,6 +229,7 @@ let execStep = 0;
 let execData = { checklist:[], fotos_antes:[], fotos_depois:[], assinatura:null, solucao:'', obs:'', materiais:[] };
 let isOnline = navigator.onLine;
 let filtroDia = 'hoje';
+let modoOffline = localStorage.getItem('modo_offline')==='1';
 
 const CHECKLISTS = {
   20: ['Rádio/ONU offline no sistema','Cliente bloqueado por inadimplência','Queda de energia recente','Roteador ligado (verificar luzes)','Orientado a reiniciar roteador (2min)','Outros dispositivos sem acesso','Cabo conectado corretamente','Problema persiste — técnico necessário'],
@@ -445,6 +446,20 @@ function renderModalAgendada(os) {
     <button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>`;
 }
 
+function renderModalAgendada(os) {
+  document.getElementById('modal-os-content').innerHTML =
+    '<div class="modal-title">📅 OS Agendada — #'+os.ixc_os_id+'</div>' +
+    '<div style="margin-bottom:14px"><div style="font-weight:700">'+os.cliente_nome+'</div>' +
+    '<div style="font-size:.85rem;color:var(--muted)">📍 '+(os.endereco||'—')+'</div>' +
+    (os.telefone?'<div style="font-size:.85rem;margin-top:4px">📞 <a href="tel:'+os.telefone+'" style="color:var(--accent2)">'+os.telefone+'</a></div>':'') +
+    '</div>' +
+    '<div style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:8px;padding:12px;margin-bottom:16px;text-align:center">' +
+    '<div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">AGENDADO PARA</div>' +
+    '<div style="font-size:1.1rem;font-weight:800;color:#a855f7">'+((os.data_reservada||os.data_agenda||'—').substring(0,16))+'</div></div>' +
+    '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="iniciarDeslocamento('+os.ixc_os_id+')">🚗 Iniciar deslocamento</button>' +
+    '<button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>';
+}
+
 function renderModalDeslocamento(os) {
   document.getElementById('modal-os-content').innerHTML = `
     <div class="modal-title">🚗 A caminho — OS #${os.ixc_os_id}</div>
@@ -464,12 +479,39 @@ function renderModalFinalizada(os) {
 }
 
 async function iniciarDeslocamento(ixc_os_id) {
-  await api('/api/os/'+ixc_os_id+'/iniciar-deslocamento', {method:'POST'});
-  const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
-  if (os) os.status_hub = 'deslocamento';
-  renderOS(); renderHome();
-  renderModalDeslocamento(os);
-  toast('Deslocamento iniciado!','ok');
+  let ultimoKm = 0;
+  if (navigator.onLine && !modoOffline) {
+    try { const r = await api('/api/os/'+usuario.id+'/ultimo-km'); ultimoKm = r.ultimo_km||0; } catch(e){}
+  }
+  document.getElementById('modal-os-content').innerHTML =
+    '<div class="modal-title">🚗 Iniciar Deslocamento</div>' +
+    '<div style="margin-bottom:16px"><label style="display:block;font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px">KM do veículo agora</label>' +
+    '<input class="km-input" type="number" id="inp-km-saida" placeholder="Ex: 45230" min="'+ultimoKm+'">' +
+    (ultimoKm>0?'<div style="font-size:.75rem;color:var(--muted);margin-top:6px;text-align:center">Último KM: '+ultimoKm.toFixed(0)+'</div>':'') +
+    '</div><div style="display:grid;gap:8px">' +
+    '<button class="btn btn-primary" onclick="confirmarDeslocamento('+ixc_os_id+')">🚗 Confirmar e partir</button>' +
+    '<button class="btn btn-outline" onclick="fecharModal()">Cancelar</button></div>';
+}
+
+async function confirmarDeslocamento(ixc_os_id) {
+  const km = parseFloat(document.getElementById('inp-km-saida').value);
+  if (!km || km <= 0) { toast('Informe o KM do veículo','err'); return; }
+  try {
+    if (navigator.onLine && !modoOffline) {
+      const r = await api('/api/os/'+ixc_os_id+'/iniciar-deslocamento-km', {method:'POST',body:JSON.stringify({km})});
+      if (r.detail) { toast(r.detail,'err'); return; }
+    } else {
+      const fila = JSON.parse(localStorage.getItem('fila_offline')||'[]');
+      fila.push({url:'/api/os/'+ixc_os_id+'/iniciar-deslocamento-km',method:'POST',body:JSON.stringify({km}),timestamp:Date.now()});
+      localStorage.setItem('fila_offline', JSON.stringify(fila));
+      toast('Offline — será sincronizado ao conectar','ok');
+    }
+    const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
+    if (os) os.status_hub = 'deslocamento';
+    renderOS(); renderHome();
+    renderModalDeslocamento(os);
+    if (navigator.onLine && !modoOffline) toast('Deslocamento iniciado!','ok');
+  } catch(e) { toast('Erro ao iniciar deslocamento','err'); }
 }
 
 async function iniciarExecucaoBtn(ixc_os_id) {
