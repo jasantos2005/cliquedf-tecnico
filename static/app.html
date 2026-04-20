@@ -159,6 +159,23 @@ textarea:focus,select:focus{border-color:var(--accent)}
     <button class="btn btn-primary" style="margin-top:8px" onclick="abrirRequisicao()">+ Fazer Requisição</button>
   </div>
 
+  <!-- HISTORICO -->
+  <div id="page-historico" class="page">
+    <div style="display:flex;gap:6px;margin-bottom:12px;align-items:center">
+      <input type="date" id="hist-data-ini" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px;font-size:.82rem;outline:none">
+      <span style="color:var(--muted);font-size:.8rem">até</span>
+      <input type="date" id="hist-data-fim" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px;font-size:.82rem;outline:none">
+      <button class="btn btn-primary" style="padding:8px 12px;font-size:.8rem" onclick="carregarHistorico()">🔍</button>
+    </div>
+    <div id="hist-resumo" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:12px;display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center">
+        <div><div id="hist-total" style="font-size:1.5rem;font-weight:900;color:var(--green)">0</div><div style="font-size:.72rem;color:var(--muted)">OS Finalizadas</div></div>
+        <div><div id="hist-km" style="font-size:1.5rem;font-weight:900;color:var(--accent2)">0</div><div style="font-size:.72rem;color:var(--muted)">KM Rodados</div></div>
+      </div>
+    </div>
+    <div id="lista-historico"></div>
+  </div>
+
   <!-- PERFIL -->
   <div id="page-perfil" class="page">
     <div class="card">
@@ -185,6 +202,10 @@ textarea:focus,select:focus{border-color:var(--accent)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
       Estoque
     </button>
+    <button class="nav-btn" id="nav-historico" onclick="navTo('historico');iniciarHistorico()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Histórico
+    </button>
     <button class="nav-btn" id="nav-perfil" onclick="navTo('perfil')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Perfil
@@ -203,7 +224,7 @@ let usuario = null;
 let osData = [];
 let osAtual = null;
 let execStep = 0;
-let execData = { checklist:[], fotos_antes:[], fotos_depois:[], assinatura:null, solucao:'', obs:'', materiais:[] };
+let execData = { checklist:[], fotos:[], assinatura:null, solucao:'', obs:'', materiais:[] };
 let isOnline = navigator.onLine;
 let filtroDia = 'hoje';
 
@@ -548,11 +569,11 @@ async function confirmarExecucao(ixc_os_id) {
 // ── EXECUCAO PASSO A PASSO ───────────────────────────────────
 function iniciarExecucao(os) {
   execStep = 0;
-  execData = {checklist:[],fotos_antes:[],fotos_depois:[],assinatura:null,solucao:'',obs:'',materiais:[]};
+  execData = {checklist:[],fotos:[],assinatura:null,solucao:'',obs:'',materiais:[]};
   renderStep();
 }
 
-const STEPS = ['checklist','fotos_antes','solucao','fotos_depois','assinatura','finalizar'];
+const STEPS = ['checklist','fotos','solucao','assinatura','finalizar'];
 
 function renderStep() {
   const steps = STEPS;
@@ -647,7 +668,7 @@ function renderStep() {
       <div class="modal-title">🏁 Finalizar OS</div>
       <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px">
         <div style="font-size:.85rem;margin-bottom:6px">✅ Checklist: ${marcados}/${CHECKLISTS[osAtual.id_assunto]?.length||0} itens</div>
-        <div style="font-size:.85rem;margin-bottom:6px">📸 Fotos antes: ${execData.fotos_antes.length} | Depois: ${execData.fotos_depois.length}</div>
+        <div style="font-size:.85rem;margin-bottom:6px">📸 Fotos: ${execData.fotos.length}</div>
         <div style="font-size:.85rem;margin-bottom:6px">📝 Solução: ${execData.solucao?'✅':'❌ necessário'}</div>
         <div style="font-size:.85rem">✍️ Assinatura: ${execData.assinatura?'✅':'—'}</div>
       </div>
@@ -857,6 +878,128 @@ async function confirmarReagendar() {
       toast('OS reagendada com sucesso','ok');
     }
   } catch(e) { toast('Erro ao reagendar','err'); }
+}
+
+function iniciarHistorico() {
+  const hoje = new Date().toISOString().substring(0,10);
+  document.getElementById('hist-data-ini').value = hoje;
+  document.getElementById('hist-data-fim').value = hoje;
+  carregarHistorico();
+}
+
+async function carregarHistorico() {
+  const ini = document.getElementById('hist-data-ini').value;
+  const fim = document.getElementById('hist-data-fim').value;
+  const lista = document.getElementById('lista-historico');
+  lista.innerHTML = '<div class="loading">Carregando...</div>';
+  try {
+    let url = '/api/os/historico';
+    if (ini && fim) url += '?inicio='+ini+'&fim='+fim;
+    const rows = await api(url);
+    const resumo = document.getElementById('hist-resumo');
+    const kmTotal = rows.reduce((s,o) => s + (o.km_deslocamento||0), 0);
+    document.getElementById('hist-total').textContent = rows.length;
+    document.getElementById('hist-km').textContent = kmTotal.toFixed(1)+'km';
+    resumo.style.display = rows.length ? 'block' : 'none';
+    if (!rows.length) { lista.innerHTML = '<div class="empty">Nenhuma OS finalizada no período</div>'; return; }
+    lista.innerHTML = rows.map(o => {
+      return '<div class="os-card" onclick="verDetalhesHistorico('+o.ixc_os_id+')">' +
+        '<div class="os-card-top"><div class="os-num">OS #'+o.ixc_os_id+'</div>' +
+        '<span class="os-status finalizada">✅ Finalizada</span></div>' +
+        '<div class="os-cliente">'+o.cliente_nome+'</div>' +
+        '<div class="os-end">📍 '+(o.endereco||'—')+'</div>' +
+        '<div style="display:flex;justify-content:space-between;margin-top:6px">' +
+        '<span class="os-assunto">'+o.assunto_nome+'</span>' +
+        '<span style="font-size:.75rem;color:var(--muted)">'+(o.finalizada_em||o.data_abertura||'').substring(0,16)+'</span>' +
+        '</div>' +
+        (o.km_deslocamento?'<div style="font-size:.75rem;color:var(--accent2);margin-top:4px">🚗 '+parseFloat(o.km_deslocamento).toFixed(1)+' km percorridos</div>':'') +
+        '</div>';
+    }).join('');
+  } catch(e) { lista.innerHTML = '<div class="empty">Erro ao carregar histórico</div>'; }
+}
+
+async function verDetalhesHistorico(ixc_os_id) {
+  try {
+    const d = await api('/api/os/'+ixc_os_id);
+    const exec = d.execucao || {};
+    document.getElementById('modal-os').style.display = 'flex';
+    document.getElementById('modal-os-content').innerHTML =
+      '<div class="modal-title">OS #'+ixc_os_id+' — Finalizada</div>' +
+      '<div style="margin-bottom:12px"><div style="font-weight:700">'+d.cliente_nome+'</div>' +
+      '<div style="font-size:.82rem;color:var(--muted)">'+d.assunto_nome+'</div></div>' +
+      '<div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:.83rem;margin-bottom:12px">' +
+      '<div style="margin-bottom:6px"><span style="color:var(--muted)">Solução:</span><br>'+( exec.solucao_registrada||'—')+'</div>' +
+      '<div><span style="color:var(--muted)">Finalizada em:</span> '+(exec.finalizada_em||'—').substring(0,16)+'</div></div>' +
+      (exec.fotos_depois_json && JSON.parse(exec.fotos_depois_json||'[]').length ?
+        '<div style="margin-bottom:12px"><div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">FOTOS APÓS</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' +
+        JSON.parse(exec.fotos_depois_json).map(f=>'<img src="'+f+'" style="width:100%;border-radius:8px;aspect-ratio:1;object-fit:cover">').join('') +
+        '</div></div>' : '') +
+      '<button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>';
+  } catch(e) { toast('Erro ao carregar detalhes','err'); }
+}
+
+function renderFotoGrid() {
+  const container = document.getElementById('foto-grid-container');
+  if (!container) return;
+  container.innerHTML = execData.fotos.map((f,i) =>
+    '<div class="foto-box" style="position:relative">' +
+    '<img src="'+f+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">' +
+    '<button onclick="removerFoto('+i+')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);border:none;color:white;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:.8rem">✕</button>' +
+    '</div>'
+  ).join('') +
+  (execData.fotos.length < 8 ? '' : '');
+}
+
+function removerFoto(idx) {
+  execData.fotos.splice(idx, 1);
+  renderFotoGrid();
+}
+
+function adicionarFotoCamera() {
+  document.getElementById('inp-foto-camera').click();
+}
+
+function adicionarFotoGaleria() {
+  document.getElementById('inp-foto-galeria').click();
+}
+
+function processarFotoCamera(input) {
+  if (!input.files[0]) return;
+  comprimirFoto(input.files[0], base64 => {
+    execData.fotos.push(base64);
+    renderFotoGrid();
+  });
+  input.value = '';
+}
+
+function processarFotosGaleria(input) {
+  Array.from(input.files).forEach(file => {
+    comprimirFoto(file, base64 => {
+      execData.fotos.push(base64);
+      renderFotoGrid();
+    });
+  });
+  input.value = '';
+}
+
+function comprimirFoto(file, cb) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const max = 800;
+      let w = img.width, h = img.height;
+      if (w > max) { h = h*max/w; w = max; }
+      if (h > max) { w = w*max/h; h = max; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function toast(msg, tipo='ok') {

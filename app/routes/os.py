@@ -8,7 +8,9 @@ from app.services.ixc_db import ixc_insert
 
 router = APIRouter(prefix="/api/os", tags=["os"])
 
-def brt(): return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def brt():
+    from datetime import timezone, timedelta
+    return (datetime.now(timezone.utc) - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
 
 @router.get("/minhas")
 def minhas_os(usuario=Depends(requer_tecnico)):
@@ -48,6 +50,27 @@ def os_hoje(usuario=Depends(requer_supervisor)):
            OR o.status_hub IN ('pendente','deslocamento','execucao')
         ORDER BY o.status_hub, o.data_agenda ASC
     """).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+@router.get("/historico")
+def historico_os(inicio: Optional[str] = None, fim: Optional[str] = None, usuario=Depends(requer_tecnico)):
+    db = get_db()
+    if not inicio:
+        inicio = datetime.now().strftime("%Y-%m-%d")
+    if not fim:
+        fim = inicio
+    rows = db.execute("""
+        SELECT o.*, e.solucao_registrada, e.finalizada_em,
+               e.fotos_depois_json, k.km_deslocamento
+        FROM ht_os o
+        LEFT JOIN ht_os_execucao e ON e.ixc_os_id = o.ixc_os_id
+        LEFT JOIN ht_km_os k ON k.ixc_os_id = o.ixc_os_id AND k.id_tecnico = o.id_tecnico
+        WHERE o.id_tecnico = ?
+          AND o.status_hub = 'finalizada'
+          AND DATE(e.finalizada_em) BETWEEN ? AND ?
+        ORDER BY e.finalizada_em DESC
+    """, (usuario["id"], inicio, fim)).fetchall()
     db.close()
     return [dict(r) for r in rows]
 
