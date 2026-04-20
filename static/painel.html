@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de OS — Hub Técnico</title>
+<title>Despacho — Hub Técnico</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
@@ -83,7 +83,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .tecnico-option.best{border-color:var(--green);background:rgba(34,197,94,.08)}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 18px;font-size:.85rem;font-weight:600;z-index:9999}
 .toast.ok{border-color:var(--green);color:var(--green)}.toast.err{border-color:var(--red);color:var(--red)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 </style>
 </head>
 <body>
@@ -92,7 +91,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 <div id="login-page">
   <div class="login-card">
     <div class="login-title">Hub<span>Técnico</span></div>
-    <div class="login-sub">Controle de OS — Cliquedf</div>
+    <div class="login-sub">Painel de Despacho — Cliquedf</div>
     <div class="field">
       <label>Login</label>
       <input type="text" id="inp-login" placeholder="login">
@@ -110,41 +109,21 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 <div id="app-page">
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="topbar-title">Hub<span>Técnico</span> — Controle de OS</div>
+    <div class="topbar-title">Hub<span>Técnico</span> — Despacho</div>
     <div id="tb-hora" style="font-size:.8rem;color:var(--muted)">—</div>
-    <div style="display:flex;gap:4px;align-items:center">
-      <span style="font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase">Status:</span>
-      <button class="filtro-btn active" id="f-pendente" onclick="toggleStatus('pendente',this)">🔴 Pendentes <span class="badge" id="cnt-pendente">0</span></button>
-      <button class="filtro-btn active" id="f-deslocamento" onclick="toggleStatus('deslocamento',this)">🟡 Deslocamento <span class="badge" id="cnt-deslocamento">0</span></button>
-      <button class="filtro-btn active" id="f-agendada" onclick="toggleStatus('agendada',this)">📅 Agendada <span class="badge" id="cnt-agendada">0</span></button>
-      <button class="filtro-btn active" id="f-execucao" onclick="toggleStatus('execucao',this)">🔵 Execução <span class="badge" id="cnt-execucao">0</span></button>
-      <button class="filtro-btn" id="f-finalizada" onclick="toggleStatus('finalizada',this)">✅ Finalizadas <span class="badge" id="cnt-finalizada">0</span></button>
-    </div>
-    <div style="display:flex;gap:4px;align-items:center">
-      <span style="font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase">Tipo:</span>
-      <button class="filtro-btn active" id="ft-suporte" onclick="toggleTipo('suporte',this)">🔧 Suporte</button>
-      <button class="filtro-btn active" id="ft-instalacao" onclick="toggleTipo('instalacao',this)">⚡ Serviço</button>
-      <button class="filtro-btn active" id="ft-infra" onclick="toggleTipo('infra',this)">🏗️ Infra</button>
-      <button class="filtro-btn active" id="ft-retirada" onclick="toggleTipo('retirada',this)">📦 Retirada</button>
-      <button class="filtro-btn active" id="ft-instalacao2" onclick="toggleTipo('instalacao',this)" style="display:none"></button>
-      <button class="filtro-btn active" id="ft-default" onclick="toggleTipo('default',this)">📋 Outros</button>
-    </div>
-    <div style="display:flex;gap:4px;align-items:center;margin-left:auto">
-      <button class="filtro-btn active" id="f-tecnicos" onclick="toggleTecnicos(this)">🚗 Técnicos</button>
-      <input type="date" id="filtro-data-ini" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:5px 8px;font-size:.78rem;outline:none" onchange="renderSidebar();renderMapa()">
-      <span style="color:var(--muted);font-size:.78rem">até</span>
-      <input type="date" id="filtro-data-fim" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:5px 8px;font-size:.78rem;outline:none" onchange="renderSidebar();renderMapa()">
-      <button class="btn btn-sm btn-outline" onclick="limparDatas()">✕ Data</button>
-      <button class="btn btn-sm btn-outline" onclick="carregarDados()">↻</button>
-      <button class="btn btn-sm btn-outline" onclick="logout()">Sair</button>
-    </div>
+    <button class="filtro-btn active" id="f-pendente" onclick="toggleFiltro('pendente',this)">🔴 Pendentes <span class="badge" id="cnt-pendente">0</span></button>
+    <button class="filtro-btn active" id="f-deslocamento" onclick="toggleFiltro('deslocamento',this)">🟡 Deslocamento <span class="badge" id="cnt-deslocamento">0</span></button>
+    <button class="filtro-btn active" id="f-execucao" onclick="toggleFiltro('execucao',this)">🔵 Execução <span class="badge" id="cnt-execucao">0</span></button>
+    <button class="filtro-btn" id="f-finalizada" onclick="toggleFiltro('finalizada',this)">✅ Finalizadas <span class="badge" id="cnt-finalizada">0</span></button>
+    <button class="filtro-btn active" id="f-tecnicos" onclick="toggleFiltro('tecnicos',this)">🚗 Técnicos</button>
+    <button class="btn btn-sm btn-outline" onclick="carregarDados()">↻ Atualizar</button>
+    <button class="btn btn-sm btn-outline" onclick="logout()">Sair</button>
   </div>
 
   <!-- STATS -->
   <div class="stats-bar">
     <div class="stat"><span class="stat-num r" id="st-pendente">0</span> Pendentes</div>
     <div class="stat"><span class="stat-num y" id="st-deslocamento">0</span> Deslocamento</div>
-    <div class="stat"><span class="stat-num" style="color:#a855f7" id="st-agendada">0</span> Agendada</div>
     <div class="stat"><span class="stat-num b" id="st-execucao">0</span> Execução</div>
     <div class="stat"><span class="stat-num g" id="st-finalizada">0</span> Finalizadas</div>
     <div class="stat" style="margin-left:auto"><span class="stat-num" id="st-tecnicos">0</span> Técnicos ativos</div>
@@ -245,97 +224,18 @@ function iniciarApp() {
 // ── MAPA ─────────────────────────────────────────────────────
 function iniciarMapa() {
   mapa = L.map('mapa').setView([-15.7942, -47.8825], 12);
-  // Legenda
-  const legenda = L.control({position:'bottomleft'});
-  legenda.onAdd = () => {
-    const div = L.DomUtil.create('div');
-    div.innerHTML = `<div style="background:#151920;border:1px solid #252d3d;border-radius:10px;padding:10px 14px;font-family:sans-serif;font-size:12px;color:#e8eaf0">
-      <div style="font-weight:700;margin-bottom:8px;color:#6b7590;text-transform:uppercase;letter-spacing:.05em">Tipos de OS</div>
-      <div style="display:flex;flex-direction:column;gap:5px">
-        <div>🔧 <span style="color:#3b82f6">Suporte</span></div>
-        <div>⚡ <span style="color:#22c55e">Serviço</span></div>
-        <div>🏗️ <span style="color:#f59e0b">Infra</span></div>
-        <div>📦 <span style="color:#a855f7">Retirada</span></div>
-        <div>📋 <span style="color:#6b7590">Outros</span></div>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #252d3d;font-weight:700;color:#6b7590;text-transform:uppercase;letter-spacing:.05em">Status</div>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-top:5px">
-        <div><span style="color:#ef4444">●</span> Pendente</div>
-        <div><span style="color:#f59e0b">●</span> Deslocamento</div>
-        <div><span style="color:#3b82f6">●</span> Execução</div>
-        <div><span style="color:#22c55e">●</span> Finalizada</div>
-        <div style="margin-top:6px;padding-top:6px;border-top:1px solid #252d3d"><span style="color:#ef4444">🔴</span> SLA Estourado</div>
-      </div>
-    </div>`;
-    return div;
-  };
-  legenda.addTo(mapa);
-
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'© OpenStreetMap', maxZoom:19
   }).addTo(mapa);
 }
 
-// Mapeamento assunto → tipo (baseado na planilha Cliquedf)
-const ASSUNTO_TIPO = {
-  // suporte (cliente com problema)
-  1:'suporte',5:'suporte',9:'suporte',17:'suporte',20:'suporte',21:'suporte',
-  44:'suporte',47:'suporte',53:'suporte',54:'suporte',91:'suporte',
-  101:'suporte',102:'suporte',103:'suporte',104:'suporte',105:'suporte',
-  107:'suporte',113:'suporte',203:'suporte',226:'suporte',
-  // instalacao/servico
-  2:'instalacao',3:'instalacao',4:'instalacao',8:'instalacao',14:'instalacao',
-  15:'instalacao',18:'instalacao',19:'instalacao',22:'instalacao',26:'instalacao',
-  27:'instalacao',28:'instalacao',29:'instalacao',30:'instalacao',39:'instalacao',
-  48:'instalacao',49:'instalacao',68:'instalacao',89:'instalacao',
-  101:'instalacao',110:'instalacao',111:'instalacao',127:'instalacao',
-  220:'instalacao',227:'instalacao',239:'instalacao',246:'instalacao',
-  // infra/estrutura
-  6:'infra',7:'infra',16:'infra',40:'infra',138:'infra',140:'infra',141:'infra',
-  142:'infra',143:'infra',144:'infra',145:'infra',146:'infra',147:'infra',
-  148:'infra',149:'infra',150:'infra',151:'infra',152:'infra',153:'infra',
-  154:'infra',155:'infra',156:'infra',157:'infra',158:'infra',159:'infra',
-  160:'infra',161:'infra',162:'infra',163:'infra',164:'infra',165:'infra',
-  166:'infra',167:'infra',168:'infra',169:'infra',170:'infra',171:'infra',
-  172:'infra',173:'infra',174:'infra',175:'infra',176:'infra',177:'infra',
-  178:'infra',179:'infra',180:'infra',181:'infra',182:'infra',183:'infra',
-  184:'infra',185:'infra',186:'infra',187:'infra',188:'infra',221:'infra',
-  222:'infra',223:'infra',240:'infra',241:'infra',242:'infra',243:'infra',
-  244:'infra',245:'infra',247:'infra',
-  // retenção
-  248:'retencao',
-};
-
-const TIPO_CONFIG = {
-  suporte:    { emoji:'🔧', cor:'#3b82f6', label:'Suporte'    },
-  instalacao: { emoji:'⚡', cor:'#22c55e', label:'Instalação' },
-  infra:      { emoji:'🏗️', cor:'#f59e0b', label:'Infra'      },
-  retirada:   { emoji:'📦', cor:'#a855f7', label:'Retirada'   },
-  retencao:   { emoji:'🤝', cor:'#e8521a', label:'Retenção'   },
-  default:    { emoji:'📋', cor:'#6b7590', label:'OS'         },
-};
-
-const STATUS_COR = {
-  pendente:'#ef4444', deslocamento:'#f59e0b',
-  execucao:'#3b82f6', finalizada:'#22c55e'
-};
-
-function iconeOS(status, id_assunto, sla_estourado) {
-  const tipo = ASSUNTO_TIPO[id_assunto] || 'default';
-  const cfg = TIPO_CONFIG[tipo];
-  const corStatus = STATUS_COR[status] || '#6b7590';
-  const borda = sla_estourado ? '#ef4444' : corStatus;
-  const pulse = sla_estourado ? 'animation:pulse 1s infinite' : '';
+function iconeOS(status) {
+  const cores = {pendente:'#ef4444',deslocamento:'#f59e0b',execucao:'#3b82f6',finalizada:'#22c55e'};
+  const cor = cores[status] || '#6b7590';
   return L.divIcon({
     className:'',
-    html:`<div style="position:relative;display:inline-block;${pulse}">
-      <div style="background:${cfg.cor};border:2px solid ${borda};border-radius:8px;
-           padding:2px 5px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.5);
-           white-space:nowrap;line-height:1">${cfg.emoji}${sla_estourado?'🔴':''}</div>
-      <div style="position:absolute;bottom:-4px;right:-4px;width:8px;height:8px;
-           border-radius:50%;background:${corStatus};border:1px solid #fff"></div>
-    </div>`,
-    iconSize:[36,28], iconAnchor:[18,28]
+    html:`<div style="background:${cor};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+    iconSize:[14,14], iconAnchor:[7,7]
   });
 }
 
@@ -364,34 +264,20 @@ async function carregarDados() {
 }
 
 function atualizarStats(s) {
-  // Contar direto do cache para precisão
-  const cnt = {pendente:0, deslocamento:0, agendada:0, reagendada:0, execucao:0, finalizada:0};
-  osCache.forEach(o => { if(cnt[o.status_hub]!==undefined) cnt[o.status_hub]++; });
-  document.getElementById('st-pendente').textContent = cnt.pendente;
-  document.getElementById('st-deslocamento').textContent = cnt.deslocamento;
-  document.getElementById('st-agendada').textContent = (cnt.agendada||0)+(cnt.reagendada||0);
-  document.getElementById('st-execucao').textContent = cnt.execucao;
-  document.getElementById('st-finalizada').textContent = cnt.finalizada;
+  document.getElementById('st-pendente').textContent = s.pendentes||0;
+  document.getElementById('st-deslocamento').textContent = s.deslocamento||0;
+  document.getElementById('st-execucao').textContent = s.execucao||0;
+  document.getElementById('st-finalizada').textContent = s.finalizadas||0;
   document.getElementById('st-tecnicos').textContent = tecnicosCache.length;
-  document.getElementById('cnt-pendente').textContent = cnt.pendente;
-  document.getElementById('cnt-deslocamento').textContent = cnt.deslocamento;
-  document.getElementById('cnt-agendada').textContent = (cnt.agendada||0)+(cnt.reagendada||0);
-  document.getElementById('cnt-execucao').textContent = cnt.execucao;
-  document.getElementById('cnt-finalizada').textContent = cnt.finalizada;
+  document.getElementById('cnt-pendente').textContent = s.pendentes||0;
+  document.getElementById('cnt-deslocamento').textContent = s.deslocamento||0;
+  document.getElementById('cnt-execucao').textContent = s.execucao||0;
+  document.getElementById('cnt-finalizada').textContent = s.finalizadas||0;
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────
 function renderSidebar() {
-  const dataIni = document.getElementById('filtro-data-ini')?.value;
-  const dataFim = document.getElementById('filtro-data-fim')?.value;
-  const filtradas = osCache.filter(o => {
-    const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
-    if (!filtrosStatus.has(o.status_hub)) return false;
-    if (!filtrosTipo.has(tipo)) return false;
-    if (dataIni && o.data_abertura && o.data_abertura < dataIni) return false;
-    if (dataFim && o.data_abertura && o.data_abertura.substring(0,10) > dataFim) return false;
-    return true;
-  });
+  const filtradas = osCache.filter(o => filtros.has(o.status_hub));
   const lista = document.getElementById('lista-os');
   if (!filtradas.length) { lista.innerHTML='<div style="padding:20px;color:var(--muted);font-size:.85rem;text-align:center">Nenhuma OS</div>'; return; }
   lista.innerHTML = filtradas.map(o => `
@@ -402,7 +288,7 @@ function renderSidebar() {
       </div>
       <div class="os-cliente">${o.cliente_nome||'—'}</div>
       <div class="os-end">📍 ${o.endereco||'—'} ${o.bairro?'· '+o.bairro:''}</div>
-      <div class="os-meta" style="margin-bottom:4px">
+      <div class="os-meta">
         <span>${o.assunto_nome||'—'}</span>
         <span>${o.tecnico_nome||'Sem técnico'}</span>
       </div>
@@ -417,15 +303,10 @@ function renderMapa() {
   marcadores = {}; marcadoresTec = {};
 
   // OS
-  const _dataIni = document.getElementById('filtro-data-ini')?.value;
-  const _dataFim = document.getElementById('filtro-data-fim')?.value;
   osCache.forEach(o => {
-    const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
-    if (!filtrosStatus.has(o.status_hub) || !filtrosTipo.has(tipo)) return;
-    if (_dataIni && o.data_abertura && o.data_abertura < _dataIni) return;
-    if (_dataFim && o.data_abertura && o.data_abertura.substring(0,10) > _dataFim) return;
+    if (!filtros.has(o.status_hub)) return;
     if (!o.lat || !o.lon) return;
-    const m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub, o.id_assunto, o.sla_estourado)})
+    const m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub)})
       .addTo(mapa)
       .bindTooltip(`<b>OS #${o.ixc_os_id}</b><br>${o.cliente_nome}<br>${o.assunto_nome}`, {direction:'top'})
       .on('click', () => selecionarOS(o.ixc_os_id));
@@ -433,7 +314,7 @@ function renderMapa() {
   });
 
   // Técnicos
-  if (mostrarTecnicos) {
+  if (filtros.has('tecnicos')) {
     tecnicosCache.forEach(t => {
       if (!t.lat || !t.lon) return;
       const m = L.marker([t.lat, t.lon], {icon: iconeTecnico(t.status_tecnico)})
@@ -537,65 +418,12 @@ async function atribuirOS(id_tecnico) {
 function fecharModal() { document.getElementById('modal-atribuir').style.display='none'; }
 
 // ── FILTROS ───────────────────────────────────────────────────
-let filtrosStatus = new Set(['pendente','deslocamento','agendada','reagendada','execucao']);
-let filtrosTipo = new Set(['suporte','instalacao','infra','retirada','default']);
-let mostrarTecnicos = true;
-
-function toggleStatus(status, btn) {
-  const todos = ['pendente','deslocamento','agendada','reagendada','execucao','finalizada'];
-  if (filtrosStatus.has(status) && filtrosStatus.size === 1) {
-    todos.forEach(t => filtrosStatus.add(t));
-    document.querySelectorAll('[id^="f-"]:not(#f-tecnicos)').forEach(b => b.classList.add('active'));
-    renderSidebar(); renderMapa();
-    return;
-  }
-  if (filtrosStatus.size >= todos.length - 1) {
-    filtrosStatus.clear();
-    filtrosStatus.add(status);
-    document.querySelectorAll('[id^="f-"]:not(#f-tecnicos)').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderSidebar(); renderMapa();
-    return;
-  }
-  if (filtrosStatus.has(status)) filtrosStatus.delete(status);
-  else filtrosStatus.add(status);
-  btn.classList.toggle('active', filtrosStatus.has(status));
-  renderSidebar(); renderMapa();
-}
-
-function toggleTipo(tipo, btn) {
-  // Se clicou no unico ativo, ativa todos
-  if (filtrosTipo.has(tipo) && filtrosTipo.size === 1) {
-    ['suporte','instalacao','infra','retirada','default'].forEach(t => filtrosTipo.add(t));
-    document.querySelectorAll('[id^="ft-"]').forEach(b => b.classList.add('active'));
-    renderSidebar(); renderMapa();
-    return;
-  }
-  // Se todos ativos, desativa todos e ativa so o clicado
-  const todos = ['suporte','instalacao','infra','retirada','default'];
-  if (filtrosTipo.size === todos.length) {
-    filtrosTipo.clear();
-    filtrosTipo.add(tipo);
-    document.querySelectorAll('[id^="ft-"]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderSidebar(); renderMapa();
-    return;
-  }
-  // Toggle normal
-  if (filtrosTipo.has(tipo)) filtrosTipo.delete(tipo);
-  else filtrosTipo.add(tipo);
-  btn.classList.toggle('active', filtrosTipo.has(tipo));
-  renderSidebar(); renderMapa();
-}
-
-function toggleTecnicos(btn) {
-  mostrarTecnicos = !mostrarTecnicos;
-  btn.classList.toggle('active', mostrarTecnicos);
-  renderMapa();
-}
-
 function toggleFiltro(tipo, btn) {
-  toggleStatus(tipo, btn);
+  if (filtros.has(tipo)) filtros.delete(tipo);
+  else filtros.add(tipo);
+  btn.classList.toggle('active', filtros.has(tipo));
+  renderSidebar();
+  renderMapa();
 }
 
 // ── HELPERS ──────────────────────────────────────────────────
@@ -604,12 +432,6 @@ function labelStatus(s) {
 }
 function labelStatusTec(s) {
   return {livre:'🅿️ Livre',em_rota:'🚗 Em rota',atendimento:'🔧 Em atendimento',offline:'📵 Offline'}[s]||s;
-}
-
-function limparDatas() {
-  document.getElementById('filtro-data-ini').value = '';
-  document.getElementById('filtro-data-fim').value = '';
-  renderSidebar(); renderMapa();
 }
 
 function toast(msg, tipo='ok') {

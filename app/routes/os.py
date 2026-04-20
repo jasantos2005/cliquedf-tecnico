@@ -166,9 +166,31 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
 
 @router.post("/{ixc_os_id}/atribuir")
 def atribuir_os(ixc_os_id: int, data: dict, usuario=Depends(requer_supervisor)):
+    id_tecnico = data.get("id_tecnico")
+    data_reservada = data.get("data_reservada")  # formato: YYYY-MM-DD HH:MM
+
+    # Atualiza SQLite
     db = get_db()
-    db.execute("UPDATE ht_os SET id_tecnico=?, status_hub='pendente' WHERE ixc_os_id=?",
-               (data["id_tecnico"], ixc_os_id))
+    db.execute(
+        "UPDATE ht_os SET id_tecnico=?, status_hub='agendada' WHERE ixc_os_id=?",
+        (id_tecnico, ixc_os_id)
+    )
     db.commit()
     db.close()
+
+    # Atualiza IXC
+    try:
+        if data_reservada:
+            ixc_insert(
+                "UPDATE ixcprovedor.su_oss_chamado SET id_tecnico=%s, data_reservada=%s WHERE id=%s",
+                (id_tecnico, data_reservada, ixc_os_id)
+            )
+        else:
+            ixc_insert(
+                "UPDATE ixcprovedor.su_oss_chamado SET id_tecnico=%s WHERE id=%s",
+                (id_tecnico, ixc_os_id)
+            )
+    except Exception as e:
+        print(f"[WARN] Erro ao atribuir no IXC OS {ixc_os_id}: {e}")
+
     return {"ok": True}

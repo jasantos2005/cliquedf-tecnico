@@ -32,9 +32,9 @@ async def root():
     p = STATIC_DIR / "app.html"
     return p.read_text() if p.exists() else "<h2>Hub Técnico — em construção</h2>"
 
-@app.get("/despacho", response_class=HTMLResponse)
+@app.get("/painel", response_class=HTMLResponse)
 async def despacho_page():
-    p = STATIC_DIR / "despacho.html"
+    p = STATIC_DIR / "painel.html"
     return p.read_text() if p.exists() else "<h2>Despacho — em construção</h2>"
 
 @app.get("/health")
