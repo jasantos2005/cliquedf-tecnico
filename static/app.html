@@ -187,6 +187,12 @@ textarea:focus,select:focus{border-color:var(--accent)}
       </div>
     </div>
     <button class="btn btn-outline" style="margin-bottom:10px" onclick="location.reload()">Sincronizar dados</button>
+    <div style="margin-top:12px">
+      <button id="btn-modo-offline" onclick="toggleModoOffline()"
+        style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:700">
+        📵 Modo Offline
+      </button>
+    </div>
     <button class="btn btn-red" onclick="logout()">Sair</button>
   </div>
 
@@ -279,7 +285,7 @@ window.addEventListener('load', () => {
   const u = localStorage.getItem('ht_usuario');
   if (t && u) { usuario = JSON.parse(u); iniciarApp(); }
 
-  window.addEventListener('online',  () => { isOnline=true;  atualizarOnline(); });
+  window.addEventListener('online',  () => { isOnline=true;  atualizarOnline(); if(!modoOffline){sincronizarFila();carregarOS();} });
   window.addEventListener('offline', () => { isOnline=false; atualizarOnline(); });
 });
 
@@ -293,6 +299,13 @@ function iniciarApp() {
   atualizarOnline();
   carregarOS();
   iniciarGPS();
+  // Atualizar botao offline
+  const btnOff = document.getElementById('btn-modo-offline');
+  if (btnOff && modoOffline) {
+    btnOff.style.background = 'rgba(239,68,68,.2)';
+    btnOff.style.color = 'var(--red)';
+    btnOff.textContent = '📵 Offline ON';
+  }
 }
 
 function atualizarOnline() {
@@ -398,6 +411,28 @@ async function abrirOS(ixc_os_id) {
   const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
   if (!os) return;
   osAtual = os;
+  const osAtiva = osData.find(o => ['deslocamento','execucao'].includes(o.status_hub));
+  if (osAtiva && osAtiva.ixc_os_id !== ixc_os_id) {
+    document.getElementById('modal-os').style.display = 'flex';
+    document.getElementById('modal-os-content').innerHTML =
+      '<div class="modal-title">⚠️ OS em andamento</div>' +
+      '<div style="background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:10px;padding:14px;margin-bottom:16px;font-size:.88rem">' +
+      'Você tem a OS <strong>#'+osAtiva.ixc_os_id+'</strong> em andamento.<br>Finalize ou reagende antes de assumir outra.</div>' +
+      '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="abrirOS('+osAtiva.ixc_os_id+')">Ver OS em andamento</button>' +
+      '<button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>';
+    return;
+  }
+  if (os._ordem > 1 && ['pendente','agendada'].includes(os.status_hub)) {
+    const proxima = osData.find(o => o._ordem === 1);
+    document.getElementById('modal-os').style.display = 'flex';
+    document.getElementById('modal-os-content').innerHTML =
+      '<div class="modal-title">🔒 Fora de ordem</div>' +
+      '<div style="background:rgba(245,158,11,.1);border:1px solid var(--yellow);border-radius:10px;padding:14px;margin-bottom:16px;font-size:.88rem">' +
+      'Esta é a <strong>'+os._ordem+'ª OS</strong> da fila.<br>A próxima é a OS <strong>#'+(proxima?.ixc_os_id||'—')+'</strong>.</div>' +
+      (proxima?'<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="abrirOS('+proxima.ixc_os_id+')">Ver OS #'+proxima.ixc_os_id+'</button>':'') +
+      '<button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>';
+    return;
+  }
   const modal = document.getElementById('modal-os');
   modal.style.display = 'flex';
 
@@ -515,13 +550,40 @@ async function confirmarDeslocamento(ixc_os_id) {
 }
 
 async function iniciarExecucaoBtn(ixc_os_id) {
-  const pos = await getPos();
-  await api('/api/os/'+ixc_os_id+'/iniciar-execucao', {
-    method:'POST', body:JSON.stringify({lat:pos?.lat, lon:pos?.lon})
-  });
-  const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
-  if (os) { os.status_hub = 'execucao'; osAtual = os; }
-  iniciarExecucao(os);
+  let ultimoKm = 0;
+  if (navigator.onLine && !modoOffline) {
+    try { const r = await api('/api/os/'+usuario.id+'/ultimo-km'); ultimoKm = r.ultimo_km||0; } catch(e){}
+  }
+  document.getElementById('modal-os-content').innerHTML =
+    '<div class="modal-title">🔧 Cheguei no cliente</div>' +
+    '<div style="margin-bottom:16px"><label style="display:block;font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px">KM do veículo agora</label>' +
+    '<input class="km-input" type="number" id="inp-km-chegada" placeholder="Ex: 45265">' +
+    '<div style="font-size:.75rem;color:var(--muted);margin-top:6px;text-align:center">KM ao sair: '+ultimoKm.toFixed(0)+'</div>' +
+    '</div><div style="display:grid;gap:8px">' +
+    '<button class="btn btn-green" onclick="confirmarExecucao('+ixc_os_id+')">🔧 Iniciar execução</button>' +
+    '<button class="btn btn-outline" onclick="fecharModal()">Cancelar</button></div>';
+}
+
+async function confirmarExecucao(ixc_os_id) {
+  const km = parseFloat(document.getElementById('inp-km-chegada').value);
+  if (!km || km <= 0) { toast('Informe o KM do veículo','err'); return; }
+  let pos = null;
+  try { pos = await Promise.race([getPos(), new Promise(r=>setTimeout(()=>r(null),3000))]); } catch(e){}
+  try {
+    if (navigator.onLine && !modoOffline) {
+      const r = await api('/api/os/'+ixc_os_id+'/iniciar-execucao-km', {method:'POST',body:JSON.stringify({km,lat:pos?.lat,lon:pos?.lon})});
+      if (r.detail) { toast(r.detail,'err'); return; }
+      toast('Execução iniciada! Deslocamento: '+(r.km_deslocamento||0).toFixed(1)+'km','ok');
+    } else {
+      const fila = JSON.parse(localStorage.getItem('fila_offline')||'[]');
+      fila.push({url:'/api/os/'+ixc_os_id+'/iniciar-execucao-km',method:'POST',body:JSON.stringify({km,lat:pos?.lat,lon:pos?.lon}),timestamp:Date.now()});
+      localStorage.setItem('fila_offline', JSON.stringify(fila));
+      toast('Offline — será sincronizado ao conectar','ok');
+    }
+    const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
+    if (os) { os.status_hub = 'execucao'; osAtual = os; }
+    iniciarExecucao(os);
+  } catch(e) { toast('Erro ao iniciar execução','err'); }
 }
 
 // ── EXECUCAO PASSO A PASSO ───────────────────────────────────
@@ -844,6 +906,66 @@ async function carregarHistorico() {
       '</div>'
     ).join('');
   } catch(e) { lista.innerHTML = '<div style="text-align:center;color:var(--red);padding:20px">Erro ao carregar</div>'; }
+}
+
+function abrirReagendar() {
+  document.getElementById('modal-os-content').innerHTML =
+    '<div class="modal-title">📅 Reagendar OS</div>' +
+    '<div style="font-size:.85rem;color:var(--muted);margin-bottom:14px">A OS voltará para o setor de agendamento.</div>' +
+    '<div style="margin-bottom:14px"><label style="display:block;font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">Motivo (obrigatório)</label>' +
+    '<textarea id="inp-motivo-reag" rows="3" placeholder="Ex: Cliente ausente, problema técnico..."></textarea></div>' +
+    '<div style="display:grid;gap:8px">' +
+    '<button class="btn" style="background:rgba(245,158,11,.2);color:var(--yellow);border:1px solid var(--yellow);font-weight:700;padding:12px" onclick="confirmarReagendar()">📅 Confirmar Reagendamento</button>' +
+    '<button class="btn btn-outline" onclick="renderStep()">← Voltar</button></div>';
+}
+
+async function confirmarReagendar() {
+  if (!osAtual) return;
+  const motivo = document.getElementById('inp-motivo-reag')?.value?.trim();
+  if (!motivo || motivo.length < 5) { toast('Informe o motivo (mínimo 5 caracteres)','err'); return; }
+  try {
+    const r = await api('/api/os/'+osAtual.ixc_os_id+'/reagendar', {method:'POST',body:JSON.stringify({motivo})});
+    if (r.ok) {
+      const os = osData.find(o=>o.ixc_os_id===osAtual.ixc_os_id);
+      if (os) os.status_hub = 'reagendada';
+      osAtual = null;
+      fecharModal(); renderOS(); renderHome();
+      toast('OS reagendada com sucesso','ok');
+    }
+  } catch(e) { toast('Erro ao reagendar','err'); }
+}
+
+async function sincronizarFila() {
+  if (!navigator.onLine) return;
+  try {
+    const fila = JSON.parse(localStorage.getItem('fila_offline')||'[]');
+    if (!fila.length) return;
+    const restante = [];
+    for (const item of fila) {
+      try {
+        const resp = await fetch(item.url, {method:item.method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:item.body});
+        if (!resp.ok) restante.push(item);
+      } catch(e) { restante.push(item); }
+    }
+    localStorage.setItem('fila_offline', JSON.stringify(restante));
+    if (fila.length > restante.length) {
+      toast('Sincronizado '+(fila.length-restante.length)+' ação(ões)','ok');
+      carregarOS();
+    }
+  } catch(e) {}
+}
+
+function toggleModoOffline() {
+  modoOffline = !modoOffline;
+  localStorage.setItem('modo_offline', modoOffline?'1':'0');
+  const btn = document.getElementById('btn-modo-offline');
+  if (btn) {
+    btn.style.background = modoOffline?'rgba(239,68,68,.2)':'transparent';
+    btn.style.color = modoOffline?'var(--red)':'var(--muted)';
+    btn.textContent = modoOffline?'📵 Offline ON':'📵 Offline';
+  }
+  if (!modoOffline) { sincronizarFila(); carregarOS(); }
+  else toast('Modo offline ativado','ok');
 }
 
 function toast(msg, tipo='ok') {
