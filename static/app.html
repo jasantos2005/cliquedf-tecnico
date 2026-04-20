@@ -232,7 +232,7 @@ let usuario = null;
 let osData = [];
 let osAtual = null;
 let execStep = 0;
-let execData = { checklist:[], fotos_antes:[], fotos_depois:[], assinatura:null, solucao:'', obs:'', materiais:[] };
+let execData = { checklist:[], fotos:[], assinatura:null, solucao:'', obs:'', materiais:[] };
 let isOnline = navigator.onLine;
 let filtroDia = 'hoje';
 let modoOffline = localStorage.getItem('modo_offline')==='1';
@@ -589,11 +589,11 @@ async function confirmarExecucao(ixc_os_id) {
 // ── EXECUCAO PASSO A PASSO ───────────────────────────────────
 function iniciarExecucao(os) {
   execStep = 0;
-  execData = {checklist:[],fotos_antes:[],fotos_depois:[],assinatura:null,solucao:'',obs:'',materiais:[]};
+  execData = {checklist:[],fotos:[],assinatura:null,solucao:'',obs:'',materiais:[]};
   renderStep();
 }
 
-const STEPS = ['checklist','fotos_antes','solucao','fotos_depois','assinatura','finalizar'];
+const STEPS = ['checklist','fotos','solucao','assinatura','finalizar'];
 
 function renderStep() {
   const steps = STEPS;
@@ -688,7 +688,7 @@ function renderStep() {
       <div class="modal-title">🏁 Finalizar OS</div>
       <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px">
         <div style="font-size:.85rem;margin-bottom:6px">✅ Checklist: ${marcados}/${CHECKLISTS[osAtual.id_assunto]?.length||0} itens</div>
-        <div style="font-size:.85rem;margin-bottom:6px">📸 Fotos antes: ${execData.fotos_antes.length} | Depois: ${execData.fotos_depois.length}</div>
+        <div style="font-size:.85rem;margin-bottom:6px">📸 Fotos: ${execData.fotos.length}</div>
         <div style="font-size:.85rem;margin-bottom:6px">📝 Solução: ${execData.solucao?'✅':'❌ necessário'}</div>
         <div style="font-size:.85rem">✍️ Assinatura: ${execData.assinatura?'✅':'—'}</div>
       </div>
@@ -739,8 +739,7 @@ function tirarFoto(tipo, idx) {
     const reader = new FileReader();
     reader.onload = ev => {
       comprimirImagem(ev.target.result, base64 => {
-        if (tipo==='antes') execData.fotos_antes[idx] = base64;
-        else execData.fotos_depois[idx] = base64;
+        execData.fotos.push(base64); renderFotoGrid();
         const box = document.getElementById(`foto-${tipo}-${idx}`);
         if (box) box.innerHTML = `<img src="${base64}">`;
       });
@@ -966,6 +965,52 @@ function toggleModoOffline() {
   }
   if (!modoOffline) { sincronizarFila(); carregarOS(); }
   else toast('Modo offline ativado','ok');
+}
+
+function renderFotoGrid() {
+  const container = document.getElementById('foto-grid-container');
+  if (!container) return;
+  container.innerHTML = execData.fotos.map((f,i) =>
+    '<div class="foto-box" style="position:relative">' +
+    '<img src="'+f+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">' +
+    '<button onclick="removerFoto('+i+')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);border:none;color:white;border-radius:50%;width:24px;height:24px;cursor:pointer">✕</button>' +
+    '</div>'
+  ).join('');
+  const cnt = document.getElementById('foto-count');
+  if (cnt) cnt.textContent = execData.fotos.length+' foto(s)';
+}
+
+function removerFoto(idx) {
+  execData.fotos.splice(idx,1);
+  renderFotoGrid();
+}
+
+function processarFotoCamera(input) {
+  if (!input.files[0]) return;
+  comprimirFoto(input.files[0], b64 => { execData.fotos.push(b64); renderFotoGrid(); });
+  input.value='';
+}
+
+function processarFotosGaleria(input) {
+  Array.from(input.files).forEach(f => comprimirFoto(f, b64 => { execData.fotos.push(b64); renderFotoGrid(); }));
+  input.value='';
+}
+
+function comprimirFoto(file, cb) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const max=800; let w=img.width,h=img.height;
+      if(w>max){h=h*max/w;w=max;} if(h>max){w=w*max/h;h=max;}
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      cb(canvas.toDataURL('image/jpeg',0.7));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function toast(msg, tipo='ok') {
