@@ -98,13 +98,13 @@ table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:.72rem;color:var(--text3);font-weight:700;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--border)}
 td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 /* LOGIN */
-#P-LOGIN{display:none;min-height:100vh}
+#P-LOGIN{min-height:100vh}
 </style>
 </head>
 <body>
 
 <!-- LOGIN -->
-<div id="P-LOGIN">
+<div id="P-LOGIN" style="display:flex">
   <div style="display:flex;min-height:100vh">
     <div style="flex:1;background:linear-gradient(135deg,#0d0f14,#1c2230);display:flex;flex-direction:column;justify-content:center;padding:60px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:40px">
@@ -395,16 +395,6 @@ function toggleSidebar() { document.getElementById('sidebar').classList.toggle('
 function logout() { ['ht_hub_token','ht_hub_usuario','ht_despacho_token','ht_despacho_usuario'].forEach(function(k){localStorage.removeItem(k);}); location.reload(); }
 
 
-// ── ESTADO ──────────────────────────────────────────────────
-let usuario = null;
-let mapa = null;
-let marcadores = {};
-let marcadoresTec = {};
-let osCache = [];
-let tecnicosCache = [];
-let rotasTecnicos = {};
-let filtros = new Set(['pendente','deslocamento','execucao','tecnicos']);
-let tipoFiltro = 'todos';
 const ASSUNTO_TIPO = {
   5:'suporte',17:'suporte',20:'suporte',21:'suporte',27:'suporte',44:'suporte',
   47:'suporte',94:'suporte',102:'suporte',103:'suporte',104:'suporte',105:'suporte',
@@ -424,53 +414,7 @@ const ASSUNTO_TIPO = {
   6:'retirada',22:'retirada',39:'retirada',40:'retirada',89:'retirada',
   111:'retirada',127:'retirada',
 };
-let osAtribuirId = null;
 
-// ── AUTH ─────────────────────────────────────────────────────
-function token() { return localStorage.getItem('ht_despacho_token') || ''; }
-
-function api(path, opts={}) {
-  return fetch(path, {
-    ...opts,
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token(),...(opts.headers||{})}
-  }).then(r=>r.json());
-}
-
-async function fazerLogin() {
-  const login = document.getElementById('inp-login').value.trim();
-  const senha = document.getElementById('inp-senha').value;
-  const err = document.getElementById('login-err');
-  try {
-    const r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login,senha})}).then(r=>r.json());
-    if (r.detail){err.textContent=r.detail;err.style.display='block';return;}
-    if (r.usuario.nivel < 50){err.textContent='Acesso restrito ao supervisor';err.style.display='block';return;}
-    localStorage.setItem('ht_despacho_token', r.token);
-    localStorage.setItem('ht_despacho_usuario', JSON.stringify(r.usuario));
-    usuario = r.usuario;
-    iniciarApp();
-  } catch(e){err.textContent='Erro de conexão';err.style.display='block';}
-}
-
-function logout(){localStorage.removeItem('ht_despacho_token');location.reload();}
-
-// ── INIT ─────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  const t = localStorage.getItem('ht_despacho_token');
-  const u = localStorage.getItem('ht_despacho_usuario');
-  if (t && u) { usuario=JSON.parse(u); iniciarApp(); }
-  setInterval(()=>{
-    const now = new Date();
-    document.getElementById('tb-hora').textContent = now.toLocaleTimeString('pt-BR');
-  }, 1000);
-});
-
-function iniciarApp() {
-  document.getElementById('login-page').style.display = 'none';
-  document.getElementById('app-page').style.display = 'flex';
-  iniciarMapa();
-  carregarDados();
-  setInterval(carregarDados, 15000);
-}
 
 // ── MAPA ─────────────────────────────────────────────────────
 function iniciarMapa() {
@@ -821,12 +765,19 @@ function fecharModalUsuario() { document.getElementById('modal-usuario').classLi
 
 // INIT
 (function(){
+  console.log("INIT painel");
   var t = localStorage.getItem('ht_hub_token') || localStorage.getItem('ht_despacho_token');
   var u = localStorage.getItem('ht_hub_usuario') || localStorage.getItem('ht_despacho_usuario');
+  console.log("token:", t ? "existe" : "nao existe");
   if (t && u) {
-    iniciarApp(JSON.parse(u));
+    try {
+      iniciarApp(JSON.parse(u));
+    } catch(e) {
+      console.error("Erro iniciarApp:", e);
+      document.getElementById('P-LOGIN').style.display = 'flex';
+    }
   } else {
-    document.getElementById('P-LOGIN').style.display = 'block';
+    document.getElementById('P-LOGIN').style.display = 'flex';
   }
 })();
 </script>
