@@ -290,6 +290,18 @@ function navTo(page) {
 async function carregarOS() {
   try {
     const rows = await api('/api/os/minhas');
+    // Ordenar por data_reservada
+    rows.sort((a,b) => {
+      const da = (a.data_reservada||a.data_agenda||a.data_abertura||'9999');
+      const db2 = (b.data_reservada||b.data_agenda||b.data_abertura||'9999');
+      return da.localeCompare(db2);
+    });
+    // Numerar ordem
+    let ordem = 1;
+    rows.forEach(o => {
+      if (['pendente','agendada','reagendada'].includes(o.status_hub)) o._ordem = ordem++;
+      else o._ordem = 0;
+    });
     osData = rows;
     renderOS();
     renderHome();
@@ -373,6 +385,30 @@ async function abrirOS(ixc_os_id) {
   const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
   if (!os) return;
   osAtual = os;
+  // Verificar se tem OS ativa
+  const osAtiva = osData.find(o => ['deslocamento','execucao'].includes(o.status_hub));
+  if (osAtiva && osAtiva.ixc_os_id !== ixc_os_id) {
+    document.getElementById('modal-os').style.display = 'flex';
+    document.getElementById('modal-os-content').innerHTML =
+      '<div class="modal-title">⚠️ OS em andamento</div>' +
+      '<div style="background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:10px;padding:14px;margin-bottom:16px;font-size:.88rem">' +
+      'Você tem a OS <strong>#'+osAtiva.ixc_os_id+'</strong> em andamento.<br>Finalize ou reagende antes de assumir outra.</div>' +
+      '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="abrirOS('+osAtiva.ixc_os_id+')">Ver OS em andamento</button>' +
+      '<button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>';
+    return;
+  }
+  // Verificar ordem
+  if (os._ordem > 1 && ['pendente','agendada'].includes(os.status_hub)) {
+    const proxima = osData.find(o => o._ordem === 1);
+    document.getElementById('modal-os').style.display = 'flex';
+    document.getElementById('modal-os-content').innerHTML =
+      '<div class="modal-title">🔒 Fora de ordem</div>' +
+      '<div style="background:rgba(245,158,11,.1);border:1px solid var(--yellow);border-radius:10px;padding:14px;margin-bottom:16px;font-size:.88rem">' +
+      'Esta é a <strong>'+os._ordem+'ª OS</strong> da fila.<br>A próxima é a OS <strong>#'+(proxima?.ixc_os_id||'—')+'</strong>.</div>' +
+      (proxima?'<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="abrirOS('+proxima.ixc_os_id+')">Ver OS #'+proxima.ixc_os_id+'</button>':'') +
+      '<button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>';
+    return;
+  }
   const modal = document.getElementById('modal-os');
   modal.style.display = 'flex';
 
