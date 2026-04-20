@@ -143,6 +143,11 @@ textarea:focus,select:focus{border-color:var(--accent)}
 
   <!-- OS -->
   <div id="page-os" class="page">
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="btn-ontem" class="btn btn-outline" style="flex:1;padding:8px;font-size:.78rem;font-weight:700" onclick="setFiltroDia('ontem')">◀ Ontem</button>
+      <button id="btn-hoje" class="btn btn-primary" style="flex:1;padding:8px;font-size:.78rem;font-weight:700" onclick="setFiltroDia('hoje')">Hoje</button>
+      <button id="btn-amanha" class="btn btn-outline" style="flex:1;padding:8px;font-size:.78rem;font-weight:700" onclick="setFiltroDia('amanha')">Amanhã ▶</button>
+    </div>
     <div style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Suas ordens de serviço</div>
     <div id="lista-os"></div>
   </div>
@@ -223,6 +228,7 @@ let osAtual = null;
 let execStep = 0;
 let execData = { checklist:[], fotos_antes:[], fotos_depois:[], assinatura:null, solucao:'', obs:'', materiais:[] };
 let isOnline = navigator.onLine;
+let filtroDia = 'hoje';
 
 const CHECKLISTS = {
   20: ['Rádio/ONU offline no sistema','Cliente bloqueado por inadimplência','Queda de energia recente','Roteador ligado (verificar luzes)','Orientado a reiniciar roteador (2min)','Outros dispositivos sem acesso','Cabo conectado corretamente','Problema persiste — técnico necessário'],
@@ -315,7 +321,13 @@ async function carregarOS() {
 
 function renderOS() {
   const lista = document.getElementById('lista-os');
-  const ativas = osData.filter(o => o.status_hub !== 'finalizada');
+  const diaRef = dataFiltro(filtroDia);
+  const ativas = osData.filter(o => {
+    if (o.status_hub === 'finalizada') return false;
+    const dataOs = (o.data_reservada||o.data_agenda||o.data_abertura||'').substring(0,10);
+    if (!dataOs || dataOs === '0000-00-00') return filtroDia === 'hoje';
+    return dataOs === diaRef;
+  });
   if (!ativas.length) { lista.innerHTML = '<div class="empty">Nenhuma OS pendente 🎉</div>'; return; }
   lista.innerHTML = ativas.map(o => `
     <div class="os-card" onclick="abrirOS(${o.ixc_os_id})">
@@ -357,6 +369,22 @@ function renderHome() {
   } else {
     box.innerHTML = '<div class="empty">Sem OS pendentes hoje 🎉</div>';
   }
+}
+
+function setFiltroDia(dia) {
+  filtroDia = dia;
+  ['ontem','hoje','amanha'].forEach(d => {
+    const b = document.getElementById('btn-'+d);
+    if (b) b.className = d===dia ? 'btn btn-primary' : 'btn btn-outline';
+  });
+  renderOS();
+}
+
+function dataFiltro(dia) {
+  const d = new Date();
+  if (dia === 'ontem') d.setDate(d.getDate()-1);
+  if (dia === 'amanha') d.setDate(d.getDate()+1);
+  return d.toISOString().substring(0,10);
 }
 
 function labelStatus(s) {
