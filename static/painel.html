@@ -104,23 +104,56 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 <body>
 
 <!-- LOGIN -->
-<div id="P-LOGIN" style="display:flex">
-  <div style="display:flex;min-height:100vh">
-    <div style="flex:1;background:linear-gradient(135deg,#0d0f14,#1c2230);display:flex;flex-direction:column;justify-content:center;padding:60px">
+<div id="P-LOGIN" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg)">
+  <div style="display:flex;height:100vh;width:100vw">
+    <div style="flex:1;background:linear-gradient(135deg,#0d0f14 60%,#1c2230);display:flex;flex-direction:column;justify-content:center;padding:60px;overflow-y:auto">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:40px">
         <div style="width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center">🔧</div>
         <span style="font-weight:800;font-size:1.2rem">Hub<span style="color:var(--accent)">Tecnico</span></span>
       </div>
       <h1 style="font-size:2rem;font-weight:900;line-height:1.2;margin-bottom:12px">Controle de OS<br><span style="color:var(--accent)">e Frota</span></h1>
-      <p style="color:var(--text3);font-size:.9rem;max-width:360px;line-height:1.6">Gerencie ordens de servico, rotas de tecnicos e frota de veiculos em tempo real.</p>
+      <p style="color:var(--text3);font-size:.9rem;max-width:360px;line-height:1.6;margin-bottom:32px">Gerencie ordens de servico, rotas de tecnicos e frota de veiculos em tempo real.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:380px">
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">📋 Hub Comercial</div>
+          <div style="font-size:.7rem;color:var(--text3)">Vendas e ativacao</div>
+          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">💰 Hub Cobranca</div>
+          <div style="font-size:.7rem;color:var(--text3)">Gestao financeira</div>
+          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">📊 Hub Produtividade</div>
+          <div style="font-size:.7rem;color:var(--text3)">Ranking e SLA</div>
+          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">📈 Hub Gerencial</div>
+          <div style="font-size:.7rem;color:var(--text3)">KPIs e dashboards</div>
+          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">🤝 Hub Retencao</div>
+          <div style="font-size:.7rem;color:var(--text3)">Reconquista clientes</div>
+          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">🔧 Hub Tecnico</div>
+          <div style="font-size:.7rem;color:var(--text3)">OS e frota</div>
+          <span style="font-size:.65rem;background:rgba(232,82,26,.15);color:var(--accent);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Beta</span>
+        </div>
+      </div>
     </div>
-    <div style="width:400px;background:var(--surf);display:flex;flex-direction:column;justify-content:center;padding:48px">
+    <div style="width:420px;min-width:420px;background:var(--surf);border-left:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;padding:48px">
       <div style="font-size:1.3rem;font-weight:900;margin-bottom:6px">Bem-vindo</div>
       <div style="color:var(--text3);font-size:.85rem;margin-bottom:28px">Faca login para continuar.</div>
-      <div class="field"><label>Login</label><input type="text" id="inp-login" placeholder="seu.login"></div>
-      <div class="field"><label>Senha</label><input type="password" id="inp-senha" placeholder="senha"></div>
+      <div style="margin-bottom:14px"><label style="font-size:.73rem;color:var(--text3);font-weight:700;text-transform:uppercase">Login</label><input type="text" id="inp-login" placeholder="seu.login" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:.88rem;outline:none;margin-top:5px"></div>
+      <div style="margin-bottom:14px"><label style="font-size:.73rem;color:var(--text3);font-weight:700;text-transform:uppercase">Senha</label><input type="password" id="inp-senha" placeholder="senha" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:.88rem;outline:none;margin-top:5px"></div>
       <div id="login-err" style="color:var(--red);font-size:.82rem;margin-bottom:10px;display:none"></div>
-      <button class="btn btn-p" style="width:100%;padding:12px;font-size:.9rem" onclick="fazerLogin()">Entrar</button>
+      <button onclick="fazerLogin()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer">Entrar</button>
+      <div style="text-align:center;font-size:.72rem;color:var(--text3);margin-top:20px">Hub Tecnico v1.0 - IaTechHub 2026</div>
     </div>
   </div>
 </div>
