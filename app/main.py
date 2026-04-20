@@ -33,6 +33,21 @@ async def root():
     p = STATIC_DIR / "app.html"
     return p.read_text() if p.exists() else "<h2>Hub Técnico — em construção</h2>"
 
+@app.get("/app", response_class=HTMLResponse)
+async def app_tecnico():
+    p = STATIC_DIR / "app.html"
+    return HTMLResponse(p.read_text())
+
+@app.get("/hub", response_class=HTMLResponse)
+async def hub_page():
+    p = STATIC_DIR / "hub.html"
+    return HTMLResponse(p.read_text())
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page():
+    p = STATIC_DIR / "login.html"
+    return HTMLResponse(p.read_text())
+
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page():
     p = STATIC_DIR / "admin.html"

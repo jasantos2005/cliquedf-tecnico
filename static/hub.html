@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hub Tecnico</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0f14;--sur:#151920;--sur2:#1c2230;--bor:#252d3d;--acc:#e8521a;--txt:#e8eaf0;--mut:#6b7590;--grn:#22c55e;--red:#ef4444}
+body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;min-height:100vh}
+.topbar{background:var(--sur);border-bottom:1px solid var(--bor);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0}
+.logo{font-weight:900;font-size:1.1rem}
+.logo span{color:var(--acc)}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:.85rem}
+.btn-o{background:transparent;border:1px solid var(--bor);color:var(--txt)}
+.btn-p{background:var(--acc);color:#fff}
+.container{max-width:1000px;margin:0 auto;padding:40px 24px}
+.welcome{margin-bottom:36px}
+.welcome-name{font-size:1.6rem;font-weight:900;margin-bottom:6px}
+.welcome-sub{color:var(--mut);font-size:.9rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:24px;cursor:pointer;transition:all .2s;text-decoration:none;display:block}
+.card:hover{border-color:var(--acc);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.card-icon{font-size:2rem;margin-bottom:12px}
+.card-title{font-size:1rem;font-weight:800;margin-bottom:4px}
+.card-desc{font-size:.82rem;color:var(--mut);line-height:1.5;margin-bottom:14px}
+.card-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700}
+.badge-green{background:rgba(34,197,94,.15);color:var(--grn)}
+.badge-acc{background:rgba(232,82,26,.15);color:var(--acc)}
+.badge-blue{background:rgba(59,130,246,.15);color:#3b82f6}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Hub<span>Tecnico</span></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span style="font-size:.82rem;color:var(--mut)" id="user-nome"></span>
+    <span id="user-nivel-badge" style="font-size:.72rem;padding:2px 8px;border-radius:6px;font-weight:700"></span>
+    <button class="btn btn-o" style="padding:5px 12px;font-size:.78rem" onclick="logout()">Sair</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="welcome">
+    <div class="welcome-name">Ola, <span id="nome-display" style="color:var(--acc)"></span>!</div>
+    <div class="welcome-sub">Selecione o modulo que deseja acessar.</div>
+  </div>
+  <div class="grid" id="grid-modulos"></div>
+</div>
+
+<script>
+var TK = localStorage.getItem("ht_hub_token");
+var USR = localStorage.getItem("ht_hub_usuario");
+
+if (!TK || !USR) {
+  window.location.href = "/login";
+} else {
+  var usuario = JSON.parse(USR);
+  var nivel = usuario.nivel;
+
+  document.getElementById("user-nome").textContent = usuario.nome;
+  document.getElementById("nome-display").textContent = usuario.nome.split(" ")[0];
+
+  var nb = document.getElementById("user-nivel-badge");
+  if (nivel >= 99) { nb.textContent="Admin"; nb.style.background="rgba(232,82,26,.15)"; nb.style.color="var(--acc)"; }
+  else if (nivel >= 50) { nb.textContent="Supervisor"; nb.style.background="rgba(59,130,246,.15)"; nb.style.color="#3b82f6"; }
+  else if (nivel >= 40) { nb.textContent="Frota"; nb.style.background="rgba(245,158,11,.15)"; nb.style.color="#f59e0b"; }
+  else { nb.textContent="Tecnico"; nb.style.background="rgba(34,197,94,.15)"; nb.style.color="var(--grn)"; }
+
+  var modulos = [];
+
+  if (nivel >= 50) {
+    modulos.push({
+      icon:"🗺️",
+      title:"Controle de OS",
+      desc:"Painel de ordens de servico, mapa em tempo real, atribuicao de tecnicos e acompanhamento de status.",
+      badge:"Supervisor",
+      badgeClass:"badge-blue",
+      href:"/painel"
+    });
+  }
+
+  if (nivel >= 40) {
+    modulos.push({
+      icon:"🚗",
+      title:"Controle de Frota",
+      desc:"Gestao de veiculos, condutores, despesas, revisoes e rastreamento em tempo real.",
+      badge:"Frota",
+      badgeClass:"badge-acc",
+      href:"/frota"
+    });
+  }
+
+  if (nivel >= 99) {
+    modulos.push({
+      icon:"⚙️",
+      title:"Administracao",
+      desc:"Gerenciamento de usuarios, permissoes e configuracoes do sistema.",
+      badge:"Admin",
+      badgeClass:"badge-acc",
+      href:"/admin"
+    });
+  }
+
+  if (nivel <= 10) {
+    modulos.push({
+      icon:"📋",
+      title:"Minhas OS",
+      desc:"Visualize e gerencie suas ordens de servico do dia, historico e perfil.",
+      badge:"Tecnico",
+      badgeClass:"badge-green",
+      href:"/"
+    });
+  }
+
+  var grid = document.getElementById("grid-modulos");
+  grid.innerHTML = modulos.map(function(m) {
+    return '<a class="card" href="'+m.href+'">' +
+      '<div class="card-icon">'+m.icon+'</div>' +
+      '<div class="card-title">'+m.title+'</div>' +
+      '<div class="card-desc">'+m.desc+'</div>' +
+      '<span class="card-badge '+m.badgeClass+'">'+m.badge+'</span>' +
+      '</a>';
+  }).join("");
+
+  // Se so tem 1 modulo, redireciona direto
+  if (modulos.length === 1) {
+    window.location.href = modulos[0].href;
+  }
+}
+
+function logout() {
+  ["ht_hub_token","ht_hub_usuario","ht_token","ht_despacho_token","ht_despacho_usuario","htk_admin","htk_admin_u"].forEach(function(k){ localStorage.removeItem(k); });
+  window.location.href = "/login";
+}
+</script>
+</body>
+</html>
