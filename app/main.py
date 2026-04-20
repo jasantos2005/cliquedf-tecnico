@@ -30,7 +30,7 @@ if STATIC_DIR.exists():
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    p = STATIC_DIR / "app.html"
+    p = STATIC_DIR / "login.html"
     return p.read_text() if p.exists() else "<h2>Hub Técnico — em construção</h2>"
 
 @app.get("/app", response_class=HTMLResponse)
