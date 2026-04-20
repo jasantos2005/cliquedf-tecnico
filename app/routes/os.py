@@ -201,3 +201,141 @@ def atribuir_os(ixc_os_id: int, data: dict, usuario=Depends(requer_supervisor)):
         print(f"[WARN] Erro ao atribuir no IXC OS {ixc_os_id}: {e}")
 
     return {"ok": True}
+
+# ── KM + DESLOCAMENTO ────────────────────────────────────────
+
+class KmInput(BaseModel):
+    km: float
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+
+@router.post("/{ixc_os_id}/iniciar-deslocamento-km")
+def iniciar_deslocamento_km(ixc_os_id: int, data: KmInput, usuario=Depends(requer_tecnico)):
+    db = get_db()
+    id_tecnico = usuario["id"]
+    agora = brt()
+    hoje = agora[:10]
+
+    # Validar KM crescente
+    ultimo = db.execute("""
+        SELECT MAX(km_saida) as ultimo FROM ht_km_os WHERE id_tecnico=?
+    """, (id_tecnico,)).fetchone()
+    ultimo_km = ultimo["ultimo"] or 0
+    if data.km < ultimo_km:
+        db.close()
+        raise HTTPException(400, f"KM inválido. Último KM registrado: {ultimo_km:.0f}")
+
+    # Verificar se ja tem OS ativa
+    ativa = db.execute("""
+        SELECT ixc_os_id FROM ht_os
+        WHERE id_tecnico=? AND status_hub IN ('deslocamento','execucao')
+        AND ixc_os_id != ?
+    """, (id_tecnico, ixc_os_id)).fetchone()
+    if ativa:
+        db.close()
+        raise HTTPException(400, f"Você tem OS #{ativa['ixc_os_id']} em andamento. Finalize ou reagende primeiro.")
+
+    # Registrar KM saida
+    db.execute("""
+        INSERT INTO ht_km_os (ixc_os_id, id_tecnico, km_saida, dt_saida)
+        VALUES (?,?,?,?)
+    """, (ixc_os_id, id_tecnico, data.km, agora))
+
+    # KM diario
+    db.execute("""
+        INSERT INTO ht_km_diario (id_tecnico, data, km_inicial)
+        VALUES (?,?,?)
+        ON CONFLICT(id_tecnico, data) DO NOTHING
+    """, (id_tecnico, hoje, data.km))
+
+    # Atualizar OS
+    db.execute("UPDATE ht_os SET status_hub='deslocamento' WHERE ixc_os_id=?", (ixc_os_id,))
+    db.commit()
+    db.close()
+
+    # IXC: status Assumida
+    try:
+        ixc_insert("UPDATE ixcprovedor.su_oss_chamado SET status=%s WHERE id=%s", ('AS', ixc_os_id))
+    except Exception as e:
+        print(f"[WARN] IXC status AS: {e}")
+
+    return {"ok": True}
+
+@router.post("/{ixc_os_id}/iniciar-execucao-km")
+def iniciar_execucao_km(ixc_os_id: int, data: KmInput, usuario=Depends(requer_tecnico)):
+    db = get_db()
+    id_tecnico = usuario["id"]
+    agora = brt()
+
+    # Buscar KM saida
+    km_os = db.execute(
+        "SELECT km_saida FROM ht_km_os WHERE ixc_os_id=? AND id_tecnico=?",
+        (ixc_os_id, id_tecnico)
+    ).fetchone()
+    km_saida = km_os["km_saida"] if km_os else 0
+
+    if data.km < km_saida:
+        db.close()
+        raise HTTPException(400, f"KM inválido. KM de saída foi {km_saida:.0f}")
+
+    km_desloc = data.km - km_saida
+
+    # Atualizar KM
+    db.execute("""
+        UPDATE ht_km_os SET km_chegada=?, dt_chegada=?, km_deslocamento=?
+        WHERE ixc_os_id=? AND id_tecnico=?
+    """, (data.km, agora, km_desloc, ixc_os_id, id_tecnico))
+
+    # Atualizar OS
+    db.execute("""
+        INSERT OR IGNORE INTO ht_os_execucao (ixc_os_id, iniciada_em, lat_chegada, lon_chegada)
+        VALUES (?,?,?,?)
+    """, (ixc_os_id, agora, data.lat, data.lon))
+    db.execute("UPDATE ht_os SET status_hub='execucao' WHERE ixc_os_id=?", (ixc_os_id,))
+    db.commit()
+    db.close()
+
+    # IXC: status A (em execucao)
+    try:
+        ixc_insert("UPDATE ixcprovedor.su_oss_chamado SET status=%s WHERE id=%s", ('A', ixc_os_id))
+    except Exception as e:
+        print(f"[WARN] IXC status A: {e}")
+
+    return {"ok": True, "km_deslocamento": km_desloc}
+
+@router.get("/{id_tecnico}/ultimo-km")
+def ultimo_km(id_tecnico: int, usuario=Depends(requer_tecnico)):
+    db = get_db()
+    r = db.execute(
+        "SELECT MAX(km_saida) as km FROM ht_km_os WHERE id_tecnico=?", (id_tecnico,)
+    ).fetchone()
+    db.close()
+    return {"ultimo_km": r["km"] or 0}
+
+class ReagendarInput(BaseModel):
+    motivo: str
+
+@router.post("/{ixc_os_id}/reagendar")
+def reagendar_os(ixc_os_id: int, data: ReagendarInput, usuario=Depends(requer_tecnico)):
+    if not data.motivo or len(data.motivo.strip()) < 5:
+        raise HTTPException(400, "Motivo obrigatório (mínimo 5 caracteres)")
+
+    db = get_db()
+    # Remove tecnico e volta para base
+    db.execute("""
+        UPDATE ht_os SET status_hub='reagendada', id_tecnico=NULL,
+        motivo_reagendamento=? WHERE ixc_os_id=?
+    """, (data.motivo, ixc_os_id))
+    db.commit()
+    db.close()
+
+    # IXC: status RAG + limpa tecnico
+    try:
+        ixc_insert(
+            "UPDATE ixcprovedor.su_oss_chamado SET status=%s, id_tecnico=0, mensagem_resposta=%s WHERE id=%s",
+            ('RAG', f"Reagendado: {data.motivo}", ixc_os_id)
+        )
+    except Exception as e:
+        print(f"[WARN] IXC reagendar: {e}")
+
+    return {"ok": True}
