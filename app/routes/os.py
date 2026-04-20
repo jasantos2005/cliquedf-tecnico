@@ -17,9 +17,11 @@ def minhas_os(usuario=Depends(requer_tecnico)):
         SELECT o.*, e.checklist_json, e.iniciada_em, e.finalizada_em
         FROM ht_os o
         LEFT JOIN ht_os_execucao e ON e.ixc_os_id = o.ixc_os_id
-        WHERE o.id_tecnico = ? AND o.status_hub != 'finalizada'
+        WHERE o.id_tecnico = (
+            SELECT id FROM ht_usuarios WHERE ixc_funcionario_id = ?
+        ) AND o.status_hub != 'finalizada'
         ORDER BY o.data_agenda ASC, o.data_abertura ASC
-    """, (usuario["id"],)).fetchall()
+    """, (usuario["ixc_funcionario_id"],)).fetchall()
     db.close()
     return [dict(r) for r in rows]
 
@@ -171,6 +173,11 @@ def atribuir_os(ixc_os_id: int, data: dict, usuario=Depends(requer_supervisor)):
 
     # Atualiza SQLite
     db = get_db()
+    # Buscar ixc_funcionario_id do tecnico
+    db2 = get_db()
+    tec = db2.execute("SELECT ixc_funcionario_id FROM ht_usuarios WHERE id=?", (id_tecnico,)).fetchone()
+    db2.close()
+    ixc_func_id = tec["ixc_funcionario_id"] if tec else id_tecnico
     db.execute(
         "UPDATE ht_os SET id_tecnico=?, status_hub='agendada' WHERE ixc_os_id=?",
         (id_tecnico, ixc_os_id)
@@ -183,12 +190,12 @@ def atribuir_os(ixc_os_id: int, data: dict, usuario=Depends(requer_supervisor)):
         if data_reservada:
             ixc_insert(
                 "UPDATE ixcprovedor.su_oss_chamado SET id_tecnico=%s, data_reservada=%s WHERE id=%s",
-                (id_tecnico, data_reservada, ixc_os_id)
+                (ixc_func_id, data_reservada, ixc_os_id)
             )
         else:
             ixc_insert(
                 "UPDATE ixcprovedor.su_oss_chamado SET id_tecnico=%s WHERE id=%s",
-                (id_tecnico, ixc_os_id)
+                (ixc_func_id, ixc_os_id)
             )
     except Exception as e:
         print(f"[WARN] Erro ao atribuir no IXC OS {ixc_os_id}: {e}")

@@ -90,7 +90,8 @@ def run():
             ))
             novos += 1
         else:
-            if existente['status_hub'] not in ('execucao', 'finalizada'):
+            # Nao sobrescrever OS ja gerenciadas pelo painel
+            if existente['status_hub'] not in ('execucao', 'finalizada', 'agendada', 'reagendada', 'deslocamento'):
                 db.execute("""
                     UPDATE ht_os SET status_ixc=?, status_hub=?,
                     ixc_tecnico_id=?, sincronizado_em=?
