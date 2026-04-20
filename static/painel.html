@@ -116,6 +116,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <button class="filtro-btn active" id="f-execucao" onclick="toggleFiltro('execucao',this)">🔵 Execução <span class="badge" id="cnt-execucao">0</span></button>
     <button class="filtro-btn" id="f-finalizada" onclick="toggleFiltro('finalizada',this)">✅ Finalizadas <span class="badge" id="cnt-finalizada">0</span></button>
     <button class="filtro-btn active" id="f-tecnicos" onclick="toggleFiltro('tecnicos',this)">🚗 Técnicos</button>
+    <div style="width:1px;background:var(--border);height:20px;margin:0 4px"></div>
+    <button class="filtro-btn active" id="ft-todos" onclick="setTipo('todos',this)">📋 Todos</button>
+    <button class="filtro-btn" id="ft-suporte" onclick="setTipo('suporte',this)">🔧 Suporte</button>
+    <button class="filtro-btn" id="ft-instalacao" onclick="setTipo('instalacao',this)">⚡ Serviço</button>
+    <button class="filtro-btn" id="ft-infra" onclick="setTipo('infra',this)">🏗️ Infra</button>
+    <button class="filtro-btn" id="ft-retirada" onclick="setTipo('retirada',this)">📦 Retirada</button>
     <button class="btn btn-sm btn-outline" onclick="carregarDados()">↻ Atualizar</button>
     <button class="btn btn-sm btn-outline" onclick="logout()">Sair</button>
   </div>
@@ -173,6 +179,26 @@ let marcadoresTec = {};
 let osCache = [];
 let tecnicosCache = [];
 let filtros = new Set(['pendente','deslocamento','execucao','tecnicos']);
+let tipoFiltro = 'todos';
+const ASSUNTO_TIPO = {
+  5:'suporte',17:'suporte',20:'suporte',21:'suporte',27:'suporte',44:'suporte',
+  47:'suporte',94:'suporte',102:'suporte',103:'suporte',104:'suporte',105:'suporte',
+  107:'suporte',113:'suporte',184:'suporte',203:'suporte',240:'suporte',
+  245:'suporte',248:'suporte',226:'suporte',
+  3:'infra',7:'infra',16:'infra',53:'infra',138:'infra',142:'infra',143:'infra',
+  145:'infra',146:'infra',148:'infra',151:'infra',152:'infra',153:'infra',154:'infra',
+  155:'infra',156:'infra',157:'infra',158:'infra',159:'infra',160:'infra',161:'infra',
+  162:'infra',163:'infra',164:'infra',165:'infra',166:'infra',167:'infra',168:'infra',
+  169:'infra',170:'infra',171:'infra',172:'infra',173:'infra',174:'infra',175:'infra',
+  176:'infra',177:'infra',178:'infra',179:'infra',180:'infra',181:'infra',182:'infra',
+  183:'infra',185:'infra',186:'infra',187:'infra',188:'infra',221:'infra',222:'infra',
+  232:'infra',242:'infra',243:'infra',244:'infra',247:'infra',
+  2:'instalacao',14:'instalacao',15:'instalacao',18:'instalacao',19:'instalacao',
+  26:'instalacao',30:'instalacao',48:'instalacao',49:'instalacao',92:'instalacao',
+  101:'instalacao',110:'instalacao',220:'instalacao',227:'instalacao',239:'instalacao',
+  6:'retirada',22:'retirada',39:'retirada',40:'retirada',89:'retirada',
+  111:'retirada',127:'retirada',
+};
 let osAtribuirId = null;
 
 // ── AUTH ─────────────────────────────────────────────────────
@@ -277,7 +303,14 @@ function atualizarStats(s) {
 
 // ── SIDEBAR ───────────────────────────────────────────────────
 function renderSidebar() {
-  const filtradas = osCache.filter(o => filtros.has(o.status_hub));
+  const filtradas = osCache.filter(o => {
+    if (!filtros.has(o.status_hub)) return false;
+    if (tipoFiltro !== 'todos') {
+      const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
+      if (tipo !== tipoFiltro) return false;
+    }
+    return true;
+  });
   const lista = document.getElementById('lista-os');
   if (!filtradas.length) { lista.innerHTML='<div style="padding:20px;color:var(--muted);font-size:.85rem;text-align:center">Nenhuma OS</div>'; return; }
   lista.innerHTML = filtradas.map(o => `
@@ -305,6 +338,10 @@ function renderMapa() {
   // OS
   osCache.forEach(o => {
     if (!filtros.has(o.status_hub)) return;
+    if (tipoFiltro !== 'todos') {
+      const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
+      if (tipo !== tipoFiltro) return;
+    }
     if (!o.lat || !o.lon) return;
     const m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub)})
       .addTo(mapa)
@@ -418,6 +455,14 @@ async function atribuirOS(id_tecnico) {
 function fecharModal() { document.getElementById('modal-atribuir').style.display='none'; }
 
 // ── FILTROS ───────────────────────────────────────────────────
+function setTipo(tipo, btn) {
+  tipoFiltro = tipo;
+  document.querySelectorAll('[id^="ft-"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSidebar();
+  renderMapa();
+}
+
 function toggleFiltro(tipo, btn) {
   if (filtros.has(tipo)) filtros.delete(tipo);
   else filtros.add(tipo);
