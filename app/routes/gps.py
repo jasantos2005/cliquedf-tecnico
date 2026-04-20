@@ -80,3 +80,19 @@ def salvar_posicao(data: PosicaoInput):
     db.commit()
     db.close()
     return {"ok": True}
+
+@router.get("/rota/{id_tecnico}")
+def rota_tecnico(id_tecnico: int, usuario=Depends(requer_supervisor)):
+    db = get_db()
+    hoje = datetime.now().strftime("%Y-%m-%d")
+    rows = db.execute("""
+        SELECT lat, lon, registrado_em
+        FROM ht_gps_track
+        WHERE id_tecnico=?
+          AND DATE(registrado_em) = ?
+          AND lat IS NOT NULL AND lon IS NOT NULL
+        ORDER BY registrado_em ASC
+        LIMIT 200
+    """, (id_tecnico, hoje)).fetchall()
+    db.close()
+    return [dict(r) for r in rows]

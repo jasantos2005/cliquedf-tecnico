@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin - Hub Tecnico</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0f14;--sur:#151920;--sur2:#1c2230;--bor:#252d3d;--acc:#e8521a;--txt:#e8eaf0;--mut:#6b7590;--grn:#22c55e;--red:#ef4444}
+body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;min-height:100vh}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:.85rem}
+.btn-p{background:var(--acc);color:#fff}
+.btn-o{background:transparent;border:1px solid var(--bor);color:var(--txt)}
+.btn-sm{padding:5px 10px;font-size:.78rem}
+input,select{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:8px;color:var(--txt);padding:9px 12px;font-size:.88rem;outline:none;margin-top:5px}
+input:focus,select:focus{border-color:var(--acc)}
+label{font-size:.75rem;color:var(--mut);font-weight:700;text-transform:uppercase}
+.field{margin-bottom:14px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:.73rem;color:var(--mut);font-weight:700;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--bor)}
+td{padding:10px 12px;border-bottom:1px solid rgba(37,45,61,.5);font-size:.86rem}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center}
+.modal{background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:24px;width:100%;max-width:420px}
+</style>
+</head>
+<body>
+
+<div id="P-LOGIN" style="display:none;min-height:100vh">
+  <div style="display:flex;min-height:100vh">
+    <div style="flex:1;background:linear-gradient(135deg,#0d0f14,#1c2230);display:flex;flex-direction:column;justify-content:center;padding:60px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:40px">
+        <div style="width:40px;height:40px;background:var(--acc);border-radius:10px;display:flex;align-items:center;justify-content:center">🔧</div>
+        <span style="font-weight:800;font-size:1.1rem">Hub<span style="color:var(--acc)">Tecnico</span></span>
+      </div>
+      <h1 style="font-size:2rem;font-weight:900;line-height:1.2;margin-bottom:12px">Controle de OS<br><span style="color:var(--acc)">e Frota</span></h1>
+      <p style="color:var(--mut);font-size:.9rem;max-width:360px;line-height:1.6;margin-bottom:32px">Gerencie ordens de servico, rotas de tecnicos e frota de veiculos em tempo real.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:380px">
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--bor);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">📋 Hub Comercial</div>
+          <div style="font-size:.7rem;color:var(--mut)">Vendas e ativacao</div>
+          <span style="font-size:.65rem;background:rgba(34,197,94,.15);color:var(--grn);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--bor);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">📊 Hub Produtividade</div>
+          <div style="font-size:.7rem;color:var(--mut)">Ranking tecnicos</div>
+          <span style="font-size:.65rem;background:rgba(34,197,94,.15);color:var(--grn);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--bor);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">🔧 Hub Tecnico</div>
+          <div style="font-size:.7rem;color:var(--mut)">OS e frota</div>
+          <span style="font-size:.65rem;background:rgba(232,82,26,.15);color:var(--acc);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Beta</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--bor);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">💰 Hub Cobranca</div>
+          <div style="font-size:.7rem;color:var(--mut)">Gestao financeira</div>
+          <span style="font-size:.65rem;background:rgba(34,197,94,.15);color:var(--grn);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--bor);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">📈 Hub Gerencial</div>
+          <div style="font-size:.7rem;color:var(--mut)">KPIs e dashboards</div>
+          <span style="font-size:.65rem;background:rgba(34,197,94,.15);color:var(--grn);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--bor);border-radius:10px;padding:10px">
+          <div style="font-size:.82rem;font-weight:700">🤝 Hub Retencao</div>
+          <div style="font-size:.7rem;color:var(--mut)">Reconquista clientes</div>
+          <span style="font-size:.65rem;background:rgba(34,197,94,.15);color:var(--grn);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
+        </div>
+      </div>
+    </div>
+    <div style="width:400px;background:var(--sur);display:flex;flex-direction:column;justify-content:center;padding:48px">
+      <div style="font-size:1.3rem;font-weight:900;margin-bottom:6px">Bem-vindo</div>
+      <div style="color:var(--mut);font-size:.85rem;margin-bottom:28px">Acesso restrito ao administrador.</div>
+      <div class="field"><label>Login</label><input type="text" id="inp-login" placeholder="admin"></div>
+      <div class="field"><label>Senha</label><input type="password" id="inp-senha" placeholder="senha"></div>
+      <div id="login-err" style="color:var(--red);font-size:.82rem;margin-bottom:10px;display:none"></div>
+      <button class="btn btn-p" style="width:100%;padding:12px" onclick="fazerLogin()">Entrar</button>
+      <div style="text-align:center;font-size:.72rem;color:var(--mut);margin-top:20px">Hub Tecnico v1.0 - IaTechHub 2026</div>
+    </div>
+  </div>
+</div>
+
+<div id="P-APP" style="display:none">
+  <div style="background:var(--sur);border-bottom:1px solid var(--bor);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0">
+    <span style="font-weight:800">Hub<span style="color:var(--acc)">Tecnico</span> — Admin</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:.82rem;color:var(--mut)" id="admin-nome"></span>
+      <button class="btn btn-o btn-sm" onclick="logout()">Sair</button>
+    </div>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:24px">
+    <div style="background:var(--sur);border:1px solid var(--bor);border-radius:10px">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--bor);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-weight:700">Usuarios</span>
+        <button class="btn btn-p btn-sm" onclick="abrirNovo()">+ Novo</button>
+      </div>
+      <table>
+        <thead><tr><th>Nome</th><th>Login</th><th>Nivel</th><th>IXC ID</th><th>Status</th><th></th></tr></thead>
+        <tbody id="tbody-u"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="M-USER" onclick="if(event.target===this)fecharModal()">
+  <div class="modal">
+    <div style="font-weight:800;font-size:1rem;margin-bottom:18px" id="m-titulo">Novo Usuario</div>
+    <input type="hidden" id="m-id">
+    <div class="field"><label>Nome</label><input type="text" id="m-nome"></div>
+    <div class="field"><label>Login</label><input type="text" id="m-login"></div>
+    <div class="field"><label>Senha (em branco = manter)</label><input type="password" id="m-senha"></div>
+    <div class="field"><label>Nivel</label>
+      <select id="m-nivel">
+        <option value="10">Tecnico</option>
+        <option value="50">Supervisor</option>
+        <option value="99">Admin</option>
+      </select>
+    </div>
+    <div class="field"><label>IXC Funcionario ID</label><input type="number" id="m-ixc"></div>
+    <div class="field"><label>Status</label>
+      <select id="m-ativo"><option value="1">Ativo</option><option value="0">Inativo</option></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <button class="btn btn-o" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-p" onclick="salvarUsuario()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var TK = function(){ return localStorage.getItem("htk_admin") || ""; };
+
+function req(path, opts) {
+  var o = opts || {};
+  var h = {"Content-Type":"application/json","Authorization":"Bearer "+TK()};
+  return fetch(path, {method:o.method||"GET", headers:h, body:o.body||undefined}).then(function(r){return r.json();});
+}
+
+function mostrar(id) {
+  document.getElementById("P-LOGIN").style.display = "none";
+  document.getElementById("P-APP").style.display = "none";
+  document.getElementById(id).style.display = "block";
+}
+
+async function fazerLogin() {
+  var login = document.getElementById("inp-login").value.trim();
+  var senha = document.getElementById("inp-senha").value;
+  var err = document.getElementById("login-err");
+  err.style.display = "none";
+  if (!login || !senha) { err.textContent="Preencha login e senha"; err.style.display="block"; return; }
+  try {
+    var resp = await fetch("/api/auth/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({login:login, senha:senha})
+    });
+    var r = await resp.json();
+    if (r.detail) { err.textContent=r.detail; err.style.display="block"; return; }
+    if (r.usuario.nivel < 99) { err.textContent="Acesso restrito ao administrador"; err.style.display="block"; return; }
+    localStorage.setItem("htk_admin", r.token);
+    localStorage.setItem("htk_admin_u", JSON.stringify(r.usuario));
+    iniciarApp(r.usuario);
+  } catch(e) {
+    err.textContent = "Erro de conexao: "+e.message;
+    err.style.display = "block";
+  }
+}
+
+function iniciarApp(u) {
+  document.getElementById("admin-nome").textContent = u.nome;
+  mostrar("P-APP");
+  carregarUsuarios();
+}
+
+async function carregarUsuarios() {
+  var rows = await req("/api/admin/usuarios");
+  var html = "";
+  for (var i=0; i<rows.length; i++) {
+    var u = rows[i];
+    var nl = u.nivel>=99?"<b style='color:var(--acc)'>Admin</b>":u.nivel>=50?"<b style='color:#3b82f6'>Supervisor</b>":"<b style='color:var(--grn)'>Tecnico</b>";
+    var st = u.ativo?"<span style='color:var(--grn)'>Ativo</span>":"<span style='color:var(--red)'>Inativo</span>";
+    html += "<tr><td><b>"+u.nome+"</b></td><td style='color:var(--mut)'>"+u.login+"</td><td>"+nl+"</td><td style='color:var(--mut)'>"+(u.ixc_funcionario_id||"—")+"</td><td>"+st+"</td><td><button class='btn btn-o btn-sm' onclick='editar("+u.id+")'>Editar</button></td></tr>";
+  }
+  document.getElementById("tbody-u").innerHTML = html;
+  window._usuarios = rows;
+}
+
+function abrirNovo() {
+  document.getElementById("m-titulo").textContent = "Novo Usuario";
+  document.getElementById("m-id").value = "";
+  document.getElementById("m-nome").value = "";
+  document.getElementById("m-login").value = "";
+  document.getElementById("m-senha").value = "";
+  document.getElementById("m-nivel").value = "10";
+  document.getElementById("m-ixc").value = "";
+  document.getElementById("m-ativo").value = "1";
+  document.getElementById("M-USER").style.display = "flex";
+}
+
+function editar(id) {
+  var u = (window._usuarios||[]).find(function(x){return x.id===id;});
+  if (!u) return;
+  document.getElementById("m-titulo").textContent = "Editar Usuario";
+  document.getElementById("m-id").value = u.id;
+  document.getElementById("m-nome").value = u.nome;
+  document.getElementById("m-login").value = u.login;
+  document.getElementById("m-senha").value = "";
+  document.getElementById("m-nivel").value = u.nivel;
+  document.getElementById("m-ixc").value = u.ixc_funcionario_id||"";
+  document.getElementById("m-ativo").value = u.ativo;
+  document.getElementById("M-USER").style.display = "flex";
+}
+
+async function salvarUsuario() {
+  var id = document.getElementById("m-id").value;
+  var data = {
+    nome: document.getElementById("m-nome").value.trim(),
+    login: document.getElementById("m-login").value.trim(),
+    senha: document.getElementById("m-senha").value,
+    nivel: parseInt(document.getElementById("m-nivel").value),
+    ixc_funcionario_id: parseInt(document.getElementById("m-ixc").value)||0,
+    ativo: parseInt(document.getElementById("m-ativo").value)
+  };
+  if (!data.nome||!data.login) { alert("Nome e login obrigatorios"); return; }
+  var r = await req(id?"/api/admin/usuarios/"+id:"/api/admin/usuarios", {method:id?"PUT":"POST", body:JSON.stringify(data)});
+  if (r.ok) { fecharModal(); carregarUsuarios(); }
+  else alert(r.detail||"Erro ao salvar");
+}
+
+function fecharModal() { document.getElementById("M-USER").style.display="none"; }
+
+function logout() {
+  localStorage.removeItem("htk_admin");
+  localStorage.removeItem("htk_admin_u");
+  mostrar("P-LOGIN");
+}
+
+// Inicializar
+var _t = localStorage.getItem("htk_admin");
+var _u = localStorage.getItem("htk_admin_u");
+if (_t && _u) {
+  iniciarApp(JSON.parse(_u));
+} else {
+  mostrar("P-LOGIN");
+}
+</script>
+</body>
+</html>

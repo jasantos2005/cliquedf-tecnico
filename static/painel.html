@@ -183,6 +183,7 @@ let marcadores = {};
 let marcadoresTec = {};
 let osCache = [];
 let tecnicosCache = [];
+let rotasTecnicos = {};
 let filtros = new Set(['pendente','deslocamento','execucao','tecnicos']);
 let tipoFiltro = 'todos';
 const ASSUNTO_TIPO = {
@@ -288,10 +289,36 @@ async function carregarDados() {
     ]);
     osCache = dados.os || [];
     tecnicosCache = gps || [];
+    // Buscar rotas dos tecnicos ativos
+    try {
+      const ids = [...new Set(tecnicosCache.map(t=>t.id_tecnico).filter(Boolean))];
+      rotasTecnicos = {};
+      for (const id of ids) {
+        const pontos = await api('/api/gps/rota/'+id);
+        if (pontos?.length) rotasTecnicos[id] = pontos;
+      }
+    } catch(e) {}
     atualizarStats(dados.stats || {});
     renderSidebar();
     renderMapa();
   } catch(e) { console.log('Erro ao carregar:', e); }
+}
+
+function limparDatas() {
+  document.getElementById('filtro-data-ini').value = '';
+  document.getElementById('filtro-data-fim').value = '';
+  renderSidebar(); renderMapa();
+}
+
+function passaFiltroData(o) {
+  const ini = document.getElementById('filtro-data-ini')?.value;
+  const fim = document.getElementById('filtro-data-fim')?.value;
+  if (!ini && !fim) return true;
+  const dataOs = (o.data_reservada||o.data_abertura||'').substring(0,10);
+  if (!dataOs) return true;
+  if (ini && dataOs < ini) return false;
+  if (fim && dataOs > fim) return false;
+  return true;
 }
 
 function atualizarStats(s) {
@@ -309,6 +336,7 @@ function atualizarStats(s) {
 // ── SIDEBAR ───────────────────────────────────────────────────
 function renderSidebar() {
   const filtradas = osCache.filter(o => {
+    if (!passaFiltroData(o)) return false;
     if (!filtros.has(o.status_hub)) return false;
     if (tipoFiltro !== 'todos') {
       const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
@@ -343,6 +371,7 @@ function renderMapa() {
   // OS
   osCache.forEach(o => {
     if (!filtros.has(o.status_hub)) return;
+    if (!passaFiltroData(o)) return;
     if (tipoFiltro !== 'todos') {
       const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
       if (tipo !== tipoFiltro) return;
@@ -353,6 +382,27 @@ function renderMapa() {
       .bindTooltip(`<b>OS #${o.ixc_os_id}</b><br>${o.cliente_nome}<br>${o.assunto_nome}`, {direction:'top'})
       .on('click', () => selecionarOS(o.ixc_os_id));
     marcadores[o.ixc_os_id] = m;
+  });
+
+  // Rotas dos tecnicos (linha GPS)
+  if (filtros.has('tecnicos') && rotasTecnicos) {
+    Object.entries(rotasTecnicos).forEach(([id, pontos]) => {
+      if (pontos.length < 2) return;
+      const linha = L.polyline(pontos.map(p=>[p.lat,p.lon]), {
+        color:'#f59e0b', weight:3, opacity:0.6, dashArray:'5,5'
+      }).addTo(mapa);
+      marcadoresTec['rota_'+id] = linha;
+    });
+  }
+
+  // Alertas SLA estourado
+  osCache.forEach(o => {
+    if (!o.sla_estourado || !o.lat || !o.lon) return;
+    const circle = L.circle([o.lat, o.lon], {
+      radius: 300, color:'#ef4444', fillColor:'#ef4444',
+      fillOpacity: 0.1, weight: 2
+    }).addTo(mapa);
+    marcadores['sla_'+o.ixc_os_id] = circle;
   });
 
   // Técnicos
