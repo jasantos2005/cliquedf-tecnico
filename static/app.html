@@ -99,6 +99,18 @@ textarea:focus,select:focus{border-color:var(--accent)}
 .sep{height:1px;background:var(--border);margin:12px 0}
 .km-input{width:100%;background:var(--surface2);border:2px solid var(--accent);border-radius:12px;color:var(--text);font-size:2rem;font-weight:900;padding:16px;text-align:center;outline:none}
 </style>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').then(reg => {
+    console.log('SW registrado');
+  }).catch(e => console.log('SW erro:', e));
+  // Escutar mensagens do SW
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data.type === 'QUEUE_REQUEST') salvarFilaOffline(e.data);
+    if (e.data.type === 'SYNC_NOW') sincronizarFila();
+  });
+}
+</script>
 </head>
 <body>
 
@@ -237,6 +249,82 @@ const CHECKLISTS = {
 };
 
 // ── AUTH ─────────────────────────────────────────────────────
+// ── INDEXEDDB ────────────────────────────────────────────────
+let db_idb = null;
+
+function abrirIDB() {
+  return new Promise((resolve, reject) => {
+    if (db_idb) { resolve(db_idb); return; }
+    const req = indexedDB.open('hubtecnico', 2);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('os_cache'))
+        db.createObjectStore('os_cache', {keyPath: 'ixc_os_id'});
+      if (!db.objectStoreNames.contains('fila_offline'))
+        db.createObjectStore('fila_offline', {keyPath: 'id', autoIncrement: true});
+    };
+    req.onsuccess = e => { db_idb = e.target.result; resolve(db_idb); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function salvarOSCache(rows) {
+  try {
+    const db = await abrirIDB();
+    const tx = db.transaction('os_cache', 'readwrite');
+    rows.forEach(o => tx.objectStore('os_cache').put(o));
+  } catch(e) { console.log('IDB save error:', e); }
+}
+
+async function carregarOSCache() {
+  try {
+    const db = await abrirIDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('os_cache', 'readonly');
+      const req = tx.objectStore('os_cache').getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  } catch(e) { return []; }
+}
+
+async function salvarFilaOffline(item) {
+  try {
+    const db = await abrirIDB();
+    const tx = db.transaction('fila_offline', 'readwrite');
+    tx.objectStore('fila_offline').add({...item, timestamp: Date.now()});
+    console.log('Salvo offline:', item.url);
+    toast('Salvo offline — será sincronizado quando conectar', 'ok');
+  } catch(e) { console.log('IDB fila error:', e); }
+}
+
+async function sincronizarFila() {
+  if (!navigator.onLine) return;
+  try {
+    const db = await abrirIDB();
+    const tx = db.transaction('fila_offline', 'readwrite');
+    const store = tx.objectStore('fila_offline');
+    const items = await new Promise(r => { const req = store.getAll(); req.onsuccess = () => r(req.result); });
+    for (const item of items) {
+      try {
+        const resp = await fetch(item.url, {
+          method: item.method,
+          headers: {'Content-Type':'application/json','Authorization':'Bearer '+token()},
+          body: item.body
+        });
+        if (resp.ok) {
+          store.delete(item.id);
+          console.log('Sincronizado:', item.url);
+        }
+      } catch(e) { console.log('Sync error:', item.url, e); }
+    }
+    if (items.length > 0) {
+      toast('Sincronizado '+items.length+' ação(ões) offline', 'ok');
+      carregarOS();
+    }
+  } catch(e) { console.log('Sync error:', e); }
+}
+
 function token() { return localStorage.getItem('ht_token') || ''; }
 
 function api(path, opts={}) {
@@ -276,7 +364,7 @@ window.addEventListener('load', () => {
   const u = localStorage.getItem('ht_usuario');
   if (t && u) { usuario = JSON.parse(u); iniciarApp(); }
 
-  window.addEventListener('online',  () => { isOnline=true;  atualizarOnline(); });
+  window.addEventListener('online',  () => { isOnline=true;  atualizarOnline(); sincronizarFila(); carregarOS(); });
   window.addEventListener('offline', () => { isOnline=false; atualizarOnline(); });
 });
 
@@ -310,7 +398,13 @@ function navTo(page) {
 // ── OS ───────────────────────────────────────────────────────
 async function carregarOS() {
   try {
-    const rows = await api('/api/os/minhas');
+    let rows;
+    if (!navigator.onLine) {
+      rows = await carregarOSCache();
+      toast('Modo offline — exibindo OS salvas', 'ok');
+    } else {
+      rows = await api('/api/os/minhas');
+    }
     // Ordenar por data_reservada
     rows.sort((a,b) => {
       const da = (a.data_reservada||a.data_agenda||a.data_abertura||'9999');
@@ -324,6 +418,7 @@ async function carregarOS() {
       else o._ordem = 0;
     });
     osData = rows;
+    salvarOSCache(rows);
     renderOS();
     renderHome();
   } catch(e) { console.log('Offline — usando cache'); }
