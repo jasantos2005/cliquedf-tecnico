@@ -18,14 +18,12 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;overflow:hidden}
-/* LAYOUT */
 #shell{display:flex;height:100vh}
 #sidebar{width:var(--sb-w);background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:width .25s;overflow:hidden;z-index:50}
 #sidebar.collapsed{width:52px}
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-#topbar{height:var(--tb-h);background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+#topbar{height:var(--tb-h);background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:8px;flex-shrink:0;flex-wrap:nowrap;overflow-x:auto}
 #content{flex:1;overflow:hidden;position:relative}
-/* SIDEBAR */
 .sb-head{padding:0 12px;height:var(--tb-h);display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0}
 .sb-logo{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 .sb-logo-icon{width:28px;height:28px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.9rem}
@@ -50,41 +48,59 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .sb-uname{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-urole{font-size:.72rem;color:var(--text3)}
 #sidebar.collapsed .sb-user-info > *:not(.sb-avatar){display:none}
-/* TOPBAR */
-.tb-title{font-weight:800;font-size:.95rem;flex:1}
-.tb-stats{display:flex;gap:6px;align-items:center}
-.stat-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:700;border:1px solid var(--border);cursor:pointer;transition:all .15s}
-.stat-pill:hover{border-color:var(--accent)}
-.stat-pill.active{border-color:currentColor}
+.tb-title{font-weight:800;font-size:.95rem;flex-shrink:0}
+.stat-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:700;border:1px solid var(--border);cursor:pointer;transition:all .15s;flex-shrink:0;white-space:nowrap}
+.stat-pill:hover{opacity:.8}
+.stat-pill.active{border-color:currentColor;background:rgba(255,255,255,.04)}
+.stat-pill:not(.active){opacity:.45}
 .btn{padding:6px 12px;border-radius:7px;border:none;cursor:pointer;font-weight:600;font-size:.8rem}
 .btn-p{background:var(--accent);color:#fff}
 .btn-o{background:transparent;border:1px solid var(--border);color:var(--text)}
 .btn-o:hover{border-color:var(--accent);color:var(--accent)}
-/* SECOES */
 .secao{display:none;height:100%;overflow:hidden}
 .secao.ativa{display:flex;flex-direction:column}
-/* MAPA */
 #mapa{flex:1;z-index:1}
+
 /* SIDEBAR OS */
-#sidebar-os{width:300px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#sidebar-os{width:290px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.os-stats-bar{padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.os-stats-title{font-size:.78rem;font-weight:700;color:var(--text3);margin-bottom:6px}
+.os-stats-row{display:flex;gap:6px;flex-wrap:wrap}
+.os-stat-chip{display:flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:12px;border:1px solid var(--border);background:var(--surf2)}
 .os-lista{flex:1;overflow-y:auto;padding:8px}
 .os-lista::-webkit-scrollbar{width:3px}
 .os-lista::-webkit-scrollbar-thumb{background:var(--border2)}
 .os-item{padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:all .15s}
 .os-item:hover{border-color:var(--accent);background:var(--surf2)}
 .os-item.selected{border-color:var(--accent);background:rgba(232,82,26,.08)}
-.os-num{font-size:.72rem;color:var(--text3);margin-bottom:2px}
-.os-cliente{font-weight:700;font-size:.85rem;margin-bottom:2px}
-.os-end{font-size:.75rem;color:var(--text2)}
-.os-assunto{font-size:.72rem;color:var(--accent);margin-top:4px;display:inline-block}
-.os-status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
-/* DETALHE OS */
-#detalhe-os{width:300px;background:var(--surf);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:16px}
-/* MODAL */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center}
-.modal-bg.open{display:flex}
-.modal{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
+.os-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.os-num{font-size:.7rem;color:var(--text3)}
+.os-badge{font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:10px}
+.badge-pendente{background:rgba(255,77,106,.15);color:var(--red)}
+.badge-deslocamento{background:rgba(255,184,63,.15);color:var(--amber)}
+.badge-agendada{background:rgba(167,139,250,.15);color:var(--purple)}
+.badge-reagendada{background:rgba(167,139,250,.15);color:var(--purple)}
+.badge-execucao{background:rgba(96,165,250,.15);color:var(--blue)}
+.badge-finalizada{background:rgba(0,229,160,.15);color:var(--green)}
+.os-cliente{font-weight:700;font-size:.85rem;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.os-end{font-size:.73rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.os-meta{display:flex;justify-content:space-between;margin-top:5px;font-size:.7rem;color:var(--text3)}
+
+/* MODAL OS DETALHE */
+#modal-detalhe{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center}
+#modal-detalhe.open{display:flex}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
 .modal-title{font-size:1rem;font-weight:800;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.1rem;padding:0 4px}
+.modal-close:hover{color:var(--text)}
+.detalhe-row{display:flex;gap:8px;margin-bottom:8px}
+.detalhe-label{font-size:.7rem;color:var(--text3);font-weight:700;text-transform:uppercase;min-width:90px;flex-shrink:0;padding-top:2px}
+.detalhe-val{font-size:.85rem;color:var(--text);font-weight:500}
+.detalhe-divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+
+/* MODAL ATRIBUIR */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
 .field{margin-bottom:12px}
 .field label{display:block;font-size:.73rem;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:5px}
 .field input,.field select{width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;font-size:.88rem;outline:none}
@@ -92,13 +108,37 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .tecnico-option{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:all .15s}
 .tecnico-option:hover{border-color:var(--accent)}
 .tecnico-option.best{border-color:var(--amber)}
+
+/* TECNICOS NO MAPA — legenda */
+.legenda-mapa{position:absolute;bottom:20px;right:10px;z-index:500;background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.75rem;min-width:160px}
+.legenda-mapa b{display:block;margin-bottom:6px;font-size:.72rem;color:var(--text3);text-transform:uppercase}
+.legenda-item{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.legenda-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+
+/* CARDS DIA — bottom bar */
+#cards-dia{position:absolute;bottom:0;left:290px;right:0;z-index:400;background:rgba(22,27,34,.95);border-top:1px solid var(--border);display:flex;gap:0;height:52px}
+.card-dia{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border-right:1px solid var(--border);padding:0 12px;cursor:default}
+.card-dia:last-child{border-right:none}
+.card-dia-num{font-size:1.2rem;font-weight:900}
+.card-dia-label{font-size:.68rem;color:var(--text3);font-weight:600;text-transform:uppercase;line-height:1.3}
+
 /* SECAO USUARIOS */
 #secao-usuarios{padding:20px;overflow-y:auto}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:.72rem;color:var(--text3);font-weight:700;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--border)}
 td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
+
 /* LOGIN */
 #P-LOGIN{min-height:100vh}
+
+/* TOAST */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:10px 20px;font-size:.85rem;font-weight:600;z-index:9999;transition:opacity .3s;pointer-events:none}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+
+/* TECNICO PARADO indicator */
+.tec-parado-vermelho{background:#ff4d6a!important}
+.tec-parado-laranja{background:#ffb83f!important}
 </style>
 </head>
 <body>
@@ -114,36 +154,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
       <h1 style="font-size:2rem;font-weight:900;line-height:1.2;margin-bottom:12px">Controle de OS<br><span style="color:var(--accent)">e Frota</span></h1>
       <p style="color:var(--text3);font-size:.9rem;max-width:360px;line-height:1.6;margin-bottom:32px">Gerencie ordens de servico, rotas de tecnicos e frota de veiculos em tempo real.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:380px">
-        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
-          <div style="font-size:.82rem;font-weight:700">📋 Hub Comercial</div>
-          <div style="font-size:.7rem;color:var(--text3)">Vendas e ativacao</div>
-          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
-        </div>
-        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
-          <div style="font-size:.82rem;font-weight:700">💰 Hub Cobranca</div>
-          <div style="font-size:.7rem;color:var(--text3)">Gestao financeira</div>
-          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
-        </div>
-        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
-          <div style="font-size:.82rem;font-weight:700">📊 Hub Produtividade</div>
-          <div style="font-size:.7rem;color:var(--text3)">Ranking e SLA</div>
-          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
-        </div>
-        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
-          <div style="font-size:.82rem;font-weight:700">📈 Hub Gerencial</div>
-          <div style="font-size:.7rem;color:var(--text3)">KPIs e dashboards</div>
-          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
-        </div>
-        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
-          <div style="font-size:.82rem;font-weight:700">🤝 Hub Retencao</div>
-          <div style="font-size:.7rem;color:var(--text3)">Reconquista clientes</div>
-          <span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span>
-        </div>
-        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px">
-          <div style="font-size:.82rem;font-weight:700">🔧 Hub Tecnico</div>
-          <div style="font-size:.7rem;color:var(--text3)">OS e frota</div>
-          <span style="font-size:.65rem;background:rgba(232,82,26,.15);color:var(--accent);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Beta</span>
-        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:.82rem;font-weight:700">📋 Hub Comercial</div><div style="font-size:.7rem;color:var(--text3)">Vendas e ativacao</div><span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span></div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:.82rem;font-weight:700">💰 Hub Cobranca</div><div style="font-size:.7rem;color:var(--text3)">Gestao financeira</div><span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span></div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:.82rem;font-weight:700">📊 Hub Produtividade</div><div style="font-size:.7rem;color:var(--text3)">Ranking e SLA</div><span style="font-size:.65rem;background:rgba(34,229,160,.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Ativo</span></div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:.82rem;font-weight:700">🔧 Hub Tecnico</div><div style="font-size:.7rem;color:var(--text3)">OS e frota</div><span style="font-size:.65rem;background:rgba(232,82,26,.15);color:var(--accent);padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block">Beta</span></div>
       </div>
     </div>
     <div style="width:420px;min-width:420px;background:var(--surf);border-left:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;padding:48px">
@@ -153,7 +167,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
       <div style="margin-bottom:14px"><label style="font-size:.73rem;color:var(--text3);font-weight:700;text-transform:uppercase">Senha</label><input type="password" id="inp-senha" placeholder="senha" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:.88rem;outline:none;margin-top:5px"></div>
       <div id="login-err" style="color:var(--red);font-size:.82rem;margin-bottom:10px;display:none"></div>
       <button onclick="fazerLogin()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer">Entrar</button>
-      <div style="text-align:center;font-size:.72rem;color:var(--text3);margin-top:20px">Hub Tecnico v1.0 - IaTechHub 2026</div>
+      <div style="text-align:center;font-size:.72rem;color:var(--text3);margin-top:20px">Hub Tecnico v1.1 - IaTechHub 2026</div>
     </div>
   </div>
 </div>
@@ -174,19 +188,16 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
       </button>
     </div>
     <nav class="sb-nav">
-      <!-- Controle de OS: nivel >= 50 -->
       <div class="sb-group" id="grp-os" style="display:none">ORDENS DE SERVICO</div>
       <div class="ni" id="ni-os" style="display:none" onclick="navTo('os')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span class="ni-label">Controle de OS</span>
       </div>
-      <!-- Frota: nivel >= 40 -->
       <div class="sb-group" id="grp-frota" style="display:none">FROTA</div>
       <div class="ni" id="ni-frota" style="display:none" onclick="navTo('frota')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         <span class="ni-label">Frota</span>
       </div>
-      <!-- Admin: nivel >= 99 -->
       <div class="sb-group" id="grp-admin" style="display:none">ADMINISTRACAO</div>
       <div class="ni" id="ni-usuarios" style="display:none" onclick="navTo('usuarios')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
@@ -209,27 +220,26 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
     <!-- TOPBAR -->
     <div id="topbar">
       <div class="tb-title" id="tb-titulo">Controle de OS</div>
-      <div class="tb-stats" id="tb-stats-os">
+      <div id="tb-stats-os" style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap">
         <div class="stat-pill active" style="color:var(--red)" id="f-pendente" onclick="toggleFiltro('pendente',this)">🔴 Pendentes <b id="cnt-pendente">0</b></div>
         <div class="stat-pill active" style="color:var(--amber)" id="f-deslocamento" onclick="toggleFiltro('deslocamento',this)">🟡 Deslocamento <b id="cnt-deslocamento">0</b></div>
         <div class="stat-pill active" style="color:var(--purple)" id="f-agendada" onclick="toggleFiltro('agendada',this)">📅 Agendada <b id="cnt-agendada">0</b></div>
         <div class="stat-pill active" style="color:var(--blue)" id="f-execucao" onclick="toggleFiltro('execucao',this)">🔵 Execucao <b id="cnt-execucao">0</b></div>
-        <div class="stat-pill" style="color:var(--green)" id="f-finalizada" onclick="toggleFiltro('finalizada',this)">✅ Finalizadas <b id="cnt-finalizada">0</b></div>
-        <div style="width:1px;background:var(--border);height:20px"></div>
-        <select id="sel-tipo" onchange="selecionarTipo(this.value)" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+        <div style="width:1px;background:var(--border);height:20px;flex-shrink:0"></div>
+        <select id="sel-tipo" onchange="selecionarTipo(this.value)" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;flex-shrink:0">
           <option value="todos">Todos os tipos</option>
           <option value="suporte">Suporte</option>
           <option value="instalacao">Servico</option>
           <option value="infra">Infra</option>
           <option value="retirada">Retirada</option>
         </select>
-        <input type="date" id="filtro-data-ini" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none" onchange="renderSidebar();renderMapa()">
-        <span style="color:var(--text3);font-size:.75rem">até</span>
-        <input type="date" id="filtro-data-fim" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none" onchange="renderSidebar();renderMapa()">
-        <button class="btn btn-o" style="padding:4px 8px;font-size:.75rem" onclick="limparDatas()">✕</button>
+        <input type="date" id="filtro-data-ini" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;flex-shrink:0" onchange="renderSidebar();renderMapa()">
+        <span style="color:var(--text3);font-size:.75rem;flex-shrink:0">até</span>
+        <input type="date" id="filtro-data-fim" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;flex-shrink:0" onchange="renderSidebar();renderMapa()">
+        <button class="btn btn-o" style="padding:4px 8px;font-size:.75rem;flex-shrink:0" onclick="limparDatas()">✕</button>
       </div>
-      <div style="margin-left:auto;display:flex;gap:6px">
-        <button class="btn btn-o" onclick="carregarDados()">↻ Atualizar</button>
+      <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-o" onclick="carregarDados()">↻</button>
         <button class="btn btn-o" onclick="logout()">Sair</button>
       </div>
     </div>
@@ -239,31 +249,80 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 
       <!-- SECAO OS -->
       <div class="secao ativa" id="secao-os" style="flex-direction:row">
+
+        <!-- SIDEBAR OS: lista lateral -->
         <div id="sidebar-os">
-          <div style="padding:10px 12px;border-bottom:1px solid var(--border);font-size:.8rem;font-weight:700;color:var(--text3)">
-            OS DO DIA — <span id="st-total">0</span> total
-            <div style="display:flex;gap:8px;margin-top:4px;font-size:.72rem">
-              <span>🔴 <span id="st-pendente">0</span></span>
-              <span>🟡 <span id="st-deslocamento">0</span></span>
-              <span>📅 <span id="st-agendada">0</span></span>
-              <span>🔵 <span id="st-execucao">0</span></span>
-              <span>✅ <span id="st-finalizada">0</span></span>
-              <span style="margin-left:auto">🚗 <span id="st-tecnicos">0</span> tec</span>
+          <div class="os-stats-bar">
+            <div class="os-stats-title">OS DO DIA — <span id="st-total">0</span> total</div>
+            <div class="os-stats-row">
+              <div class="os-stat-chip" style="color:var(--red)">🔴 <span id="st-pendente">0</span></div>
+              <div class="os-stat-chip" style="color:var(--amber)">🟡 <span id="st-deslocamento">0</span></div>
+              <div class="os-stat-chip" style="color:var(--purple)">📅 <span id="st-agendada">0</span></div>
+              <div class="os-stat-chip" style="color:var(--blue)">🔵 <span id="st-execucao">0</span></div>
+              <div class="os-stat-chip" style="color:var(--green)">✅ <span id="st-finalizada">0</span></div>
+              <div class="os-stat-chip" style="color:var(--text2)">🚗 <span id="st-tecnicos">0</span></div>
             </div>
           </div>
           <div class="os-lista" id="lista-os"></div>
         </div>
-        <div id="mapa"></div>
-        <div id="detalhe-os" style="display:none"></div>
+
+        <!-- MAPA -->
+        <div style="flex:1;position:relative;display:flex;flex-direction:column">
+          <div id="mapa" style="flex:1;padding-bottom:52px"></div>
+
+          <!-- LEGENDA -->
+          <div class="legenda-mapa" style="bottom:62px">
+            <b>Tecnicos</b>
+            <div class="legenda-item"><div class="legenda-dot" style="background:var(--green)"></div>Em movimento</div>
+            <div class="legenda-item"><div class="legenda-dot" style="background:var(--amber)"></div>Parado</div>
+            <div class="legenda-item"><div class="legenda-dot" style="background:var(--red)"></div>Parado +30min</div>
+            <b style="margin-top:8px">OS</b>
+            <div class="legenda-item"><div class="legenda-dot" style="background:var(--red)"></div>Pendente</div>
+            <div class="legenda-item"><div class="legenda-dot" style="background:var(--amber)"></div>Deslocamento</div>
+            <div class="legenda-item"><div class="legenda-dot" style="background:var(--purple)"></div>Agendada</div>
+            <div class="legenda-item"><div class="legenda-dot" style="background:var(--blue)"></div>Execucao</div>
+          </div>
+
+          <!-- CARDS DIA -->
+          <div id="cards-dia">
+            <div class="card-dia">
+              <div class="card-dia-num" style="color:var(--text)"><span id="cd-total">0</span></div>
+              <div class="card-dia-label">Total<br>do dia</div>
+            </div>
+            <div class="card-dia">
+              <div class="card-dia-num" style="color:var(--red)"><span id="cd-pendente">0</span></div>
+              <div class="card-dia-label">Pen-<br>dentes</div>
+            </div>
+            <div class="card-dia">
+              <div class="card-dia-num" style="color:var(--amber)"><span id="cd-deslocamento">0</span></div>
+              <div class="card-dia-label">Deslo-<br>camento</div>
+            </div>
+            <div class="card-dia">
+              <div class="card-dia-num" style="color:var(--purple)"><span id="cd-agendada">0</span></div>
+              <div class="card-dia-label">Agen-<br>dadas</div>
+            </div>
+            <div class="card-dia">
+              <div class="card-dia-num" style="color:var(--blue)"><span id="cd-execucao">0</span></div>
+              <div class="card-dia-label">Em<br>Execucao</div>
+            </div>
+            <div class="card-dia">
+              <div class="card-dia-num" style="color:var(--green)"><span id="cd-finalizada">0</span></div>
+              <div class="card-dia-label">Finali-<br>zadas</div>
+            </div>
+            <div class="card-dia" style="border-left:1px solid var(--border)">
+              <div class="card-dia-num" style="color:var(--text2)"><span id="cd-tecnicos">0</span></div>
+              <div class="card-dia-label">Tec em<br>deslocam.</div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- SECAO FROTA -->
       <div class="secao" id="secao-frota" style="padding:20px;overflow-y:auto">
         <div style="font-size:1.1rem;font-weight:800;margin-bottom:20px">🚗 Controle de Frota</div>
         <div id="grid-frota" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
-          <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;color:var(--text3)">
-            Em desenvolvimento...
-          </div>
+          <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;color:var(--text3)">Em desenvolvimento...</div>
         </div>
       </div>
 
@@ -286,16 +345,33 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 </div>
 </div>
 
+<!-- MODAL DETALHE OS -->
+<div id="modal-detalhe">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title">
+      <span id="md-titulo">OS #—</span>
+      <button class="modal-close" onclick="fecharDetalhe()">✕</button>
+    </div>
+    <div id="md-status-badge" style="margin-bottom:14px"></div>
+    <div id="md-body"></div>
+    <hr class="detalhe-divider">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-o" onclick="fecharDetalhe()">Fechar</button>
+      <button class="btn btn-p" id="md-btn-atribuir" onclick="abrirAtribuirDaModal()" style="display:none">Agendar Tecnico</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ATRIBUIR -->
 <div class="modal-bg" id="modal-atribuir">
   <div class="modal">
     <div class="modal-title">
       <span>Atribuir Tecnico — OS <span id="modal-os-num"></span></span>
-      <button onclick="fecharModal()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:1rem">✕</button>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
     </div>
-    <div style="margin-bottom:14px">
-      <label style="display:block;font-size:.73rem;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:5px">Data Reservada</label>
-      <input type="datetime-local" id="inp-data-reservada" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none">
+    <div class="field">
+      <label>Data Reservada</label>
+      <input type="datetime-local" id="inp-data-reservada">
     </div>
     <div style="font-size:.73rem;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:8px">Tecnicos Disponiveis</div>
     <div id="lista-tecnicos-modal"></div>
@@ -307,7 +383,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
   <div class="modal">
     <div class="modal-title">
       <span id="modal-user-titulo">Novo Usuario</span>
-      <button onclick="fecharModalUsuario()" style="background:none;border:none;color:var(--text3);cursor:pointer">✕</button>
+      <button class="modal-close" onclick="fecharModalUsuario()">✕</button>
     </div>
     <input type="hidden" id="mu-id">
     <div class="field"><label>Nome</label><input type="text" id="mu-nome"></div>
@@ -334,101 +410,18 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
+// ── ESTADO GLOBAL ─────────────────────────────────────────────
 var usuario = null;
 var osCache = [], tecnicosCache = [], marcadores = {}, marcadoresTec = {};
-var mapa = null, osAtribuirId = null;
-var filtros = new Set(['pendente','deslocamento','agendada','reagendada','execucao','tecnicos']);
-var tipoAtivo = 'todos';
+var mapa = null, osAtribuirId = null, osSelecionadaId = null;
+var filtros = new Set(['pendente','deslocamento','agendada','reagendada','execucao']);
+var tipoFiltro = 'todos';
+var rotasTecnicos = {};
+var _usuarios = [];
+var _intervaloDados = null;
 
-// AUTH
-function token() { return localStorage.getItem('ht_hub_token') || localStorage.getItem('ht_despacho_token') || ''; }
-function api(path, opts) {
-  opts = opts || {};
-  return fetch(path, Object.assign({}, opts, {
-    headers: Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+token()}, opts.headers||{})
-  })).then(function(r){return r.json();});
-}
-
-// LOGIN
-document.addEventListener('keydown', function(e){
-  if (e.key==='Enter' && document.getElementById('P-LOGIN').style.display!=='none') fazerLogin();
-});
-
-async function fazerLogin() {
-  var login = document.getElementById('inp-login').value.trim();
-  var senha = document.getElementById('inp-senha').value;
-  var err = document.getElementById('login-err');
-  err.style.display = 'none';
-  if (!login||!senha) { err.textContent='Preencha login e senha'; err.style.display='block'; return; }
-  try {
-    var r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login,senha})}).then(function(r){return r.json();});
-    if (r.detail) { err.textContent=r.detail; err.style.display='block'; return; }
-    if (r.usuario.nivel < 40) { err.textContent='Acesso negado. Use o app do tecnico.'; err.style.display='block'; return; }
-    localStorage.setItem('ht_hub_token', r.token);
-    localStorage.setItem('ht_hub_usuario', JSON.stringify(r.usuario));
-    localStorage.setItem('ht_despacho_token', r.token);
-    localStorage.setItem('ht_despacho_usuario', JSON.stringify(r.usuario));
-    iniciarApp(r.usuario);
-  } catch(e) { err.textContent='Erro de conexao'; err.style.display='block'; }
-}
-
-function iniciarApp(u) {
-  usuario = u;
-  document.getElementById('P-LOGIN').style.display = 'none';
-  document.getElementById('P-APP').style.display = 'block';
-  // Sidebar info
-  document.getElementById('sb-nome').textContent = u.nome;
-  document.getElementById('sb-avatar').textContent = u.nome.charAt(0).toUpperCase();
-  var roles = {10:'Tecnico',40:'Frota',50:'Supervisor',99:'Admin'};
-  document.getElementById('sb-role').textContent = roles[u.nivel] || 'Usuario';
-  // Mostrar menus por nivel
-  if (u.nivel >= 50) {
-    document.getElementById('grp-os').style.display = 'block';
-    document.getElementById('ni-os').style.display = 'flex';
-  }
-  if (u.nivel >= 40) {
-    document.getElementById('grp-frota').style.display = 'block';
-    document.getElementById('ni-frota').style.display = 'flex';
-  }
-  if (u.nivel >= 99) {
-    document.getElementById('grp-admin').style.display = 'block';
-    document.getElementById('ni-usuarios').style.display = 'flex';
-  }
-  // Navegar para secao correta
-  if (u.nivel >= 50) {
-    navTo('os');
-  } else if (u.nivel >= 40) {
-    navTo('frota');
-  }
-}
-
-function navTo(secao) {
-  document.querySelectorAll('.secao').forEach(function(s){s.classList.remove('ativa');});
-  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
-  var s = document.getElementById('secao-'+secao);
-  var n = document.getElementById('ni-'+secao) || document.getElementById('ni-usuarios');
-  if (s) s.classList.add('ativa');
-  if (n) n.classList.add('active');
-  if (secao==='os') {
-    document.getElementById('tb-stats-os').style.display = 'flex';
-    document.getElementById('tb-titulo').textContent = 'Controle de OS';
-    if (!mapa) iniciarMapa();
-    carregarDados();
-  } else if (secao==='frota') {
-    document.getElementById('tb-stats-os').style.display = 'none';
-    document.getElementById('tb-titulo').textContent = 'Controle de Frota';
-  } else if (secao==='usuarios') {
-    document.getElementById('tb-stats-os').style.display = 'none';
-    document.getElementById('tb-titulo').textContent = 'Usuarios';
-    carregarUsuarios();
-  }
-}
-
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
-function logout() { ['ht_hub_token','ht_hub_usuario','ht_despacho_token','ht_despacho_usuario'].forEach(function(k){localStorage.removeItem(k);}); location.reload(); }
-
-
-const ASSUNTO_TIPO = {
+// ── ASSUNTO → TIPO ────────────────────────────────────────────
+var ASSUNTO_TIPO = {
   5:'suporte',17:'suporte',20:'suporte',21:'suporte',27:'suporte',44:'suporte',
   47:'suporte',94:'suporte',102:'suporte',103:'suporte',104:'suporte',105:'suporte',
   107:'suporte',113:'suporte',184:'suporte',203:'suporte',240:'suporte',
@@ -445,11 +438,89 @@ const ASSUNTO_TIPO = {
   26:'instalacao',30:'instalacao',48:'instalacao',49:'instalacao',92:'instalacao',
   101:'instalacao',110:'instalacao',220:'instalacao',227:'instalacao',239:'instalacao',
   6:'retirada',22:'retirada',39:'retirada',40:'retirada',89:'retirada',
-  111:'retirada',127:'retirada',
+  111:'retirada',127:'retirada'
 };
 
+// ── AUTH ──────────────────────────────────────────────────────
+function token() {
+  return localStorage.getItem('ht_hub_token') || localStorage.getItem('ht_despacho_token') || '';
+}
+function api(path, opts) {
+  opts = opts || {};
+  return fetch(path, Object.assign({}, opts, {
+    headers: Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+token()}, opts.headers||{})
+  })).then(function(r){ return r.json(); });
+}
 
-// ── MAPA ─────────────────────────────────────────────────────
+// ── LOGIN ─────────────────────────────────────────────────────
+document.addEventListener('keydown', function(e){
+  if (e.key==='Enter' && document.getElementById('P-LOGIN').style.display!=='none') fazerLogin();
+});
+
+async function fazerLogin() {
+  var login = document.getElementById('inp-login').value.trim();
+  var senha = document.getElementById('inp-senha').value;
+  var err = document.getElementById('login-err');
+  err.style.display = 'none';
+  if (!login||!senha) { err.textContent='Preencha login e senha'; err.style.display='block'; return; }
+  try {
+    var r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:login,senha:senha})}).then(function(r){return r.json();});
+    if (r.detail) { err.textContent=r.detail; err.style.display='block'; return; }
+    if (r.usuario.nivel < 40) { err.textContent='Acesso negado. Use o app do tecnico.'; err.style.display='block'; return; }
+    localStorage.setItem('ht_hub_token', r.token);
+    localStorage.setItem('ht_hub_usuario', JSON.stringify(r.usuario));
+    localStorage.setItem('ht_despacho_token', r.token);
+    localStorage.setItem('ht_despacho_usuario', JSON.stringify(r.usuario));
+    iniciarApp(r.usuario);
+  } catch(e) { err.textContent='Erro de conexao'; err.style.display='block'; }
+}
+
+function iniciarApp(u) {
+  usuario = u;
+  document.getElementById('P-LOGIN').style.display = 'none';
+  document.getElementById('P-APP').style.display = 'block';
+  document.getElementById('sb-nome').textContent = u.nome;
+  document.getElementById('sb-avatar').textContent = u.nome.charAt(0).toUpperCase();
+  var roles = {10:'Tecnico',40:'Frota',50:'Supervisor',99:'Admin'};
+  document.getElementById('sb-role').textContent = roles[u.nivel] || 'Usuario';
+  if (u.nivel >= 50) { document.getElementById('grp-os').style.display='block'; document.getElementById('ni-os').style.display='flex'; }
+  if (u.nivel >= 40) { document.getElementById('grp-frota').style.display='block'; document.getElementById('ni-frota').style.display='flex'; }
+  if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex'; }
+  if (u.nivel >= 50) { navTo('os'); } else if (u.nivel >= 40) { navTo('frota'); }
+}
+
+function navTo(secao) {
+  document.querySelectorAll('.secao').forEach(function(s){s.classList.remove('ativa');});
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
+  var s = document.getElementById('secao-'+secao);
+  var n = document.getElementById('ni-'+secao) || document.getElementById('ni-usuarios');
+  if (s) s.classList.add('ativa');
+  if (n) n.classList.add('active');
+  if (_intervaloDados) { clearInterval(_intervaloDados); _intervaloDados = null; }
+  if (secao==='os') {
+    document.getElementById('tb-stats-os').style.display = 'flex';
+    document.getElementById('tb-titulo').textContent = 'Controle de OS';
+    if (!mapa) iniciarMapa();
+    carregarDados();
+    _intervaloDados = setInterval(carregarDados, 30000);
+  } else if (secao==='frota') {
+    document.getElementById('tb-stats-os').style.display = 'none';
+    document.getElementById('tb-titulo').textContent = 'Controle de Frota';
+  } else if (secao==='usuarios') {
+    document.getElementById('tb-stats-os').style.display = 'none';
+    document.getElementById('tb-titulo').textContent = 'Usuarios';
+    carregarUsuarios();
+  }
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+function logout() {
+  if (_intervaloDados) clearInterval(_intervaloDados);
+  ['ht_hub_token','ht_hub_usuario','ht_despacho_token','ht_despacho_usuario'].forEach(function(k){localStorage.removeItem(k);});
+  location.reload();
+}
+
+// ── MAPA ──────────────────────────────────────────────────────
 function iniciarMapa() {
   mapa = L.map('mapa').setView([-15.7942, -47.8825], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
@@ -458,40 +529,52 @@ function iniciarMapa() {
 }
 
 function iconeOS(status) {
-  const cores = {pendente:'#ef4444',deslocamento:'#f59e0b',execucao:'#3b82f6',finalizada:'#22c55e'};
-  const cor = cores[status] || '#6b7590';
+  var cores = {pendente:'#ff4d6a',deslocamento:'#ffb83f',agendada:'#a78bfa',reagendada:'#a78bfa',execucao:'#60a5fa',finalizada:'#00e5a0'};
+  var cor = cores[status] || '#6b7590';
   return L.divIcon({
     className:'',
-    html:`<div style="background:${cor};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+    html:'<div style="background:'+cor+';width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>',
     iconSize:[14,14], iconAnchor:[7,7]
   });
 }
 
-function iconeTecnico(status) {
-  const emoji = status==='atendimento'?'🔧':status==='em_rota'?'🚗':'🅿️';
+function iconeTecnico(tec) {
+  var agora = new Date();
+  var regEm = tec.registrado_em ? new Date(tec.registrado_em) : null;
+  var minParado = regEm ? Math.floor((agora - regEm) / 60000) : 999;
+  var vel = parseFloat(tec.velocidade) || 0;
+  var cor, emoji;
+  if (vel > 3) {
+    cor = '#00e5a0'; emoji = '🚗';
+  } else if (minParado >= 30) {
+    cor = '#ff4d6a'; emoji = '⏱️';
+  } else {
+    cor = '#ffb83f'; emoji = '🅿️';
+  }
+  var label = tec.tecnico_nome ? tec.tecnico_nome.split(' ')[0] : '';
   return L.divIcon({
     className:'',
-    html:`<div style="background:#1c2230;border:2px solid #e8521a;border-radius:8px;padding:2px 6px;font-size:16px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5)">${emoji}</div>`,
-    iconSize:[36,28], iconAnchor:[18,14]
+    html:'<div style="background:var(--surf2);border:2px solid '+cor+';border-radius:8px;padding:2px 7px;font-size:11px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5);color:#fff;font-weight:700">'+emoji+' '+label+'</div>',
+    iconSize:[80,26], iconAnchor:[40,13]
   });
 }
 
 // ── DADOS ─────────────────────────────────────────────────────
 async function carregarDados() {
   try {
-    const [dados, gps] = await Promise.all([
-      api('/api/despacho/mapa'),
-      api('/api/gps/posicoes')
-    ]);
+    var dados = await api('/api/despacho/mapa');
+    var gps = await api('/api/gps/posicoes');
     osCache = dados.os || [];
     tecnicosCache = gps || [];
-    // Buscar rotas dos tecnicos ativos
+    rotasTecnicos = {};
     try {
-      const ids = [...new Set(tecnicosCache.map(t=>t.id_tecnico).filter(Boolean))];
-      rotasTecnicos = {};
-      for (const id of ids) {
-        const pontos = await api('/api/gps/rota/'+id);
-        if (pontos?.length) rotasTecnicos[id] = pontos;
+      var ids = [];
+      tecnicosCache.forEach(function(t){ if (t.id_tecnico && ids.indexOf(t.id_tecnico)<0) ids.push(t.id_tecnico); });
+      for (var i=0; i<ids.length; i++) {
+        try {
+          var pontos = await api('/api/gps/rota/'+ids[i]);
+          if (pontos && pontos.length) rotasTecnicos[ids[i]] = pontos;
+        } catch(e) {}
       }
     } catch(e) {}
     atualizarStats(dados.stats || {});
@@ -507,10 +590,10 @@ function limparDatas() {
 }
 
 function passaFiltroData(o) {
-  const ini = document.getElementById('filtro-data-ini')?.value;
-  const fim = document.getElementById('filtro-data-fim')?.value;
+  var ini = document.getElementById('filtro-data-ini').value;
+  var fim = document.getElementById('filtro-data-fim').value;
   if (!ini && !fim) return true;
-  const dataOs = (o.data_reservada||o.data_abertura||'').substring(0,10);
+  var dataOs = (o.data_reservada||o.data_abertura||'').substring(0,10);
   if (!dataOs) return true;
   if (ini && dataOs < ini) return false;
   if (fim && dataOs > fim) return false;
@@ -518,229 +601,248 @@ function passaFiltroData(o) {
 }
 
 function atualizarStats(s) {
-  document.getElementById('st-pendente').textContent = s.pendentes||0;
-  document.getElementById('st-deslocamento').textContent = s.deslocamento||0;
-  document.getElementById('st-execucao').textContent = s.execucao||0;
-  document.getElementById('st-finalizada').textContent = s.finalizadas||0;
+  var pend = s.pendentes||0, desl = s.deslocamento||0, exec = s.execucao||0, fin = s.finalizadas||0;
+  var agend = osCache.filter(function(o){ return o.status_hub==='agendada'||o.status_hub==='reagendada'; }).length;
+  var total = pend+desl+agend+exec+fin;
+  var tecDesl = tecnicosCache.filter(function(t){ return parseFloat(t.velocidade||0)>3; }).length;
+
+  // topbar pills
+  document.getElementById('cnt-pendente').textContent = pend;
+  document.getElementById('cnt-deslocamento').textContent = desl;
+  document.getElementById('cnt-agendada').textContent = agend;
+  document.getElementById('cnt-execucao').textContent = exec;
+
+  // sidebar stats
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-pendente').textContent = pend;
+  document.getElementById('st-deslocamento').textContent = desl;
+  document.getElementById('st-agendada').textContent = agend;
+  document.getElementById('st-execucao').textContent = exec;
+  document.getElementById('st-finalizada').textContent = fin;
   document.getElementById('st-tecnicos').textContent = tecnicosCache.length;
-  document.getElementById('cnt-pendente').textContent = s.pendentes||0;
-  document.getElementById('cnt-deslocamento').textContent = s.deslocamento||0;
-  document.getElementById('cnt-execucao').textContent = s.execucao||0;
-  document.getElementById('cnt-finalizada').textContent = s.finalizadas||0;
+
+  // cards dia
+  document.getElementById('cd-total').textContent = total;
+  document.getElementById('cd-pendente').textContent = pend;
+  document.getElementById('cd-deslocamento').textContent = desl;
+  document.getElementById('cd-agendada').textContent = agend;
+  document.getElementById('cd-execucao').textContent = exec;
+  document.getElementById('cd-finalizada').textContent = fin;
+  document.getElementById('cd-tecnicos').textContent = tecDesl;
 }
 
-// ── SIDEBAR ───────────────────────────────────────────────────
+// ── SIDEBAR OS ────────────────────────────────────────────────
 function renderSidebar() {
-  const filtradas = osCache.filter(o => {
+  var filtradas = osCache.filter(function(o) {
     if (!passaFiltroData(o)) return false;
     if (!filtros.has(o.status_hub)) return false;
     if (tipoFiltro !== 'todos') {
-      const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
+      var tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
       if (tipo !== tipoFiltro) return false;
     }
     return true;
   });
-  const lista = document.getElementById('lista-os');
-  if (!filtradas.length) { lista.innerHTML='<div style="padding:20px;color:var(--muted);font-size:.85rem;text-align:center">Nenhuma OS</div>'; return; }
-  lista.innerHTML = filtradas.map(o => `
-    <div class="os-item" onclick="selecionarOS(${o.ixc_os_id})" id="osi-${o.ixc_os_id}">
-      <div class="os-item-top">
-        <span class="os-num">OS #${o.ixc_os_id}</span>
-        <span class="os-status-badge badge-${o.status_hub}">${labelStatus(o.status_hub)}</span>
-      </div>
-      <div class="os-cliente">${o.cliente_nome||'—'}</div>
-      <div class="os-end">📍 ${o.endereco||'—'} ${o.bairro?'· '+o.bairro:''}</div>
-      <div class="os-meta">
-        <span>${o.assunto_nome||'—'}</span>
-        <span>${o.tecnico_nome||'Sem técnico'}</span>
-      </div>
-    </div>`).join('');
+  var lista = document.getElementById('lista-os');
+  if (!filtradas.length) {
+    lista.innerHTML = '<div style="padding:20px;color:var(--text3);font-size:.85rem;text-align:center">Nenhuma OS</div>';
+    return;
+  }
+  var html = '';
+  filtradas.forEach(function(o) {
+    html += '<div class="os-item" data-id="'+o.ixc_os_id+'" onclick="selecionarOS('+o.ixc_os_id+')" id="osi-'+o.ixc_os_id+'">';
+    html += '<div class="os-item-top">';
+    html += '<span class="os-num">OS #'+o.ixc_os_id+'</span>';
+    html += '<span class="os-badge badge-'+o.status_hub+'">'+labelStatus(o.status_hub)+'</span>';
+    html += '</div>';
+    html += '<div class="os-cliente">'+(o.cliente_nome||'—')+'</div>';
+    html += '<div class="os-end">📍 '+(o.endereco||'—')+(o.bairro?' · '+o.bairro:'')+'</div>';
+    html += '<div class="os-meta"><span>'+(o.assunto_nome||'—')+'</span><span>'+(o.tecnico_nome||'Sem tecnico')+'</span></div>';
+    html += '</div>';
+  });
+  lista.innerHTML = html;
+  if (osSelecionadaId) {
+    var el = document.getElementById('osi-'+osSelecionadaId);
+    if (el) el.classList.add('selected');
+  }
 }
 
-// ── MAPA MARKERS ─────────────────────────────────────────────
+// ── MAPA ──────────────────────────────────────────────────────
 function renderMapa() {
-  // Limpar markers antigos
-  Object.values(marcadores).forEach(m => mapa.removeLayer(m));
-  Object.values(marcadoresTec).forEach(m => mapa.removeLayer(m));
+  if (!mapa) return;
+  Object.values(marcadores).forEach(function(m){ mapa.removeLayer(m); });
+  Object.values(marcadoresTec).forEach(function(m){ mapa.removeLayer(m); });
   marcadores = {}; marcadoresTec = {};
 
   // OS
-  osCache.forEach(o => {
+  osCache.forEach(function(o) {
     if (!filtros.has(o.status_hub)) return;
     if (!passaFiltroData(o)) return;
     if (tipoFiltro !== 'todos') {
-      const tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
+      var tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
       if (tipo !== tipoFiltro) return;
     }
     if (!o.lat || !o.lon) return;
-    const m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub)})
+    var m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub)})
       .addTo(mapa)
-      .bindTooltip(`<b>OS #${o.ixc_os_id}</b><br>${o.cliente_nome}<br>${o.assunto_nome}`, {direction:'top'})
-      .on('click', () => selecionarOS(o.ixc_os_id));
+      .bindTooltip('<b>OS #'+o.ixc_os_id+'</b><br>'+(o.cliente_nome||'')+'<br>'+(o.assunto_nome||''), {direction:'top'});
+    (function(osId){ m.on('click', function(){ selecionarOS(osId); }); })(o.ixc_os_id);
     marcadores[o.ixc_os_id] = m;
+
+    if (o.sla_estourado) {
+      var circle = L.circle([o.lat, o.lon], {radius:300,color:'#ef4444',fillColor:'#ef4444',fillOpacity:.1,weight:2}).addTo(mapa);
+      marcadores['sla_'+o.ixc_os_id] = circle;
+    }
   });
 
-  // Rotas dos tecnicos (linha GPS)
-  if (filtros.has('tecnicos') && rotasTecnicos) {
-    Object.entries(rotasTecnicos).forEach(([id, pontos]) => {
-      if (pontos.length < 2) return;
-      const linha = L.polyline(pontos.map(p=>[p.lat,p.lon]), {
-        color:'#f59e0b', weight:3, opacity:0.6, dashArray:'5,5'
-      }).addTo(mapa);
-      marcadoresTec['rota_'+id] = linha;
-    });
-  }
-
-  // Alertas SLA estourado
-  osCache.forEach(o => {
-    if (!o.sla_estourado || !o.lat || !o.lon) return;
-    const circle = L.circle([o.lat, o.lon], {
-      radius: 300, color:'#ef4444', fillColor:'#ef4444',
-      fillOpacity: 0.1, weight: 2
+  // Rotas dos tecnicos
+  Object.keys(rotasTecnicos).forEach(function(id) {
+    var pontos = rotasTecnicos[id];
+    if (!pontos || pontos.length < 2) return;
+    var linha = L.polyline(pontos.map(function(p){ return [p.lat,p.lon]; }), {
+      color:'#ffb83f', weight:2, opacity:0.5, dashArray:'5,5'
     }).addTo(mapa);
-    marcadores['sla_'+o.ixc_os_id] = circle;
+    marcadoresTec['rota_'+id] = linha;
   });
 
-  // Técnicos
-  if (filtros.has('tecnicos')) {
-    tecnicosCache.forEach(t => {
-      if (!t.lat || !t.lon) return;
-      const m = L.marker([t.lat, t.lon], {icon: iconeTecnico(t.status_tecnico)})
-        .addTo(mapa)
-        .bindTooltip(`<b>${t.tecnico_nome}</b><br>${t.velocidade||0} km/h<br>${t.registrado_em||''}`, {direction:'top'})
-        .on('click', () => mostrarDetalhesTecnico(t));
-      marcadoresTec[t.id_tecnico] = m;
-    });
-  }
+  // Tecnicos (veiculos)
+  tecnicosCache.forEach(function(t) {
+    if (!t.lat || !t.lon) return;
+    var agora = new Date();
+    var regEm = t.registrado_em ? new Date(t.registrado_em) : null;
+    var minParado = regEm ? Math.floor((agora - regEm) / 60000) : 999;
+    var vel = parseFloat(t.velocidade) || 0;
+    var statusTxt = vel > 3 ? 'Em movimento ('+Math.round(vel)+' km/h)' : (minParado >= 30 ? 'Parado ha '+minParado+' min' : 'Parado');
+    var m = L.marker([t.lat, t.lon], {icon: iconeTecnico(t), zIndexOffset:1000})
+      .addTo(mapa)
+      .bindTooltip('<b>'+t.tecnico_nome+'</b><br>'+statusTxt+'<br>'+(t.registrado_em||''), {direction:'top'});
+    marcadoresTec[t.id_tecnico] = m;
+  });
 }
 
 // ── SELECIONAR OS ─────────────────────────────────────────────
 function selecionarOS(ixc_os_id) {
-  const os = osCache.find(o=>o.ixc_os_id===ixc_os_id);
+  var os = osCache.find(function(o){ return o.ixc_os_id===ixc_os_id; });
   if (!os) return;
-  document.querySelectorAll('.os-item').forEach(i=>i.classList.remove('selected'));
-  document.getElementById('osi-'+ixc_os_id)?.classList.add('selected');
+  osSelecionadaId = ixc_os_id;
+  document.querySelectorAll('.os-item').forEach(function(i){ i.classList.remove('selected'); });
+  var el = document.getElementById('osi-'+ixc_os_id);
+  if (el) { el.classList.add('selected'); el.scrollIntoView({block:'nearest'}); }
   if (os.lat && os.lon) mapa.setView([os.lat, os.lon], 15);
   mostrarDetalhesOS(os);
 }
 
 function mostrarDetalhesOS(os) {
-  const panel = document.getElementById('detail-panel');
-  document.getElementById('detail-title').textContent = 'OS #'+os.ixc_os_id;
-  document.getElementById('detail-body').innerHTML = `
-    <div style="margin-bottom:14px">
-      <div style="font-weight:700;font-size:.95rem;margin-bottom:4px">${os.cliente_nome}</div>
-      <div style="font-size:.82rem;color:var(--muted)">📍 ${os.endereco||'—'} ${os.bairro?'· '+os.bairro:''}</div>
-      ${os.telefone?`<div style="font-size:.82rem;margin-top:4px">📞 ${os.telefone}</div>`:''}
-    </div>
-    <div style="margin-bottom:14px">
-      <div class="detail-row"><label>Assunto</label><span>${os.assunto_nome||'—'}</span></div>
-      <div class="detail-row"><label>Status</label><span>${labelStatus(os.status_hub)}</span></div>
-      <div class="detail-row"><label>Técnico</label><span>${os.tecnico_nome||'Não atribuído'}</span></div>
-      <div class="detail-row"><label>Abertura</label><span>${(os.data_abertura||'—').substring(0,16)}</span></div>
-      ${os.data_agenda?`<div class="detail-row"><label>Agendada</label><span>${os.data_agenda.substring(0,16)}</span></div>`:''}
-    </div>
-    ${os.obs_abertura?`<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:.8rem;color:var(--muted);margin-bottom:14px">${os.obs_abertura}</div>`:''}
-    <div style="display:grid;gap:8px">
-      ${os.status_hub==='pendente'?`<button class="btn btn-primary" style="width:100%" onclick="abrirAtribuir(${os.ixc_os_id})">👷 Atribuir técnico</button>`:''}
-      ${os.lat&&os.lon?`<button class="btn btn-outline" style="width:100%" onclick="mapa.setView([${os.lat},${os.lon}],16)">📍 Centralizar no mapa</button>`:''}
-    </div>`;
-  panel.classList.add('open');
+  document.getElementById('md-titulo').textContent = 'OS #'+os.ixc_os_id;
+  var badge = '<span class="os-badge badge-'+os.status_hub+'" style="font-size:.82rem;padding:4px 10px">'+labelStatusFull(os.status_hub)+'</span>';
+  document.getElementById('md-status-badge').innerHTML = badge;
+
+  var dr = os.data_reservada ? os.data_reservada.substring(0,16).replace('T',' ') : '—';
+  var da = os.data_abertura ? os.data_abertura.substring(0,16).replace('T',' ') : '—';
+
+  var html = '';
+  html += row('Cliente', os.cliente_nome||'—');
+  html += row('Endereco', (os.endereco||'—')+(os.bairro?' — '+os.bairro:''));
+  html += row('Assunto', os.assunto_nome||'—');
+  html += row('Tecnico', os.tecnico_nome||'Sem tecnico');
+  html += row('Abertura', da);
+  html += row('Agendada', dr);
+  if (os.obs_abertura) html += row('Obs', os.obs_abertura);
+  if (os.motivo_reagendamento) html += row('Reagend.', os.motivo_reagendamento);
+
+  document.getElementById('md-body').innerHTML = html;
+
+  var btnAtribuir = document.getElementById('md-btn-atribuir');
+  btnAtribuir.style.display = (os.status_hub==='pendente'||os.status_hub==='agendada'||os.status_hub==='reagendada') ? 'inline-block' : 'none';
+
+  document.getElementById('modal-detalhe').classList.add('open');
 }
 
-function mostrarDetalhesTecnico(t) {
-  const panel = document.getElementById('detail-panel');
-  document.getElementById('detail-title').textContent = t.tecnico_nome;
-  const osAtivas = osCache.filter(o=>o.id_tecnico && o.tecnico_nome===t.tecnico_nome && o.status_hub!=='finalizada');
-  document.getElementById('detail-body').innerHTML = `
-    <div style="margin-bottom:14px">
-      <div class="detail-row"><label>Status</label><span>${labelStatusTec(t.status_tecnico)}</span></div>
-      <div class="detail-row"><label>Velocidade</label><span>${t.velocidade||0} km/h</span></div>
-      <div class="detail-row"><label>Última pos.</label><span>${(t.registrado_em||'—').substring(0,16)}</span></div>
-      <div class="detail-row"><label>OS ativas</label><span>${osAtivas.length}</span></div>
-    </div>
-    ${osAtivas.length?`
-    <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">OS em aberto</div>
-    ${osAtivas.map(o=>`
-      <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer" onclick="selecionarOS(${o.ixc_os_id})">
-        <div style="font-size:.8rem;font-weight:700">OS #${o.ixc_os_id}</div>
-        <div style="font-size:.75rem;color:var(--muted)">${o.cliente_nome} — ${labelStatus(o.status_hub)}</div>
-      </div>`).join('')}`:''}`;
-  panel.classList.add('open');
+function row(label, val) {
+  return '<div class="detalhe-row"><div class="detalhe-label">'+label+'</div><div class="detalhe-val">'+val+'</div></div>';
 }
 
 function fecharDetalhe() {
-  document.getElementById('detail-panel').classList.remove('open');
-  document.querySelectorAll('.os-item').forEach(i=>i.classList.remove('selected'));
+  document.getElementById('modal-detalhe').classList.remove('open');
 }
 
-// ── ATRIBUIR OS ───────────────────────────────────────────────
+function abrirAtribuirDaModal() {
+  fecharDetalhe();
+  abrirAtribuir(osSelecionadaId);
+}
+
+// ── ATRIBUIR ──────────────────────────────────────────────────
 async function abrirAtribuir(ixc_os_id) {
   osAtribuirId = ixc_os_id;
-  const os = osCache.find(o=>o.ixc_os_id===ixc_os_id);
-  document.getElementById('modal-os-info').innerHTML = `
-    <b>OS #${ixc_os_id}</b> — ${os?.assunto_nome||'—'}<br>
-    <span style="color:var(--muted)">${os?.cliente_nome} · ${os?.endereco||'—'}</span>`;
+  document.getElementById('modal-os-num').textContent = ixc_os_id;
+  document.getElementById('lista-tecnicos-modal').innerHTML = '<div style="color:var(--text3);font-size:.85rem;padding:10px">Carregando...</div>';
+  document.getElementById('modal-atribuir').classList.add('open');
   try {
-    const sugestoes = await api('/api/despacho/sugerir-tecnico/'+ixc_os_id);
-    document.getElementById('lista-tecnicos-modal').innerHTML = sugestoes.map((t,i)=>`
-      <div class="tecnico-option ${i===0?'best':''}" onclick="atribuirOS(${t.id})">
-        <div>
-          <div style="font-weight:700;font-size:.88rem">${i===0?'⭐ ':''} ${t.nome}</div>
-          <div style="font-size:.75rem;color:var(--muted)">${t.distancia_km} km · ${t.os_ativas} OS ativas</div>
-        </div>
-        <button class="btn btn-sm btn-primary">Atribuir</button>
-      </div>`).join('') || '<div style="color:var(--muted);font-size:.85rem">Nenhum técnico disponível</div>';
-  } catch(e) {}
-  document.getElementById('modal-atribuir').style.display = 'flex';
+    var sugestoes = await api('/api/despacho/sugerir-tecnico/'+ixc_os_id);
+    var html = '';
+    if (!sugestoes || !sugestoes.length) {
+      html = '<div style="color:var(--text3);font-size:.85rem">Nenhum tecnico disponivel</div>';
+    } else {
+      sugestoes.forEach(function(t, i) {
+        html += '<div class="tecnico-option '+(i===0?'best':'')+'" data-id="'+t.id+'">';
+        html += '<div><div style="font-weight:700;font-size:.88rem">'+(i===0?'⭐ ':'')+t.nome+'</div>';
+        html += '<div style="font-size:.75rem;color:var(--text3)">'+t.distancia_km+' km &middot; '+t.os_ativas+' OS ativas</div></div>';
+        html += '<button class="btn btn-p" style="font-size:.75rem" onclick="atribuirOS('+t.id+')">Atribuir</button>';
+        html += '</div>';
+      });
+    }
+    document.getElementById('lista-tecnicos-modal').innerHTML = html;
+  } catch(e) {
+    document.getElementById('lista-tecnicos-modal').innerHTML = '<div style="color:var(--red);font-size:.85rem">Erro ao carregar tecnicos</div>';
+  }
 }
 
 async function atribuirOS(id_tecnico) {
-  const dr = document.getElementById('inp-data-reservada')?.value?.replace('T',' ') || null;
-  await api('/api/os/'+osAtribuirId+'/atribuir',{method:'POST',body:JSON.stringify({id_tecnico, data_reservada: dr})});
-  fecharModal();
-  fecharDetalhe();
-  carregarDados();
-  toast('OS atribuída com sucesso!','ok');
+  var dr = document.getElementById('inp-data-reservada').value;
+  var drFmt = dr ? dr.replace('T',' ') : null;
+  try {
+    await api('/api/os/'+osAtribuirId+'/atribuir',{method:'POST',body:JSON.stringify({id_tecnico:id_tecnico,data_reservada:drFmt})});
+    fecharModal();
+    carregarDados();
+    toast('OS atribuida com sucesso!','ok');
+  } catch(e) { toast('Erro ao atribuir OS','err'); }
 }
 
-function fecharModal() { document.getElementById('modal-atribuir').style.display='none'; }
+function fecharModal() { document.getElementById('modal-atribuir').classList.remove('open'); }
 
 // ── FILTROS ───────────────────────────────────────────────────
-function setTipo(tipo, btn) {
+function selecionarTipo(tipo) {
   tipoFiltro = tipo;
-  document.querySelectorAll('[id^="ft-"]').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
   renderSidebar();
   renderMapa();
 }
 
 function toggleFiltro(tipo, btn) {
-  if (filtros.has(tipo)) filtros.delete(tipo);
-  else filtros.add(tipo);
-  btn.classList.toggle('active', filtros.has(tipo));
+  if (filtros.has(tipo)) { filtros.delete(tipo); btn.classList.remove('active'); }
+  else { filtros.add(tipo); btn.classList.add('active'); }
   renderSidebar();
   renderMapa();
 }
 
-// ── HELPERS ──────────────────────────────────────────────────
+// ── HELPERS ───────────────────────────────────────────────────
 function labelStatus(s) {
-  return {pendente:'🔴 Pendente',deslocamento:'🟡 Deslocamento',execucao:'🔵 Execução',finalizada:'✅ Finalizada'}[s]||s;
+  var m = {pendente:'Pendente',deslocamento:'Deslocamento',agendada:'Agendada',reagendada:'Reagendada',execucao:'Execucao',finalizada:'Finalizada'};
+  return m[s]||s;
 }
-function labelStatusTec(s) {
-  return {livre:'🅿️ Livre',em_rota:'🚗 Em rota',atendimento:'🔧 Em atendimento',offline:'📵 Offline'}[s]||s;
+function labelStatusFull(s) {
+  var m = {pendente:'🔴 Pendente',deslocamento:'🟡 Deslocamento',agendada:'📅 Agendada',reagendada:'📅 Reagendada',execucao:'🔵 Execucao',finalizada:'✅ Finalizada'};
+  return m[s]||s;
 }
 
-function toast(msg, tipo='ok') {
-  const t = document.createElement('div');
-  t.className='toast '+tipo; t.textContent=msg;
+function toast(msg, tipo) {
+  tipo = tipo||'ok';
+  var t = document.createElement('div');
+  t.className = 'toast '+tipo;
+  t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},2500);
+  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); },300); }, 2500);
 }
 
-
-// USUARIOS
-var _usuarios = [];
+// ── USUARIOS ──────────────────────────────────────────────────
 async function carregarUsuarios() {
   var rows = await api('/api/admin/usuarios');
   _usuarios = rows;
@@ -765,7 +867,7 @@ function abrirNovoUsuario() {
 }
 
 function editarUsuario(id) {
-  var u = _usuarios.find(function(x){return x.id===id;});
+  var u = _usuarios.find(function(x){ return x.id===id; });
   if (!u) return;
   document.getElementById('modal-user-titulo').textContent='Editar Usuario';
   document.getElementById('mu-id').value=u.id;
@@ -781,34 +883,28 @@ function editarUsuario(id) {
 async function salvarUsuario() {
   var id = document.getElementById('mu-id').value;
   var data = {
-    nome:document.getElementById('mu-nome').value.trim(),
-    login:document.getElementById('mu-login').value.trim(),
-    senha:document.getElementById('mu-senha').value,
-    nivel:parseInt(document.getElementById('mu-nivel').value),
-    ixc_funcionario_id:parseInt(document.getElementById('mu-ixc').value)||0,
-    ativo:parseInt(document.getElementById('mu-ativo').value)
+    nome: document.getElementById('mu-nome').value.trim(),
+    login: document.getElementById('mu-login').value.trim(),
+    senha: document.getElementById('mu-senha').value,
+    nivel: parseInt(document.getElementById('mu-nivel').value),
+    ixc_funcionario_id: parseInt(document.getElementById('mu-ixc').value)||0,
+    ativo: parseInt(document.getElementById('mu-ativo').value)
   };
   if (!data.nome||!data.login) { alert('Nome e login obrigatorios'); return; }
   var r = await api(id?'/api/admin/usuarios/'+id:'/api/admin/usuarios',{method:id?'PUT':'POST',body:JSON.stringify(data)});
-  if (r.ok) { fecharModalUsuario(); carregarUsuarios(); }
+  if (r.ok) { fecharModalUsuario(); carregarUsuarios(); toast('Salvo com sucesso','ok'); }
   else alert(r.detail||'Erro ao salvar');
 }
 
 function fecharModalUsuario() { document.getElementById('modal-usuario').classList.remove('open'); }
 
-// INIT
+// ── INIT ──────────────────────────────────────────────────────
 (function(){
-  console.log("INIT painel");
   var t = localStorage.getItem('ht_hub_token') || localStorage.getItem('ht_despacho_token');
   var u = localStorage.getItem('ht_hub_usuario') || localStorage.getItem('ht_despacho_usuario');
-  console.log("token:", t ? "existe" : "nao existe");
   if (t && u) {
-    try {
-      iniciarApp(JSON.parse(u));
-    } catch(e) {
-      console.error("Erro iniciarApp:", e);
-      document.getElementById('P-LOGIN').style.display = 'flex';
-    }
+    try { iniciarApp(JSON.parse(u)); }
+    catch(e) { document.getElementById('P-LOGIN').style.display = 'flex'; }
   } else {
     document.getElementById('P-LOGIN').style.display = 'flex';
   }
