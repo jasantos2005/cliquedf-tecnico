@@ -198,6 +198,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         <span class="ni-label">Frota</span>
       </div>
+      <div class="ni" id="ni-despesas" style="display:none" onclick="navTo('despesas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        <span class="ni-label">Despesas</span>
+      </div>
       <div class="sb-group" id="grp-admin" style="display:none">ADMINISTRACAO</div>
       <div class="ni" id="ni-usuarios" style="display:none" onclick="navTo('usuarios')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
@@ -319,10 +323,60 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
       </div>
 
       <!-- SECAO FROTA -->
-      <div class="secao" id="secao-frota" style="padding:20px;overflow-y:auto">
-        <div style="font-size:1.1rem;font-weight:800;margin-bottom:20px">🚗 Controle de Frota</div>
-        <div id="grid-frota" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
-          <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;color:var(--text3)">Em desenvolvimento...</div>
+      <div class="secao" id="secao-frota" style="flex-direction:row;overflow:hidden">
+
+        <!-- SIDEBAR FROTA -->
+        <div style="width:320px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0">
+          <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:.85rem;font-weight:800">🚗 Veículos — <span id="frota-total">0</span></div>
+            <button class="btn btn-o" style="padding:3px 8px;font-size:.75rem" onclick="syncVeiculos()">↻ Sync IXC</button>
+          </div>
+          <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surf2)">
+            <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Vínculos de Hoje</div>
+            <div id="vinculos-hoje" style="display:flex;flex-direction:column;gap:4px"></div>
+            <button class="btn btn-p" style="width:100%;margin-top:8px;padding:6px" onclick="abrirVincular()">+ Vincular Técnico ↔ Veículo</button>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:8px">
+            <div id="lista-veiculos"></div>
+          </div>
+        </div>
+
+        <!-- MAPA FROTA -->
+        <div style="flex:1;position:relative">
+          <div id="mapa-frota" style="width:100%;height:100%"></div>
+          <div style="position:absolute;bottom:16px;right:16px;z-index:500;background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.75rem">
+            <b style="display:block;margin-bottom:6px;font-size:.72rem;color:var(--text3);text-transform:uppercase">Técnicos</b>
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><div style="width:12px;height:12px;border-radius:50%;background:var(--green)"></div>Em movimento</div>
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><div style="width:12px;height:12px;border-radius:50%;background:var(--amber)"></div>Parado</div>
+            <div style="display:flex;align-items:center;gap:7px"><div style="width:12px;height:12px;border-radius:50%;background:var(--red)"></div>Parado +30min</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SECAO DESPESAS -->
+      <div class="secao" id="secao-despesas" style="padding:20px;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:1.1rem;font-weight:800">Despesas de Frota</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <select id="desp-fil-veiculo" onchange="carregarDespesas()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+              <option value="">Todos os veiculos</option>
+            </select>
+            <input type="date" id="desp-fil-ini" onchange="carregarDespesas()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+            <span style="color:var(--text3);font-size:.75rem">ate</span>
+            <input type="date" id="desp-fil-fim" onchange="carregarDespesas()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+            <button class="btn btn-p" onclick="abrirNovaDespesa()">+ Nova Despesa</button>
+          </div>
+        </div>
+        <div id="desp-total" style="font-size:.82rem;color:var(--text3);margin-bottom:10px"></div>
+        <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <table>
+            <thead><tr>
+              <th>Data</th><th>Veiculo</th><th>Tipo</th><th>Descricao</th>
+              <th>KM</th><th>Litros</th><th>Valor</th><th>IXC</th><th></th>
+            </tr></thead>
+            <tbody id="tbody-despesas"><tr><td colspan="9" style="text-align:center;color:var(--text3);padding:20px">Selecione Despesas no menu</td></tr></tbody>
+          </table>
         </div>
       </div>
 
@@ -358,6 +412,23 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-o" onclick="fecharDetalhe()">Fechar</button>
       <button class="btn btn-p" id="md-btn-atribuir" onclick="abrirAtribuirDaModal()" style="display:none">Agendar Tecnico</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VINCULAR -->
+<div class="modal-bg" id="modal-vincular">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">
+      <span>Vincular Técnico ↔ Veículo</span>
+      <button class="modal-close" onclick="fecharVincular()">✕</button>
+    </div>
+    <div style="font-size:.75rem;color:var(--text3);margin-bottom:14px">Vínculo para hoje — <span id="vincular-data"></span></div>
+    <div class="field"><label>Técnico</label><select id="vincular-tecnico" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none"></select></div>
+    <div class="field"><label>Veículo</label><select id="vincular-veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none"></select></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <button class="btn btn-o" onclick="fecharVincular()">Cancelar</button>
+      <button class="btn btn-p" onclick="salvarVinculo()">Salvar</button>
     </div>
   </div>
 </div>
@@ -484,7 +555,11 @@ function iniciarApp(u) {
   var roles = {10:'Tecnico',40:'Frota',50:'Supervisor',99:'Admin'};
   document.getElementById('sb-role').textContent = roles[u.nivel] || 'Usuario';
   if (u.nivel >= 50) { document.getElementById('grp-os').style.display='block'; document.getElementById('ni-os').style.display='flex'; }
-  if (u.nivel >= 40) { document.getElementById('grp-frota').style.display='block'; document.getElementById('ni-frota').style.display='flex'; }
+  if (u.nivel >= 40) {
+    document.getElementById('grp-frota').style.display='block';
+    document.getElementById('ni-frota').style.display='flex';
+    document.getElementById('ni-despesas').style.display='flex';
+  }
   if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex'; }
   if (u.nivel >= 50) { navTo('os'); } else if (u.nivel >= 40) { navTo('frota'); }
 }
@@ -506,6 +581,14 @@ function navTo(secao) {
   } else if (secao==='frota') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Controle de Frota';
+    setTimeout(function(){
+      iniciarMapaFrota();
+      carregarFrota();
+    }, 100);
+  } else if (secao==='despesas') {
+    document.getElementById('tb-stats-os').style.display = 'none';
+    document.getElementById('tb-titulo').textContent = 'Despesas de Frota';
+    carregarDespesas();
   } else if (secao==='usuarios') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Usuarios';
@@ -898,6 +981,270 @@ async function salvarUsuario() {
 
 function fecharModalUsuario() { document.getElementById('modal-usuario').classList.remove('open'); }
 
+// ── FROTA ─────────────────────────────────────────────────────
+var mapaFrota = null;
+var veiculosCache = [];
+var marcadoresFrota = {};
+
+function iniciarMapaFrota() {
+  if (mapaFrota) return;
+  mapaFrota = L.map('mapa-frota').setView([-15.7942, -47.8825], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap', maxZoom:19
+  }).addTo(mapaFrota);
+}
+
+async function carregarFrota() {
+  try {
+    var veiculos = await api('/api/admin/veiculos');
+    var vinculos = await api('/api/admin/vinculos-hoje');
+    var gps = await api('/api/gps/posicoes');
+    veiculosCache = veiculos || [];
+    renderVeiculos(veiculos, vinculos);
+    renderVinculosHoje(vinculos);
+    renderMapaFrota(gps, vinculos);
+    document.getElementById('frota-total').textContent = veiculos.length;
+  } catch(e) { console.log('Erro frota:', e); }
+}
+
+function renderVeiculos(veiculos, vinculos) {
+  var lista = document.getElementById('lista-veiculos');
+  if (!veiculos || !veiculos.length) {
+    lista.innerHTML = '<div style="padding:20px;color:var(--text3);font-size:.85rem;text-align:center">Nenhum veículo.<br>Clique em Sync IXC.</div>';
+    return;
+  }
+  var html = '';
+  veiculos.forEach(function(v) {
+    var vinculo = vinculos ? vinculos.find(function(vk){ return vk.id_veiculo === v.id; }) : null;
+    var tecNome = vinculo ? vinculo.tecnico_nome : null;
+    var emoji = {moto:'🏍️',pickup:'🛻',eletrico:'⚡',carro:'🚗'}[v.tipo] || '🚗';
+    var ativo = v.ativo ? '<span style="color:var(--green);font-size:.7rem">● Ativo</span>' : '<span style="color:var(--text3);font-size:.7rem">● Inativo</span>';
+    html += '<div style="padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;background:var(--surf2)">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+    html += '<span style="font-weight:800;font-size:.9rem">'+emoji+' '+v.placa+'</span>'+ativo;
+    html += '</div>';
+    html += '<div style="font-size:.8rem;color:var(--text2);margin-bottom:3px">'+v.marca_modelo+(v.ano_fab?' · '+v.ano_fab:'')+(v.cor?' · '+v.cor:'')+'</div>';
+    if (tecNome) {
+      html += '<div style="font-size:.75rem;color:var(--accent);margin-top:4px">👤 '+tecNome+' (hoje)</div>';
+    } else {
+      html += '<div style="font-size:.75rem;color:var(--text3);margin-top:4px">Sem técnico hoje</div>';
+    }
+    html += '</div>';
+  });
+  lista.innerHTML = html;
+}
+
+function renderVinculosHoje(vinculos) {
+  var el = document.getElementById('vinculos-hoje');
+  if (!vinculos || !vinculos.length) {
+    el.innerHTML = '<div style="font-size:.75rem;color:var(--text3)">Nenhum vínculo hoje</div>';
+    return;
+  }
+  var html = '';
+  vinculos.forEach(function(v) {
+    var emoji = {moto:'🏍️',pickup:'🛻',eletrico:'⚡',carro:'🚗'}[v.tipo] || '🚗';
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">';
+    html += '<span style="font-size:.8rem;font-weight:700;flex:1">'+v.tecnico_nome+'</span>';
+    html += '<span style="font-size:.78rem;color:var(--text2)">'+emoji+' '+v.placa+'</span>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function renderMapaFrota(gps, vinculos) {
+  if (!mapaFrota) return;
+  Object.values(marcadoresFrota).forEach(function(m){ mapaFrota.removeLayer(m); });
+  marcadoresFrota = {};
+  if (!gps || !gps.length) return;
+  gps.forEach(function(t) {
+    if (!t.lat || !t.lon) return;
+    var agora = new Date();
+    var regEm = t.registrado_em ? new Date(t.registrado_em) : null;
+    var minParado = regEm ? Math.floor((agora - regEm) / 60000) : 999;
+    var vel = parseFloat(t.velocidade) || 0;
+    var cor = vel > 3 ? '#00e5a0' : (minParado >= 30 ? '#ff4d6a' : '#ffb83f');
+    var emoji = vel > 3 ? '🚗' : (minParado >= 30 ? '⏱️' : '🅿️');
+    var label = t.tecnico_nome ? t.tecnico_nome.split(' ')[0] : '';
+    var statusTxt = vel > 3 ? 'Em movimento ('+Math.round(vel)+' km/h)' : (minParado >= 30 ? 'Parado há '+minParado+' min' : 'Parado');
+    var vinculo = vinculos ? vinculos.find(function(v){ return v.id_tecnico === t.id_tecnico; }) : null;
+    var placaInfo = vinculo ? ' · '+vinculo.placa : '';
+    var icon = L.divIcon({
+      className:'',
+      html:'<div style="background:#1c2330;border:2px solid '+cor+';border-radius:8px;padding:2px 7px;font-size:11px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5);color:#fff;font-weight:700">'+emoji+' '+label+placaInfo+'</div>',
+      iconSize:[120,26], iconAnchor:[60,13]
+    });
+    var m = L.marker([t.lat, t.lon], {icon: icon, zIndexOffset:1000})
+      .addTo(mapaFrota)
+      .bindTooltip('<b>'+t.tecnico_nome+'</b>'+placaInfo+'<br>'+statusTxt+'<br>'+(t.registrado_em||''), {direction:'top'});
+    marcadoresFrota[t.id_tecnico] = m;
+  });
+}
+
+async function syncVeiculos() {
+  try {
+    var r = await api('/api/admin/veiculos/sync', {method:'POST'});
+    if (r.ok) { toast('Sincronizados: '+r.total+' veículos','ok'); carregarFrota(); }
+    else toast('Erro ao sincronizar','err');
+  } catch(e) { toast('Erro ao sincronizar','err'); }
+}
+
+async function abrirVincular() {
+  var hoje = new Date().toLocaleDateString('pt-BR');
+  document.getElementById('vincular-data').textContent = hoje;
+  var tecnicos = await api('/api/admin/usuarios');
+  var selTec = document.getElementById('vincular-tecnico');
+  selTec.innerHTML = tecnicos.filter(function(u){ return u.nivel===10 && u.ativo; })
+    .map(function(u){ return '<option value="'+u.id+'">'+u.nome+'</option>'; }).join('');
+  var selVei = document.getElementById('vincular-veiculo');
+  selVei.innerHTML = veiculosCache.filter(function(v){ return v.ativo; })
+    .map(function(v){ return '<option value="'+v.id+'">'+v.placa+' — '+v.marca_modelo+'</option>'; }).join('');
+  document.getElementById('modal-vincular').classList.add('open');
+}
+
+async function salvarVinculo() {
+  var id_tecnico = parseInt(document.getElementById('vincular-tecnico').value);
+  var id_veiculo = parseInt(document.getElementById('vincular-veiculo').value);
+  try {
+    var r = await api('/api/admin/usuarios/'+id_tecnico+'/veiculo', {method:'POST', body:JSON.stringify({id_veiculo: id_veiculo, ixc_condutor_id: 0})});
+    if (r.ok) { fecharVincular(); carregarFrota(); toast('Vínculo salvo!','ok'); }
+    else toast('Erro ao salvar','err');
+  } catch(e) { toast('Erro ao salvar','err'); }
+}
+
+function fecharVincular() { document.getElementById('modal-vincular').classList.remove('open'); }
+
+
+// ── DESPESAS ─────────────────────────────────────────────────
+var _condutoresDespesa = [];
+var _veiculosDespesa = [];
+
+async function carregarDespesas() {
+  var veiculo = document.getElementById('desp-fil-veiculo') ? document.getElementById('desp-fil-veiculo').value : '';
+  var ini = document.getElementById('desp-fil-ini') ? document.getElementById('desp-fil-ini').value : '';
+  var fim = document.getElementById('desp-fil-fim') ? document.getElementById('desp-fil-fim').value : '';
+  var url = '/api/despesas?x=1';
+  if (ini) url += '&data_ini='+ini;
+  if (fim) url += '&data_fim='+fim;
+  if (veiculo) url += '&id_veiculo='+veiculo;
+
+  if (_veiculosDespesa.length === 0) {
+    _veiculosDespesa = await api('/api/despesas/veiculos');
+    var sel = document.getElementById('desp-fil-veiculo');
+    if (sel) {
+      sel.innerHTML = '<option value="">Todos os veiculos</option>';
+      _veiculosDespesa.forEach(function(v){
+        sel.innerHTML += '<option value="'+v.ixc_veiculo_id+'">'+v.placa+' -- '+v.marca_modelo+'</option>';
+      });
+    }
+  }
+
+  var rows = await api(url);
+  if (!Array.isArray(rows)) rows = [];
+
+  var total = rows.reduce(function(s,r){return s+(r.valor||0);},0);
+  var el = document.getElementById('desp-total');
+  if (el) el.textContent = rows.length+' lancamento(s) -- Total: R$ '+total.toFixed(2).replace('.',',');
+
+  var tb = '';
+  rows.forEach(function(r){
+    var km = r.kilometragem ? Number(r.kilometragem).toFixed(0)+' km' : '--';
+    var litros = r.quantidade_litros ? Number(r.quantidade_litros).toFixed(2)+' L' : '--';
+    var badge = r.ixc_despesa_id
+      ? '<span style="color:var(--green);font-size:.72rem">ok #'+r.ixc_despesa_id+'</span>'
+      : '<span style="color:var(--red);font-size:.72rem">sem sync</span>';
+    tb += '<tr>'
+      +'<td>'+r.data+'</td>'
+      +'<td style="font-size:.78rem">'+(r.placa||'--')+'</td>'
+      +'<td><span style="font-size:.72rem;background:var(--surf2);padding:2px 7px;border-radius:4px">'+r.tipo+'</span></td>'
+      +'<td style="font-size:.82rem">'+r.descricao+'</td>'
+      +'<td style="color:var(--text3)">'+km+'</td>'
+      +'<td style="color:var(--text3)">'+litros+'</td>'
+      +'<td style="font-weight:700;color:var(--amber)">R$ '+Number(r.valor).toFixed(2).replace('.',',')+'</td>'
+      +'<td>'+badge+'</td>'
+      +'<td><button class="btn btn-o" style="padding:3px 8px;font-size:.72rem;color:var(--red)" onclick="deletarDespesa('+r.id+')">x</button></td>'
+      +'</tr>';
+  });
+  if (!tb) tb = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:20px">Nenhuma despesa encontrada</td></tr>';
+  document.getElementById('tbody-despesas').innerHTML = tb;
+}
+
+async function abrirNovaDespesa() {
+  if (_condutoresDespesa.length === 0) {
+    _condutoresDespesa = await api('/api/despesas/condutores');
+    var selC = document.getElementById('d-condutor');
+    selC.innerHTML = '<option value="">Selecione o condutor</option>';
+    _condutoresDespesa.forEach(function(c){
+      selC.innerHTML += '<option value="'+c.id+'">'+c.nome+'</option>';
+    });
+  }
+  if (_veiculosDespesa.length === 0) {
+    _veiculosDespesa = await api('/api/despesas/veiculos');
+  }
+  var selV = document.getElementById('d-veiculo');
+  selV.innerHTML = '<option value="">Selecione o veiculo</option>';
+  _veiculosDespesa.forEach(function(v){
+    selV.innerHTML += '<option value="'+v.ixc_veiculo_id+'">'+v.placa+' -- '+v.marca_modelo+'</option>';
+  });
+
+  document.getElementById('d-data').value = new Date().toISOString().substring(0,10);
+  ['d-valor','d-km','d-litros','d-vlitro','d-obs','d-descricao'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('d-tipo').value = 'Abastecimento';
+  document.getElementById('d-erro').style.display = 'none';
+  mostrarCamposAbast();
+  document.getElementById('modal-despesa').classList.add('open');
+}
+
+function mostrarCamposAbast() {
+  var tipo = document.getElementById('d-tipo') ? document.getElementById('d-tipo').value : '';
+  var campos = document.getElementById('campos-abast');
+  if (campos) campos.style.display = (tipo === 'Abastecimento') ? 'contents' : 'none';
+}
+
+async function salvarDespesa() {
+  var erro = document.getElementById('d-erro');
+  erro.style.display = 'none';
+  var veiculo = document.getElementById('d-veiculo').value;
+  var condutor = document.getElementById('d-condutor').value;
+  var tipo = document.getElementById('d-tipo').value;
+  var data = document.getElementById('d-data').value;
+  var descricao = document.getElementById('d-descricao').value.trim();
+  var valor = parseFloat(document.getElementById('d-valor').value);
+  if (!veiculo || !condutor || !data || !descricao || isNaN(valor) || valor <= 0) {
+    erro.textContent = 'Preencha veiculo, condutor, tipo, data, descricao e valor.';
+    erro.style.display = 'block'; return;
+  }
+  var body = {
+    id_veiculo: parseInt(veiculo), id_condutor: parseInt(condutor),
+    tipo: tipo, descricao: descricao, valor: valor, data: data,
+    kilometragem: parseFloat(document.getElementById('d-km').value) || null,
+    valor_litro: parseFloat(document.getElementById('d-vlitro').value) || null,
+    quantidade_litros: parseFloat(document.getElementById('d-litros').value) || null,
+    observacao: document.getElementById('d-obs').value || null
+  };
+  var r = await api('/api/despesas', {method:'POST', body:JSON.stringify(body)});
+  if (r && r.ok) {
+    fecharModalDespesa();
+    carregarDespesas();
+    toast('Despesa salva' + (r.ixc_id ? ' e enviada ao IXC (#'+r.ixc_id+')' : ' (falha sync IXC)'), 'ok');
+  } else {
+    erro.textContent = (r && r.detail) ? r.detail : 'Erro ao salvar';
+    erro.style.display = 'block';
+  }
+}
+
+async function deletarDespesa(id) {
+  if (!confirm('Deletar esta despesa? A exclusao tambem ocorre no IXC.')) return;
+  var r = await api('/api/despesas/'+id, {method:'DELETE'});
+  if (r && r.ok) { carregarDespesas(); toast('Despesa removida', 'ok'); }
+  else toast('Erro ao deletar', 'err');
+}
+
+function fecharModalDespesa() {
+  document.getElementById('modal-despesa').classList.remove('open');
+}
+
 // ── INIT ──────────────────────────────────────────────────────
 (function(){
   var t = localStorage.getItem('ht_hub_token') || localStorage.getItem('ht_despacho_token');
@@ -910,5 +1257,76 @@ function fecharModalUsuario() { document.getElementById('modal-usuario').classLi
   }
 })();
 </script>
+
+<!-- MODAL DESPESA -->
+<div class="modal-bg" id="modal-despesa">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">
+      <span>Nova Despesa</span>
+      <button onclick="fecharModalDespesa()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.1rem">x</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field" style="grid-column:1/-1">
+        <label>Veiculo</label>
+        <select id="d-veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+          <option value="">Selecione o veiculo</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Condutor</label>
+        <select id="d-condutor" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+          <option value="">Selecione o condutor</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="d-tipo" onchange="mostrarCamposAbast()" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+          <option value="Abastecimento">Abastecimento</option>
+          <option value="Manutencao">Manutencao</option>
+          <option value="Pedagio">Pedagio</option>
+          <option value="Multa">Multa</option>
+          <option value="Lavagem">Lavagem</option>
+          <option value="Estacionamento">Estacionamento</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Data</label>
+        <input type="date" id="d-data" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Descricao</label>
+        <input type="text" id="d-descricao" placeholder="Ex: Abastecimento posto BR" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+      </div>
+      <div class="field">
+        <label>Valor (R$)</label>
+        <input type="number" id="d-valor" step="0.01" min="0" placeholder="0,00" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+      </div>
+      <div class="field">
+        <label>Quilometragem</label>
+        <input type="number" id="d-km" step="1" min="0" placeholder="KM atual" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+      </div>
+      <div id="campos-abast" style="display:contents">
+        <div class="field">
+          <label>Qtd Litros</label>
+          <input type="number" id="d-litros" step="0.01" min="0" placeholder="0,00" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+        </div>
+        <div class="field">
+          <label>Valor/Litro (R$)</label>
+          <input type="number" id="d-vlitro" step="0.001" min="0" placeholder="0,000" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+        </div>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Observacao</label>
+        <input type="text" id="d-obs" placeholder="Observacao opcional" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+      </div>
+    </div>
+    <div id="d-erro" style="color:var(--red);font-size:.82rem;margin-bottom:8px;display:none"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <button class="btn btn-o" onclick="fecharModalDespesa()">Cancelar</button>
+      <button class="btn btn-p" onclick="salvarDespesa()">Salvar e Enviar IXC</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

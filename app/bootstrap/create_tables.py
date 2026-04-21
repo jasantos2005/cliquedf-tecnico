@@ -24,7 +24,10 @@ def init():
         cliente_nome TEXT, endereco TEXT, bairro TEXT,
         cidade TEXT, telefone TEXT, referencia TEXT,
         lat REAL, lon REAL, data_abertura TEXT,
-        data_agenda TEXT, obs_abertura TEXT, sincronizado_em TEXT
+        data_agenda TEXT, obs_abertura TEXT, sincronizado_em TEXT,
+        sla_horas REAL DEFAULT 0, horas_abertas REAL DEFAULT 0,
+        sla_estourado INTEGER DEFAULT 0, data_reservada TEXT,
+        motivo_reagendamento TEXT, ordem_execucao INTEGER DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS ht_os_execucao (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,6 +96,40 @@ def init():
     );
     CREATE TABLE IF NOT EXISTS ht_configuracoes (
         chave TEXT PRIMARY KEY, valor TEXT
+    );
+    CREATE TABLE IF NOT EXISTS ht_veiculos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ixc_veiculo_id INTEGER UNIQUE,
+        marca_modelo TEXT, placa TEXT,
+        ano_fab INTEGER DEFAULT 0, cor TEXT DEFAULT '',
+        tipo TEXT DEFAULT 'carro', ativo INTEGER DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS ht_tecnico_veiculo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_tecnico INTEGER NOT NULL,
+        id_veiculo INTEGER NOT NULL,
+        data TEXT NOT NULL,
+        km_inicial REAL DEFAULT 0,
+        km_final REAL DEFAULT 0,
+        jornada_inicio TEXT,
+        UNIQUE(id_tecnico, data)
+    );
+    CREATE TABLE IF NOT EXISTS ht_despesas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ixc_despesa_id INTEGER,
+        id_veiculo INTEGER,
+        id_condutor INTEGER,
+        id_tecnico INTEGER,
+        tipo TEXT,
+        descricao TEXT,
+        valor REAL,
+        data TEXT,
+        kilometragem REAL,
+        valor_litro REAL,
+        quantidade_litros REAL,
+        observacao TEXT,
+        sincronizado_ixc INTEGER DEFAULT 0,
+        criado_em TEXT DEFAULT (datetime('now','-3 hours'))
     );
     """)
 

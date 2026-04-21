@@ -12,7 +12,7 @@ load_dotenv(BASE_DIR / ".env")
 app = FastAPI(title="Hub Técnico Cliquedf", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-from app.routes import auth, os as os_routes, gps, despacho, estoque, admin
+from app.routes import auth, os as os_routes, gps, despacho, estoque, admin, despesas
 from app.bootstrap.create_tables import init as init_tables
 
 init_tables()
@@ -23,6 +23,7 @@ app.include_router(gps.router)
 app.include_router(despacho.router)
 app.include_router(estoque.router)
 app.include_router(admin.router)
+app.include_router(despesas.router)
 
 STATIC_DIR = BASE_DIR / "static"
 if STATIC_DIR.exists():
