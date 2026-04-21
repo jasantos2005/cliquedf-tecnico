@@ -9,10 +9,11 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-app = FastAPI(title="Hub Técnico Cliquedf", version="1.0.0")
+app = FastAPI(title="Hub Tecnico Cliquedf", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-from app.routes import auth, os as os_routes, gps, despacho, estoque, admin, despesas
+from app.routes import auth, os as os_routes, gps, despacho, estoque, admin, despesas, abastecimentos
+from app.routes import revisoes as revisoes_router
 from app.bootstrap.create_tables import init as init_tables
 
 init_tables()
@@ -24,6 +25,8 @@ app.include_router(despacho.router)
 app.include_router(estoque.router)
 app.include_router(admin.router)
 app.include_router(despesas.router)
+app.include_router(abastecimentos.router)
+app.include_router(revisoes_router.router)
 
 STATIC_DIR = BASE_DIR / "static"
 if STATIC_DIR.exists():
@@ -32,7 +35,7 @@ if STATIC_DIR.exists():
 @app.get("/", response_class=HTMLResponse)
 async def root():
     p = STATIC_DIR / "login.html"
-    return p.read_text() if p.exists() else "<h2>Hub Técnico — em construção</h2>"
+    return p.read_text() if p.exists() else "<h2>Hub Tecnico em construcao</h2>"
 
 @app.get("/app", response_class=HTMLResponse)
 async def app_tecnico():
@@ -57,7 +60,7 @@ async def admin_page():
 @app.get("/painel", response_class=HTMLResponse)
 async def despacho_page():
     p = STATIC_DIR / "painel.html"
-    return p.read_text() if p.exists() else "<h2>Despacho — em construção</h2>"
+    return p.read_text() if p.exists() else "<h2>Despacho em construcao</h2>"
 
 @app.get("/health")
 async def health():

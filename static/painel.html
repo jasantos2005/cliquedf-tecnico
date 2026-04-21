@@ -139,6 +139,58 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 /* TECNICO PARADO indicator */
 .tec-parado-vermelho{background:#ff4d6a!important}
 .tec-parado-laranja{background:#ffb83f!important}
+
+    /* REVISOES */
+    .rev-stat-card {
+      background: var(--surf);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      min-width: 110px;
+      text-align: center;
+    }
+    .rsc-num { font-size: 1.6rem; font-weight: 900; line-height: 1; }
+    .rsc-label { font-size: .7rem; color: var(--text3); margin-top: 3px; font-weight: 600; }
+    .rev-card {
+      background: var(--surf);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid var(--border);
+      transition: box-shadow .2s;
+    }
+    .rev-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+    .rev-card.vencido  { border-left-color: #ef4444; background: rgba(239,68,68,.04); }
+    .rev-card.urgente  { border-left-color: #f59e0b; background: rgba(245,158,11,.04); }
+    .rev-card.aviso    { border-left-color: #3b82f6; background: rgba(59,130,246,.04); }
+    .rev-card.ok       { border-left-color: #22c55e; }
+    .rev-grupo-titulo {
+      font-size: .72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text3);
+      padding: 6px 0 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+      margin-top: 4px;
+    }
+  
+    .chip-item {
+      display:inline-block;
+      padding:4px 10px;
+      background:var(--surf2);
+      border:1.5px solid var(--border);
+      border-radius:20px;
+      font-size:.75rem;
+      cursor:pointer;
+      transition:all .15s;
+      user-select:none;
+      color:var(--text);
+    }
+    .chip-item:hover { border-color:var(--accent); color:var(--accent); }
+    .chip-item.selecionado { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
 </style>
 </head>
 <body>
@@ -198,9 +250,17 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         <span class="ni-label">Frota</span>
       </div>
+      <div class="ni" id="ni-revisoes" style="display:none" onclick="navTo('revisoes')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span class="ni-label">Revisões</span>
+      </div>
       <div class="ni" id="ni-despesas" style="display:none" onclick="navTo('despesas')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         <span class="ni-label">Despesas</span>
+      </div>
+      <div class="ni" id="ni-abastecimentos" style="display:none" onclick="navTo('abastecimentos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V10l9-8 9 8v12H3z"/><path d="M9 22v-6h6v6"/><path d="M12 2v4m0 0a2 2 0 110 4 2 2 0 010-4z"/></svg>
+        <span class="ni-label">Abastecimentos</span>
       </div>
       <div class="sb-group" id="grp-admin" style="display:none">ADMINISTRACAO</div>
       <div class="ni" id="ni-usuarios" style="display:none" onclick="navTo('usuarios')">
@@ -323,6 +383,145 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
       </div>
 
       <!-- SECAO FROTA -->
+      <!-- SECAO REVISOES -->
+      <div class="secao" id="secao-revisoes" style="padding:0;overflow:hidden;flex-direction:column">
+
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surf);flex-shrink:0">
+          <div style="font-weight:800;font-size:.95rem">🔧 Próximas Revisões</div>
+          <div style="display:flex;gap:6px;margin-left:8px">
+            <button class="btn btn-o active" id="rbtn-15" onclick="mudarFiltroRevisao(15,this)" style="padding:4px 10px;font-size:.75rem">15 dias</button>
+            <button class="btn btn-o" id="rbtn-30" onclick="mudarFiltroRevisao(30,this)" style="padding:4px 10px;font-size:.75rem">30 dias</button>
+            <button class="btn btn-o" id="rbtn-60" onclick="mudarFiltroRevisao(60,this)" style="padding:4px 10px;font-size:.75rem">60 dias</button>
+            <button class="btn btn-o" id="rbtn-0" onclick="mudarFiltroRevisao(0,this)" style="padding:4px 10px;font-size:.75rem">Todos</button>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-o" onclick="carregarRevisoes()" style="padding:4px 10px;font-size:.78rem">↻ Atualizar</button>
+            <button class="btn btn-primary" onclick="abrirModalNovaRevisao()" style="padding:4px 12px;font-size:.78rem">+ Nova Revisão</button>
+          </div>
+        </div>
+
+        <div id="rev-stats" style="display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0;flex-wrap:wrap">
+          <div class="rev-stat-card" style="border-color:#ef4444">
+            <div class="rsc-num" id="rsc-num-vencido" style="color:#ef4444">0</div>
+            <div class="rsc-label">🚨 Vencidos</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:#f59e0b">
+            <div class="rsc-num" id="rsc-num-urgente" style="color:#f59e0b">0</div>
+            <div class="rsc-label">⚠️ Urgente (7d)</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:#3b82f6">
+            <div class="rsc-num" id="rsc-num-aviso" style="color:#3b82f6">0</div>
+            <div class="rsc-label">📅 Aviso (15d)</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:#22c55e">
+            <div class="rsc-num" id="rsc-num-ok" style="color:#22c55e">0</div>
+            <div class="rsc-label">✅ Em dia</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:var(--border);margin-left:auto">
+            <div class="rsc-num" id="rsc-num-total" style="color:var(--text)">0</div>
+            <div class="rsc-label">Total itens</div>
+          </div>
+        </div>
+
+        <div id="rev-lista" style="flex:1;overflow-y:auto;padding:16px 20px">
+          <div style="text-align:center;color:var(--text3);padding:40px;font-size:.9rem">Carregando revisões...</div>
+        </div>
+      </div>
+
+      <!-- MODAL NOVA/EDITAR REVISAO -->
+      <div id="modal-revisao" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9100;align-items:center;justify-content:center">
+        <div style="background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:24px;width:460px;max-width:95vw;max-height:90vh;overflow-y:auto">
+          <div style="font-weight:800;font-size:1rem;margin-bottom:18px" id="modal-rev-titulo">Nova Revisão</div>
+          <input type="hidden" id="rev-id">
+          <div style="display:grid;gap:12px">
+            <div>
+              <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Veículo *</label>
+              <select id="rev-veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Item de Revisão *</label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px" id="chips-itens">
+                <span class="chip-item" onclick="toggleChip(this)">🛢️ Troca de óleo</span>
+                <span class="chip-item" onclick="toggleChip(this)">🔧 Revisão geral</span>
+                <span class="chip-item" onclick="toggleChip(this)">🔵 Filtro de óleo</span>
+                <span class="chip-item" onclick="toggleChip(this)">💨 Filtro de ar</span>
+                <span class="chip-item" onclick="toggleChip(this)">⛽ Filtro de combustível</span>
+                <span class="chip-item" onclick="toggleChip(this)">🔋 Bateria</span>
+                <span class="chip-item" onclick="toggleChip(this)">🔴 Pastilha de freio</span>
+                <span class="chip-item" onclick="toggleChip(this)">⚙️ Correia dentada</span>
+                <span class="chip-item" onclick="toggleChip(this)">🟡 Velas</span>
+                <span class="chip-item" onclick="toggleChip(this)">🚗 Pneus</span>
+                <span class="chip-item" onclick="toggleChip(this)">💧 Fluido de freio</span>
+                <span class="chip-item" onclick="toggleChip(this)">❄️ Fluido de arrefecimento</span>
+                <span class="chip-item" onclick="toggleChip(this)">📋 IPVA</span>
+                <span class="chip-item" onclick="toggleChip(this)">📄 Licenciamento</span>
+                <span class="chip-item" onclick="toggleChip(this)">🔦 Alinhamento/Balanceamento</span>
+              </div>
+              <input type="text" id="rev-item" placeholder="Ou digite um item personalizado..." style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
+              <div style="font-size:.72rem;color:var(--text3);margin-top:4px">Clique nos itens acima para selecionar (pode selecionar vários) ou digite abaixo</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Data prevista</label>
+                <input type="date" id="rev-data" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
+              </div>
+              <div>
+                <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">KM previsto</label>
+                <input type="number" id="rev-km" placeholder="ex: 50000" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Repetir a cada (dias)</label>
+                <input type="number" id="rev-int-dias" placeholder="ex: 180" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
+              </div>
+              <div>
+                <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Repetir a cada (km)</label>
+                <input type="number" id="rev-int-km" placeholder="ex: 10000" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
+              </div>
+            </div>
+            <div>
+              <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Observação</label>
+              <textarea id="rev-obs" rows="2" placeholder="Observações..." style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;resize:vertical;box-sizing:border-box"></textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+            <button class="btn btn-o" onclick="fecharModalRevisao()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarRevisao()">Salvar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL REALIZAR REVISAO -->
+      <div id="modal-realizar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9100;align-items:center;justify-content:center">
+        <div style="background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:24px;width:380px;max-width:95vw">
+          <div style="font-weight:800;font-size:.95rem;margin-bottom:4px">✅ Registrar Revisão Realizada</div>
+          <div style="font-size:.8rem;color:var(--text3);margin-bottom:16px" id="realizar-info"></div>
+          <input type="hidden" id="realizar-id">
+          <div style="display:grid;gap:10px">
+            <div>
+              <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Data realizada *</label>
+              <input type="date" id="realizar-data" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
+            </div>
+            <div>
+              <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">KM na revisão</label>
+              <input type="number" id="realizar-km" placeholder="KM atual do veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
+            </div>
+            <div>
+              <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Observação</label>
+              <textarea id="realizar-obs" rows="2" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;resize:vertical;box-sizing:border-box"></textarea>
+            </div>
+          </div>
+          <div style="font-size:.75rem;color:var(--text3);margin-top:10px">Se houver intervalo configurado, a próxima revisão será calculada automaticamente.</div>
+          <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+            <button class="btn btn-o" onclick="fecharModalRealizar()">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmarRealizacao()">Confirmar</button>
+          </div>
+        </div>
+      </div>
+
       <div class="secao" id="secao-frota" style="flex-direction:row;overflow:hidden">
 
         <!-- SIDEBAR FROTA -->
@@ -377,6 +576,64 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
             </tr></thead>
             <tbody id="tbody-despesas"><tr><td colspan="9" style="text-align:center;color:var(--text3);padding:20px">Selecione Despesas no menu</td></tr></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- SECAO ABASTECIMENTOS -->
+      <div class="secao" id="secao-abastecimentos" style="padding:0;overflow:hidden;flex-direction:column">
+
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surf);flex-shrink:0;flex-wrap:wrap">
+          <div style="font-weight:800;font-size:.95rem">Abastecimentos</div>
+          <select id="abst-veiculo" onchange="carregarAbast()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+            <option value="">Todos os veiculos</option>
+          </select>
+          <select id="abst-mes" onchange="carregarAbast()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+            <option value="">Todos os meses</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+            <option value="03">Marco</option><option value="04">Abril</option>
+            <option value="05">Maio</option><option value="06">Junho</option>
+            <option value="07">Julho</option><option value="08">Agosto</option>
+            <option value="09">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+          <input type="number" id="abst-ano" placeholder="Ano" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;width:72px" onchange="carregarAbast()">
+          <button class="btn btn-p" onclick="abrirNovoAbast()" style="margin-left:auto;padding:4px 12px;font-size:.78rem">+ Novo Abastecimento</button>
+          <button class="btn btn-o" onclick="carregarAbast()" style="padding:4px 10px;font-size:.78rem">&#8635; Atualizar</button>
+        </div>
+
+        <div style="display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0;flex-wrap:wrap">
+          <div class="rev-stat-card" style="border-color:var(--blue)">
+            <div class="rsc-num" id="abst-c-litros" style="color:var(--blue)">--</div>
+            <div class="rsc-label">Total Litros</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:var(--amber)">
+            <div class="rsc-num" id="abst-c-gasto" style="color:var(--amber)">--</div>
+            <div class="rsc-label">Total Gasto</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:var(--green)">
+            <div class="rsc-num" id="abst-c-kml" style="color:var(--green)">--</div>
+            <div class="rsc-label">Media km/L</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:var(--border)">
+            <div class="rsc-num" id="abst-c-custoKm" style="color:var(--text)">--</div>
+            <div class="rsc-label">Custo/km</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:#ef4444">
+            <div class="rsc-num" id="abst-c-alertas" style="color:#ef4444">0</div>
+            <div class="rsc-label">Alertas consum.</div>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:16px 20px">
+          <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <table>
+              <thead><tr>
+                <th>Data</th><th>Veiculo</th><th>KM</th><th>Litros</th>
+                <th>Valor</th><th>R$/L</th><th>km/L</th><th></th>
+              </tr></thead>
+              <tbody id="tbody-abast"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Selecione Abastecimentos no menu</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -558,6 +815,8 @@ function iniciarApp(u) {
   if (u.nivel >= 40) {
     document.getElementById('grp-frota').style.display='block';
     document.getElementById('ni-frota').style.display='flex';
+    document.getElementById('ni-revisoes').style.display='flex';
+    document.getElementById('ni-abastecimentos').style.display='flex';
     document.getElementById('ni-despesas').style.display='flex';
   }
   if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex'; }
@@ -581,7 +840,85 @@ function navTo(secao) {
   } else if (secao==='frota') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Controle de Frota';
-    setTimeout(function(){
+    setTimeout
+// ── ABASTECIMENTOS ────────────────────────────────────────────
+var _veiculosAbast = [];
+
+async function carregarAbast() {
+  if (_veiculosAbast.length === 0) {
+    _veiculosAbast = await api('/api/despesas/veiculos');
+    var sel = document.getElementById('abst-veiculo');
+    if (sel) {
+      sel.innerHTML = '<option value="">Todos os veiculos</option>';
+      _veiculosAbast.forEach(function(v) {
+        sel.innerHTML += '<option value="' + v.ixc_veiculo_id + '">' + v.placa + ' -- ' + v.marca_modelo + '</option>';
+      });
+    }
+    var anoEl = document.getElementById('abst-ano');
+    if (anoEl && !anoEl.value) anoEl.value = new Date().getFullYear();
+  }
+
+  var veiculo = document.getElementById('abst-veiculo').value;
+  var mes = document.getElementById('abst-mes').value;
+  var ano = document.getElementById('abst-ano').value;
+
+  var url = '/api/abastecimentos?x=1';
+  if (veiculo) url += '&id_veiculo=' + veiculo;
+  if (mes) url += '&mes=' + mes;
+  if (ano) url += '&ano=' + ano;
+
+  var rows = await api(url);
+  if (!Array.isArray(rows)) rows = [];
+
+  var totalLitros = 0, totalGasto = 0, somaKml = 0, nKml = 0, kmTotal = 0, alertas = 0;
+  rows.forEach(function(r) {
+    totalLitros += r.quantidade_litros || 0;
+    totalGasto += r.valor || 0;
+    if (r.km_por_litro) { somaKml += r.km_por_litro; nKml++; }
+    if (r.km_rodados) kmTotal += r.km_rodados;
+    if (r.alerta_consumo) alertas++;
+  });
+  var mediaKml = nKml ? somaKml / nKml : null;
+  var custoKm = kmTotal > 0 ? totalGasto / kmTotal : null;
+
+  document.getElementById('abst-c-litros').textContent = totalLitros.toFixed(1) + ' L';
+  document.getElementById('abst-c-gasto').textContent = 'R$ ' + totalGasto.toFixed(2).replace('.', ',');
+  document.getElementById('abst-c-kml').textContent = mediaKml ? mediaKml.toFixed(2) + ' km/L' : '--';
+  document.getElementById('abst-c-custoKm').textContent = custoKm ? 'R$ ' + custoKm.toFixed(4) : '--';
+  document.getElementById('abst-c-alertas').textContent = alertas;
+
+  var tb = '';
+  rows.forEach(function(r) {
+    var kml = r.km_por_litro ? r.km_por_litro.toFixed(2) : '--';
+    var kmlColor = r.km_por_litro ? (r.alerta_consumo ? '#ef4444' : 'var(--green)') : 'var(--text3)';
+    var alerta = r.alerta_consumo
+      ? '<span title="Consumo ' + (r.km_por_litro||0).toFixed(2) + ' km/L vs media ' + (r.media_km_litro||0).toFixed(2) + ' km/L" style="color:#ef4444">&#9888;</span>'
+      : '';
+    tb += '<tr>'
+      + '<td>' + r.data + '</td>'
+      + '<td style="font-size:.78rem">' + (r.placa || '--') + '</td>'
+      + '<td style="color:var(--text3);font-size:.78rem">' + (r.kilometragem ? Number(r.kilometragem).toLocaleString() + ' km' : '--') + '</td>'
+      + '<td>' + Number(r.quantidade_litros).toFixed(2) + ' L</td>'
+      + '<td style="font-weight:700;color:var(--amber)">R$ ' + Number(r.valor).toFixed(2).replace('.', ',') + '</td>'
+      + '<td style="font-size:.78rem;color:var(--text3)">' + (r.valor_litro ? 'R$ ' + Number(r.valor_litro).toFixed(3) : '--') + '</td>'
+      + '<td style="font-weight:700;color:' + kmlColor + '">' + kml + '</td>'
+      + '<td>' + alerta + '</td>'
+      + '</tr>';
+  });
+  if (!tb) tb = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Nenhum abastecimento encontrado no periodo</td></tr>';
+  document.getElementById('tbody-abast').innerHTML = tb;
+}
+
+function abrirNovoAbast() {
+  abrirNovaDespesa();
+  setTimeout(function() {
+    var el = document.getElementById('d-tipo');
+    if (el) { el.value = 'Abastecimento'; mostrarCamposAbast(); }
+  }, 80);
+}
+
+
+(function(){
       iniciarMapaFrota();
       carregarFrota();
     }, 100);
@@ -589,6 +926,14 @@ function navTo(secao) {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Despesas de Frota';
     carregarDespesas();
+  } else if (secao==='abastecimentos') {
+    document.getElementById('tb-stats-os').style.display = 'none';
+    document.getElementById('tb-titulo').textContent = 'Abastecimentos';
+    carregarAbast();
+  } else if (secao==='revisoes') {
+    document.getElementById('tb-stats-os').style.display = 'none';
+    document.getElementById('tb-titulo').textContent = 'Próximas Revisões';
+    carregarRevisoes();
   } else if (secao==='usuarios') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Usuarios';
@@ -1243,6 +1588,216 @@ async function deletarDespesa(id) {
 
 function fecharModalDespesa() {
   document.getElementById('modal-despesa').classList.remove('open');
+}
+
+// ── REVISOES ──────────────────────────────────────────────────
+function toggleChip(el) {
+  el.classList.toggle('selecionado');
+  // Atualiza o input com os chips selecionados
+  var selecionados = Array.from(document.querySelectorAll('.chip-item.selecionado'))
+    .map(function(c){ return c.textContent.trim(); });
+  var input = document.getElementById('rev-item');
+  if (selecionados.length) {
+    input.value = selecionados.join(', ');
+  } else {
+    input.value = '';
+  }
+}
+
+function limparChips() {
+  document.querySelectorAll('.chip-item.selecionado').forEach(function(c){ c.classList.remove('selecionado'); });
+}
+
+function marcarChipsSalvos(texto) {
+  // Ao editar, marca os chips que batem com o texto salvo
+  limparChips();
+  if (!texto) return;
+  document.querySelectorAll('.chip-item').forEach(function(chip) {
+    var label = chip.textContent.trim();
+    if (texto.includes(label)) chip.classList.add('selecionado');
+  });
+}
+
+
+var diasFiltroRevisao = 15;
+var _veiculosLista = [];
+
+function mudarFiltroRevisao(dias, btn) {
+  diasFiltroRevisao = dias;
+  document.querySelectorAll('[id^="rbtn-"]').forEach(function(b){b.classList.remove('active');});
+  if (btn) btn.classList.add('active');
+  carregarRevisoes();
+}
+
+async function carregarRevisoes() {
+  var lista = document.getElementById('rev-lista');
+  if (lista) lista.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px">Carregando...</div>';
+  try {
+    var dias = diasFiltroRevisao > 0 ? diasFiltroRevisao : 3650;
+    var dados = await api('/api/frota/revisoes/proximas?dias=' + dias);
+    renderRevisoes(dados);
+  } catch(e) {
+    if (lista) lista.innerHTML = '<div style="text-align:center;color:var(--red);padding:40px">Erro ao carregar revisoes.</div>';
+  }
+}
+
+function renderRevisoes(dados) {
+  var stats = dados.stats || {};
+  var revisoes = dados.revisoes || [];
+  var el = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  el('rsc-num-vencido', stats.vencidos||0);
+  el('rsc-num-urgente', stats.urgentes||0);
+  el('rsc-num-aviso', stats.avisos||0);
+  el('rsc-num-ok', stats.ok||0);
+  el('rsc-num-total', stats.total||0);
+  var lista = document.getElementById('rev-lista');
+  if (!lista) return;
+  if (!revisoes.length) {
+    lista.innerHTML = '<div style="text-align:center;color:var(--text3);padding:60px;font-size:.9rem">Nenhuma revisao pendente.<br><span style="font-size:.8rem;display:block;margin-top:8px">Use "+ Nova Revisao" para cadastrar itens.</span></div>';
+    return;
+  }
+  var por_veiculo = {};
+  revisoes.forEach(function(r) {
+    var key = r.ht_veiculo_id;
+    if (!por_veiculo[key]) por_veiculo[key] = {placa:r.placa, modelo:r.marca_modelo, items:[]};
+    por_veiculo[key].items.push(r);
+  });
+  var urgLabels = {vencido:'🚨 VENCIDO', urgente:'⚠️ Urgente', aviso:'📅 Aviso', ok:'✅ Em dia'};
+  var html = '';
+  Object.values(por_veiculo).forEach(function(v) {
+    var temVencido = v.items.some(function(i){return i.urgencia==='vencido';});
+    var temUrgente = v.items.some(function(i){return i.urgencia==='urgente';});
+    var corPlaca = temVencido?'#ef4444':temUrgente?'#f59e0b':'var(--text)';
+    html += '<div style="margin-bottom:24px">';
+    html += '<div class="rev-grupo-titulo" style="color:'+corPlaca+'">🚗 '+v.placa+' <span style="font-weight:400;color:var(--text3);font-size:.7rem">— '+(v.modelo||'').substring(0,50)+'</span></div>';
+    v.items.forEach(function(r) {
+      var diasTxt = '';
+      if (r.dias_restantes !== null && r.dias_restantes !== undefined) {
+        if (r.dias_restantes < 0) diasTxt = '<span style="color:#ef4444;font-weight:800">Vencido ha '+Math.abs(r.dias_restantes)+' dias</span>';
+        else if (r.dias_restantes === 0) diasTxt = '<span style="color:#ef4444;font-weight:800">Vence hoje!</span>';
+        else diasTxt = '<span style="color:'+(r.dias_restantes<=7?'#f59e0b':r.dias_restantes<=15?'#3b82f6':'#22c55e')+';font-weight:700">Em '+r.dias_restantes+' dias</span>';
+      }
+      html += '<div class="rev-card '+r.urgencia+'">'
+        +'<div style="display:flex;align-items:flex-start;gap:10px">'
+        +'<div style="flex:1"><div style="font-weight:700;font-size:.9rem;margin-bottom:5px">'+r.item+'</div>'
+        +'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--text3)">'
+        +(r.data_prevista?'<span>📅 '+r.data_prevista+'</span>':'')
+        +(r.km_previsto?'<span>🛣️ '+r.km_previsto.toLocaleString()+' km</span>':'')
+        +(r.ultima_data?'<span>✔ Ultima: '+r.ultima_data+'</span>':'')
+        +(r.intervalo_dias?'<span>🔁 '+r.intervalo_dias+'d</span>':'')
+        +(r.intervalo_km?'<span>🔁 '+r.intervalo_km.toLocaleString()+' km</span>':'')
+        +'</div>'+(r.obs?'<div style="font-size:.75rem;color:var(--text3);margin-top:4px">'+r.obs+'</div>':'')+'</div>'
+        +'<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;min-width:90px">'
+        +'<span style="font-size:.72rem;font-weight:800">'+urgLabels[r.urgencia]+'</span>'
+        +'<span style="font-size:.72rem">'+diasTxt+'</span></div></div>'
+        +'<div style="display:flex;gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:8px">'
+        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px" onclick="abrirModalRealizar('+r.id+','+JSON.stringify(r.item)+')">✅ Realizada</button>'
+        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px" onclick="editarRevisao('+r.id+')">✏️ Editar</button>'
+        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px;color:var(--red)" onclick="excluirRevisao('+r.id+')">🗑️</button>'
+        +'</div></div>';
+    });
+    html += '</div>';
+  });
+  lista.innerHTML = html;
+}
+
+async function abrirModalNovaRevisao() {
+  document.getElementById('modal-rev-titulo').textContent = 'Nova Revisao';
+  limparChips();
+  ['rev-id','rev-item','rev-data','rev-km','rev-int-dias','rev-int-km','rev-obs'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  await carregarVeiculosSelect();
+  document.getElementById('modal-revisao').style.display='flex';
+}
+
+async function editarRevisao(id) {
+  try {
+    var dados = await api('/api/frota/revisoes/proximas?dias=3650');
+    var r = (dados.revisoes||[]).find(function(x){return x.id===id;});
+    if (!r) { toast('Revisao nao encontrada','err'); return; }
+    document.getElementById('modal-rev-titulo').textContent = 'Editar Revisao';
+    document.getElementById('rev-id').value = r.id;
+    await carregarVeiculosSelect(r.ht_veiculo_id);
+    document.getElementById('rev-item').value = r.item||'';
+    marcarChipsSalvos(r.item||'');
+    document.getElementById('rev-data').value = r.data_prevista||'';
+    document.getElementById('rev-km').value = r.km_previsto||'';
+    document.getElementById('rev-int-dias').value = r.intervalo_dias||'';
+    document.getElementById('rev-int-km').value = r.intervalo_km||'';
+    document.getElementById('rev-obs').value = r.obs||'';
+    document.getElementById('modal-revisao').style.display='flex';
+  } catch(e) { toast('Erro ao carregar','err'); }
+}
+
+async function carregarVeiculosSelect(selecionado) {
+  if (!_veiculosLista.length) {
+    try { _veiculosLista = await api('/api/frota/veiculos'); } catch(e) { _veiculosLista=[]; }
+  }
+  var sel = document.getElementById('rev-veiculo');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecione...</option>'
+    + _veiculosLista.map(function(v){
+        return '<option value="'+v.id+'"'+(selecionado==v.id?' selected':'')+'>'+v.placa+' - '+(v.marca_modelo||'').substring(0,35)+'</option>';
+      }).join('');
+}
+
+async function salvarRevisao() {
+  var id = document.getElementById('rev-id').value;
+  var veiculo = document.getElementById('rev-veiculo').value;
+  var item = document.getElementById('rev-item').value.trim();
+  if (!veiculo) { toast('Selecione o veiculo','err'); return; }
+  if (!item) { toast('Informe o item de revisao','err'); return; }
+  var data = {
+    ht_veiculo_id: parseInt(veiculo), item: item,
+    data_prevista: document.getElementById('rev-data').value||null,
+    km_previsto: parseInt(document.getElementById('rev-km').value)||null,
+    intervalo_dias: parseInt(document.getElementById('rev-int-dias').value)||0,
+    intervalo_km: parseInt(document.getElementById('rev-int-km').value)||0,
+    obs: document.getElementById('rev-obs').value.trim()
+  };
+  try {
+    if (id) await api('/api/frota/revisoes/'+id,{method:'PUT',body:JSON.stringify(data)});
+    else await api('/api/frota/revisoes',{method:'POST',body:JSON.stringify(data)});
+    fecharModalRevisao(); carregarRevisoes(); toast('Revisao salva!','ok');
+  } catch(e) { toast('Erro ao salvar','err'); }
+}
+
+function fecharModalRevisao() { document.getElementById('modal-revisao').style.display='none'; }
+
+function abrirModalRealizar(id, item) {
+  document.getElementById('realizar-id').value = id;
+  document.getElementById('realizar-info').textContent = item;
+  document.getElementById('realizar-data').value = new Date().toISOString().substring(0,10);
+  document.getElementById('realizar-km').value = '';
+  document.getElementById('realizar-obs').value = '';
+  document.getElementById('modal-realizar').style.display='flex';
+}
+
+function fecharModalRealizar() { document.getElementById('modal-realizar').style.display='none'; }
+
+async function confirmarRealizacao() {
+  var id = document.getElementById('realizar-id').value;
+  var dataR = document.getElementById('realizar-data').value;
+  if (!dataR) { toast('Informe a data','err'); return; }
+  var data = {
+    data_realizada: dataR,
+    km_realizado: parseInt(document.getElementById('realizar-km').value)||null,
+    obs: document.getElementById('realizar-obs').value.trim()
+  };
+  try {
+    var r = await api('/api/frota/revisoes/'+id+'/realizar',{method:'POST',body:JSON.stringify(data)});
+    fecharModalRealizar(); carregarRevisoes();
+    toast('Revisao registrada!'+(r.proxima_data?' Proxima: '+r.proxima_data:''),'ok');
+  } catch(e) { toast('Erro ao registrar','err'); }
+}
+
+async function excluirRevisao(id) {
+  if (!confirm('Remover este item?')) return;
+  try {
+    await api('/api/frota/revisoes/'+id,{method:'DELETE'});
+    carregarRevisoes(); toast('Removido','ok');
+  } catch(e) { toast('Erro ao remover','err'); }
 }
 
 // ── INIT ──────────────────────────────────────────────────────
