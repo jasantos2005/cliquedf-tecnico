@@ -258,6 +258,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         <span class="ni-label">Despesas</span>
       </div>
+      <div class="ni" id="ni-custos" style="display:none" onclick="navTo('custos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span class="ni-label">Custos</span>
+      </div>
       <div class="ni" id="ni-checklists" style="display:none" onclick="navTo('checklists')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span class="ni-label">Checklists</span>
@@ -665,6 +669,61 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         </div>
       </div>
 
+      <!-- SECAO CUSTOS -->
+      <div class="secao" id="secao-custos" style="padding:0;overflow:hidden;flex-direction:column">
+
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surf);flex-shrink:0;flex-wrap:wrap">
+          <div style="font-weight:800;font-size:.95rem">Custos da Frota</div>
+          <select id="cst-mes" onchange="carregarCustos()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+            <option value="">Todos os meses</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+            <option value="03">Marco</option><option value="04">Abril</option>
+            <option value="05">Maio</option><option value="06">Junho</option>
+            <option value="07">Julho</option><option value="08">Agosto</option>
+            <option value="09">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+          <input type="number" id="cst-ano" placeholder="Ano" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;width:72px" onchange="carregarCustos()">
+          <button class="btn btn-o" onclick="carregarCustos()" style="padding:4px 10px;font-size:.78rem">&#8635; Atualizar</button>
+        </div>
+
+        <div style="display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0;flex-wrap:wrap">
+          <div class="rev-stat-card" style="border-color:var(--amber)">
+            <div class="rsc-num" id="cst-t-total" style="color:var(--amber)">--</div>
+            <div class="rsc-label">Total Geral</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:var(--blue)">
+            <div class="rsc-num" id="cst-t-comb" style="color:var(--blue)">--</div>
+            <div class="rsc-label">Combustivel</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:var(--green)">
+            <div class="rsc-num" id="cst-t-manut" style="color:var(--green)">--</div>
+            <div class="rsc-label">Manutencao</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:var(--text3)">
+            <div class="rsc-num" id="cst-t-outros" style="color:var(--text3)">--</div>
+            <div class="rsc-label">Outros</div>
+          </div>
+          <div class="rev-stat-card" style="border-color:#ef4444">
+            <div class="rsc-num" id="cst-t-acima" style="color:#ef4444">0</div>
+            <div class="rsc-label">Veic. acima media</div>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:16px 20px">
+          <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <table>
+              <thead><tr>
+                <th>Veiculo</th><th>Tipo</th>
+                <th>Combustivel</th><th>Manutencao</th><th>Outros</th>
+                <th>Total</th><th>vs. Media</th>
+              </tr></thead>
+              <tbody id="tbody-custos"><tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Selecione Custos no menu</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- SECAO USUARIOS -->
       <div class="secao" id="secao-usuarios" style="padding:20px;overflow-y:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
@@ -844,6 +903,7 @@ function iniciarApp(u) {
     document.getElementById('grp-frota').style.display='block';
     document.getElementById('ni-frota').style.display='flex';
     document.getElementById('ni-revisoes').style.display='flex';
+    document.getElementById('ni-custos').style.display='flex';
     document.getElementById('ni-checklists').style.display='flex';
     document.getElementById('ni-abastecimentos').style.display='flex';
     document.getElementById('ni-despesas').style.display='flex';
@@ -1085,6 +1145,58 @@ async function salvarChecklist() {
 }
 
 
+
+// ── CUSTOS ───────────────────────────────────────────────────
+async function carregarCustos() {
+  var anoEl = document.getElementById('cst-ano');
+  if (anoEl && !anoEl.value) anoEl.value = new Date().getFullYear();
+  var mes = document.getElementById('cst-mes').value;
+  var ano = document.getElementById('cst-ano').value;
+
+  var url = '/api/custos?x=1';
+  if (mes) url += '&mes=' + mes;
+  if (ano) url += '&ano=' + ano;
+
+  var rows = await api(url);
+  if (!Array.isArray(rows)) rows = [];
+
+  var totalGeral = 0, totalComb = 0, totalManut = 0, totalOutros = 0;
+  rows.forEach(function(r) {
+    totalGeral  += r.total || 0;
+    totalComb   += r.combustivel || 0;
+    totalManut  += r.manutencao || 0;
+    totalOutros += r.outros || 0;
+  });
+  var media = rows.length ? totalGeral / rows.length : 0;
+  var acimaMedia = rows.filter(function(r){ return r.total > media * 1.2; }).length;
+
+  function fmt(v) { return 'R$ ' + (v||0).toFixed(2).replace('.',','); }
+  document.getElementById('cst-t-total').textContent  = fmt(totalGeral);
+  document.getElementById('cst-t-comb').textContent   = fmt(totalComb);
+  document.getElementById('cst-t-manut').textContent  = fmt(totalManut);
+  document.getElementById('cst-t-outros').textContent = fmt(totalOutros);
+  document.getElementById('cst-t-acima').textContent  = acimaMedia;
+
+  var tb = '';
+  rows.forEach(function(r) {
+    var pct = media > 0 ? ((r.total - media) / media * 100) : 0;
+    var pctTxt = pct > 0 ? '+' + pct.toFixed(0) + '%' : pct.toFixed(0) + '%';
+    var pctColor = pct > 20 ? '#ef4444' : pct < -10 ? 'var(--green)' : 'var(--text3)';
+    tb += '<tr>'
+      + '<td style="font-weight:700">' + (r.placa||'--') + '<br><span style="font-weight:400;color:var(--text3);font-size:.72rem">' + (r.marca_modelo||'') + '</span></td>'
+      + '<td style="font-size:.75rem;color:var(--text3)">' + (r.tipo_veiculo||'--') + '</td>'
+      + '<td style="color:var(--blue)">' + fmt(r.combustivel) + '</td>'
+      + '<td style="color:var(--green)">' + fmt(r.manutencao) + '</td>'
+      + '<td style="color:var(--text3)">' + fmt(r.outros) + '</td>'
+      + '<td style="font-weight:800;color:var(--amber)">' + fmt(r.total) + '</td>'
+      + '<td style="font-weight:700;color:' + pctColor + '">' + (media > 0 ? pctTxt : '--') + '</td>'
+      + '</tr>';
+  });
+  if (!tb) tb = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Nenhum dado de custo encontrado no periodo</td></tr>';
+  document.getElementById('tbody-custos').innerHTML = tb;
+}
+
+
 (function(){
       iniciarMapaFrota();
       carregarFrota();
@@ -1093,6 +1205,10 @@ async function salvarChecklist() {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Despesas de Frota';
     carregarDespesas();
+  } else if (secao==='custos') {
+    document.getElementById('tb-stats-os').style.display = 'none';
+    document.getElementById('tb-titulo').textContent = 'Custos da Frota';
+    carregarCustos();
   } else if (secao==='checklists') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Checklists de Veiculo';
