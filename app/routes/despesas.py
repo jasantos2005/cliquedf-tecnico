@@ -7,6 +7,18 @@ from app.services.ixc_db import ixc_select, ixc_insert
 
 router = APIRouter(prefix="/api/despesas", tags=["despesas"])
 
+TIPO_IXC = {
+    "Abastecimento":   "C",
+    "Manutencao":      "M",
+    "Manutenção":      "M",
+    "Pedagio":         "P",
+    "Pedágio":         "P",
+    "Multa":           "MT",
+    "Lavagem":         "OT",
+    "Estacionamento":  "OT",
+    "Outros":          "OT",
+}
+
 def brt():
     from datetime import timezone, timedelta
     return (datetime.now(timezone.utc) - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
@@ -70,8 +82,8 @@ class DespesaInput(BaseModel):
 def criar_despesa(data: DespesaInput, usuario=Depends(requer_supervisor)):
     db = get_db()
     agora = brt()
+    tipo_ixc = TIPO_IXC.get(data.tipo, "OT")
 
-    # Insere no IXC
     ixc_id = None
     try:
         ixc_id = ixc_insert("""
@@ -80,7 +92,7 @@ def criar_despesa(data: DespesaInput, usuario=Depends(requer_supervisor)):
                  valor_litro, quantidade_litros, id_condutor, observacao)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            data.id_veiculo, data.descricao, data.tipo, data.valor, data.data,
+            data.id_veiculo, data.descricao, tipo_ixc, data.valor, data.data,
             data.kilometragem or 0, data.valor_litro or 0,
             data.quantidade_litros or 0, data.id_condutor,
             data.observacao or ''
