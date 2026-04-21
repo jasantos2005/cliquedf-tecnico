@@ -258,6 +258,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         <span class="ni-label">Despesas</span>
       </div>
+      <div class="ni" id="ni-checklists" style="display:none" onclick="navTo('checklists')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <span class="ni-label">Checklists</span>
+      </div>
       <div class="ni" id="ni-abastecimentos" style="display:none" onclick="navTo('abastecimentos')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V10l9-8 9 8v12H3z"/><path d="M9 22v-6h6v6"/><path d="M12 2v4m0 0a2 2 0 110 4 2 2 0 010-4z"/></svg>
         <span class="ni-label">Abastecimentos</span>
@@ -637,6 +641,30 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         </div>
       </div>
 
+      <!-- SECAO CHECKLISTS -->
+      <div class="secao" id="secao-checklists" style="padding:0;overflow:hidden;flex-direction:column">
+
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surf);flex-shrink:0;flex-wrap:wrap">
+          <div style="font-weight:800;font-size:.95rem">Checklists de Veiculo</div>
+          <select id="chk-veiculo" onchange="carregarChecklists()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+            <option value="">Todos os veiculos</option>
+          </select>
+          <input type="date" id="chk-data" onchange="carregarChecklists()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+          <select id="chk-tipo" onchange="carregarChecklists()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
+            <option value="">Saida + Retorno</option>
+            <option value="saida">Saida</option>
+            <option value="retorno">Retorno</option>
+          </select>
+          <button class="btn btn-p" onclick="abrirNovoChecklist()" style="margin-left:auto;padding:4px 12px;font-size:.78rem">+ Novo Checklist</button>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:16px 20px">
+          <div id="chk-lista" style="display:flex;flex-direction:column;gap:12px">
+            <div style="text-align:center;color:var(--text3);padding:40px">Selecione Checklists no menu</div>
+          </div>
+        </div>
+      </div>
+
       <!-- SECAO USUARIOS -->
       <div class="secao" id="secao-usuarios" style="padding:20px;overflow-y:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
@@ -816,6 +844,7 @@ function iniciarApp(u) {
     document.getElementById('grp-frota').style.display='block';
     document.getElementById('ni-frota').style.display='flex';
     document.getElementById('ni-revisoes').style.display='flex';
+    document.getElementById('ni-checklists').style.display='flex';
     document.getElementById('ni-abastecimentos').style.display='flex';
     document.getElementById('ni-despesas').style.display='flex';
   }
@@ -918,6 +947,144 @@ function abrirNovoAbast() {
 }
 
 
+
+// ── CHECKLISTS ────────────────────────────────────────────────
+var _veiculosChk = [];
+var _itensChkPadrao = [];
+
+async function carregarChecklists() {
+  if (_veiculosChk.length === 0) {
+    _veiculosChk = await api('/api/despesas/veiculos');
+    var sel = document.getElementById('chk-veiculo');
+    if (sel) {
+      sel.innerHTML = '<option value="">Todos os veiculos</option>';
+      _veiculosChk.forEach(function(v) {
+        sel.innerHTML += '<option value="' + v.id + '">' + v.placa + ' -- ' + v.marca_modelo + '</option>';
+      });
+    }
+    var dEl = document.getElementById('chk-data');
+    if (dEl && !dEl.value) dEl.value = new Date().toISOString().split('T')[0];
+  }
+
+  var veiculo = document.getElementById('chk-veiculo').value;
+  var data = document.getElementById('chk-data').value;
+  var tipo = document.getElementById('chk-tipo').value;
+  var url = '/api/checklists?x=1';
+  if (veiculo) url += '&id_veiculo=' + veiculo;
+  if (data) url += '&data=' + data;
+  if (tipo) url += '&tipo=' + tipo;
+
+  var rows = await api(url);
+  if (!Array.isArray(rows)) rows = [];
+
+  var lista = document.getElementById('chk-lista');
+  if (!rows.length) {
+    lista.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px">Nenhum checklist encontrado</div>';
+    return;
+  }
+
+  var html = '';
+  rows.forEach(function(r) {
+    var itens = [];
+    try { itens = JSON.parse(r.itens_json || '[]'); } catch(e) {}
+    var cor = r.itens_nao_ok > 0 ? '#ef4444' : 'var(--green)';
+    var badge = r.itens_nao_ok > 0
+      ? '<span style="background:#ef444420;color:#ef4444;font-size:.72rem;padding:2px 8px;border-radius:4px;font-weight:700">' + r.itens_nao_ok + ' item(ns) NOK</span>'
+      : '<span style="background:var(--green)20;color:var(--green);font-size:.72rem;padding:2px 8px;border-radius:4px;font-weight:700">Tudo OK</span>';
+    var tipoBadge = r.tipo === 'saida'
+      ? '<span style="background:var(--blue)20;color:var(--blue);font-size:.72rem;padding:2px 8px;border-radius:4px">Saida</span>'
+      : '<span style="background:var(--amber)20;color:var(--amber);font-size:.72rem;padding:2px 8px;border-radius:4px">Retorno</span>';
+
+    html += '<div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid ' + cor + ';border-radius:10px;padding:14px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+    html += '<span style="font-weight:700">' + (r.placa || '--') + '</span>';
+    html += '<span style="color:var(--text3);font-size:.78rem">' + (r.marca_modelo || '') + '</span>';
+    html += tipoBadge + badge;
+    html += '<span style="margin-left:auto;font-size:.75rem;color:var(--text3)">' + r.data + (r.km ? ' &bull; ' + r.km.toLocaleString() + ' km' : '') + '</span>';
+    html += '<span style="font-size:.75rem;color:var(--text3)">' + (r.tecnico_nome || '--') + '</span>';
+    html += '</div>';
+
+    if (itens.length) {
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      itens.forEach(function(it) {
+        var c = it.ok ? 'var(--green)' : '#ef4444';
+        html += '<span style="font-size:.72rem;padding:2px 8px;border-radius:4px;background:' + c + '20;color:' + c + '">'
+          + (it.ok ? '&#10003;' : '&#10007;') + ' ' + it.item
+          + (it.obs ? ' (' + it.obs + ')' : '') + '</span>';
+      });
+      html += '</div>';
+    }
+    if (r.observacao) html += '<div style="font-size:.78rem;color:var(--text3);margin-top:6px">' + r.observacao + '</div>';
+    html += '</div>';
+  });
+  lista.innerHTML = html;
+}
+
+async function abrirNovoChecklist() {
+  if (_itensChkPadrao.length === 0) {
+    _itensChkPadrao = await api('/api/checklists/itens-padrao');
+  }
+  if (_veiculosChk.length === 0) {
+    _veiculosChk = await api('/api/despesas/veiculos');
+  }
+  var selV = document.getElementById('chk-m-veiculo');
+  selV.innerHTML = '<option value="">Selecione...</option>';
+  _veiculosChk.forEach(function(v) {
+    selV.innerHTML += '<option value="' + v.id + '">' + v.placa + ' -- ' + v.marca_modelo + '</option>';
+  });
+
+  var itensDiv = document.getElementById('chk-m-itens');
+  itensDiv.innerHTML = '';
+  _itensChkPadrao.forEach(function(item, i) {
+    itensDiv.innerHTML += '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--surf2);border-radius:7px">'
+      + '<input type="checkbox" id="chki-' + i + '" checked style="width:16px;height:16px;accent-color:var(--accent)">'
+      + '<label for="chki-' + i + '" style="flex:1;font-size:.85rem;cursor:pointer">' + item + '</label>'
+      + '<input type="text" placeholder="Obs" id="chko-' + i + '" style="width:120px;background:var(--surf);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:3px 7px;font-size:.75rem;outline:none">'
+      + '</div>';
+  });
+
+  document.getElementById('chk-m-km').value = '';
+  document.getElementById('chk-m-obs').value = '';
+  document.getElementById('chk-erro').style.display = 'none';
+  document.getElementById('modal-checklist').classList.add('open');
+}
+
+function fecharChecklist() {
+  document.getElementById('modal-checklist').classList.remove('open');
+}
+
+async function salvarChecklist() {
+  var erro = document.getElementById('chk-erro');
+  erro.style.display = 'none';
+  var veiculo = document.getElementById('chk-m-veiculo').value;
+  if (!veiculo) { erro.textContent = 'Selecione o veiculo.'; erro.style.display = 'block'; return; }
+  var itens = _itensChkPadrao.map(function(item, i) {
+    return {
+      item: item,
+      ok: document.getElementById('chki-' + i).checked,
+      obs: document.getElementById('chko-' + i).value.trim()
+    };
+  });
+  var body = {
+    id_veiculo: parseInt(veiculo),
+    tipo: document.getElementById('chk-m-tipo').value,
+    km: parseInt(document.getElementById('chk-m-km').value) || null,
+    itens: itens,
+    observacao: document.getElementById('chk-m-obs').value.trim()
+  };
+  var r = await api('/api/checklists', {method: 'POST', body: JSON.stringify(body)});
+  if (r && r.ok) {
+    fecharChecklist();
+    carregarChecklists();
+    var nok = itens.filter(function(i){return !i.ok;}).length;
+    toast('Checklist salvo' + (nok ? ' — ' + nok + ' item(ns) NOK' : ' — Tudo OK'), 'ok');
+  } else {
+    erro.textContent = (r && r.detail) || 'Erro ao salvar';
+    erro.style.display = 'block';
+  }
+}
+
+
 (function(){
       iniciarMapaFrota();
       carregarFrota();
@@ -926,6 +1093,10 @@ function abrirNovoAbast() {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Despesas de Frota';
     carregarDespesas();
+  } else if (secao==='checklists') {
+    document.getElementById('tb-stats-os').style.display = 'none';
+    document.getElementById('tb-titulo').textContent = 'Checklists de Veiculo';
+    carregarChecklists();
   } else if (secao==='abastecimentos') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Abastecimentos';
@@ -1880,6 +2051,46 @@ async function excluirRevisao(id) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <button class="btn btn-o" onclick="fecharModalDespesa()">Cancelar</button>
       <button class="btn btn-p" onclick="salvarDespesa()">Salvar e Enviar IXC</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHECKLIST -->
+<div class="modal-bg" id="modal-checklist">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+    <div class="modal-title">
+      <span id="chk-modal-titulo">Checklist de Saida</span>
+      <button onclick="fecharChecklist()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.1rem">x</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="field" style="grid-column:1/-1">
+        <label>Veiculo</label>
+        <select id="chk-m-veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+          <option value="">Selecione...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="chk-m-tipo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+          <option value="saida">Saida</option>
+          <option value="retorno">Retorno</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>KM atual</label>
+        <input type="number" id="chk-m-km" placeholder="KM do veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
+      </div>
+    </div>
+    <div style="font-size:.82rem;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Itens de Inspecao</div>
+    <div id="chk-m-itens" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+    <div class="field">
+      <label>Observacoes gerais</label>
+      <textarea id="chk-m-obs" rows="2" placeholder="Observacoes opcionais..." style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px;resize:vertical;font-family:inherit;font-size:.85rem"></textarea>
+    </div>
+    <div id="chk-erro" style="color:var(--red);font-size:.82rem;margin-bottom:8px;display:none"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <button class="btn btn-o" onclick="fecharChecklist()">Cancelar</button>
+      <button class="btn btn-p" onclick="salvarChecklist()">Salvar Checklist</button>
     </div>
   </div>
 </div>
