@@ -6,7 +6,7 @@ from datetime import datetime
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
-def brt(): 
+def brt():
     from datetime import timezone, timedelta
     return (datetime.now(timezone.utc)-timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -56,12 +56,11 @@ def vincular_veiculo(id: int, data: dict, usuario=Depends(requer_admin)):
     db = get_db()
     hoje = brt()[:10]
     db.execute("""
-        INSERT INTO ht_tecnico_veiculo (id_tecnico, ixc_condutor_id, id_veiculo, data)
-        VALUES (?,?,?,?)
+        INSERT INTO ht_tecnico_veiculo (id_tecnico, id_veiculo, data)
+        VALUES (?,?,?)
         ON CONFLICT(id_tecnico, data) DO UPDATE SET
-            ixc_condutor_id=excluded.ixc_condutor_id,
             id_veiculo=excluded.id_veiculo
-    """, (id, data.get('ixc_condutor_id', 0), data.get('id_veiculo'), hoje))
+    """, (id, data.get('id_veiculo'), hoje))
     db.commit()
     db.close()
     return {"ok": True}
