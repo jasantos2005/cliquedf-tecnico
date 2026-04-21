@@ -16,6 +16,8 @@ def get_db():
 def run():
     print(f"[{datetime.now().strftime('%d/%m/%Y %H:%M')}] sync_os iniciado")
     ids_str = ",".join(map(str, IXC_TECNICOS_IDS))
+
+    # Busca OS ativas + finalizadas nas ultimas 24h
     os_rows = ixc_select(f"""
         SELECT o.id, o.status, o.id_assunto, o.id_tecnico,
                o.id_cliente, o.id_contrato_kit,
@@ -29,23 +31,62 @@ def run():
         FROM su_oss_chamado o
         JOIN cliente cl ON cl.id = o.id_cliente
         JOIN su_oss_assunto a ON a.id = o.id_assunto
-        WHERE o.status IN ('A','EN','AG','RAG')
-          AND (o.id_tecnico = 0 OR o.id_tecnico IN (13,17,32,35,47,50,55,56,60,46))
-          AND o.id_assunto IN (15,16,17,18,19,20,21,22,39,49,53,89,110,111,226,227)
-
+        WHERE (
+            (o.status IN ('A','EN','AG','RAG')
+             AND (o.id_tecnico = 0 OR o.id_tecnico IN ({ids_str})))
+            OR
+            (o.status = 'F'
+             AND o.id_tecnico IN ({ids_str})
+             AND o.data_fechamento >= DATE_SUB(NOW(), INTERVAL 24 HOUR))
+        )
+        AND o.id_assunto IN (15,16,17,18,19,20,21,22,39,49,53,89,110,111,226,227)
     """)
 
     db = get_db()
     novos = 0
     atualizados = 0
+    fantasmas = 0
 
+    # IDs que o IXC retornou nesta rodada
+    ids_ixc = set(int(o['id']) for o in os_rows)
+
+    # IDs que estao ativos no SQLite (nao finalizados)
+    ativos_sqlite = db.execute("""
+        SELECT ixc_os_id FROM ht_os
+        WHERE status_hub NOT IN ('finalizada')
+    """).fetchall()
+    ids_sqlite_ativos = set(row['ixc_os_id'] for row in ativos_sqlite)
+
+    # OS que estao no SQLite como ativas mas sumiram do IXC = fantasmas
+    ids_fantasmas = ids_sqlite_ativos - ids_ixc
+    if ids_fantasmas:
+        for ixc_id in ids_fantasmas:
+            # Verifica se existe no IXC com qualquer status
+            check = ixc_select(f"SELECT id, status FROM su_oss_chamado WHERE id = {ixc_id}")
+            if check:
+                status_real = check[0]['status']
+                if status_real == 'F':
+                    db.execute("""
+                        UPDATE ht_os SET status_hub='finalizada', status_ixc='F',
+                        sincronizado_em=?
+                        WHERE ixc_os_id=?
+                    """, (datetime.now().strftime("%d/%m/%Y %H:%M"), ixc_id))
+                    fantasmas += 1
+                    print(f"  [fantasma→finalizada] OS #{ixc_id} status IXC: {status_real}")
+                # Se status ainda ativo mas sumiu dos filtros (ex: tecnico mudou)
+                # deixa como esta — pode ser reagendamento manual no IXC
+            else:
+                # OS nao existe mais no IXC — marca finalizada
+                db.execute("""
+                    UPDATE ht_os SET status_hub='finalizada',
+                    sincronizado_em=?
+                    WHERE ixc_os_id=?
+                """, (datetime.now().strftime("%d/%m/%Y %H:%M"), ixc_id))
+                fantasmas += 1
+                print(f"  [fantasma→removida] OS #{ixc_id} nao existe mais no IXC")
+
+    # Processar OS retornadas pelo IXC
     for o in os_rows:
-        # Status IXC:
-        # A = Aberta (sem técnico = pendente)
-        # AG = Agendada (tem técnico + data)
-        # EN = Encaminhada (técnico atribuído, a caminho)
-        # RAG = Reagendada
-        # F = Finalizada
         tem_tecnico = o['id_tecnico'] and int(o['id_tecnico']) > 0
         status_ixc = o['status']
         if status_ixc == 'F':
@@ -66,7 +107,6 @@ def run():
         ).fetchone()
 
         if not existente:
-            # Converter ixc_funcionario_id para id do banco
             id_tecnico_banco = None
             if o['id_tecnico']:
                 tec = db.execute(
@@ -110,10 +150,19 @@ def run():
                 """, (o['status'], status_hub, o['id_tecnico'],
                       datetime.now().strftime("%d/%m/%Y %H:%M"), o['id']))
                 atualizados += 1
+            # Sempre atualiza OS finalizadas vindas do IXC
+            elif status_hub == 'finalizada' and existente['status_hub'] != 'finalizada':
+                db.execute("""
+                    UPDATE ht_os SET status_ixc='F', status_hub='finalizada',
+                    sincronizado_em=?
+                    WHERE ixc_os_id=?
+                """, (datetime.now().strftime("%d/%m/%Y %H:%M"), o['id']))
+                atualizados += 1
+                print(f"  [finalizada IXC] OS #{o['id']}")
 
     db.commit()
     db.close()
-    print(f"  Novas: {novos} | Atualizadas: {atualizados} | Total IXC: {len(os_rows)}")
+    print(f"  Novas: {novos} | Atualizadas: {atualizados} | Fantasmas: {fantasmas} | Total IXC: {len(os_rows)}")
 
 if __name__ == "__main__":
     run()
