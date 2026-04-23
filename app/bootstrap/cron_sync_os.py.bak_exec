@@ -186,9 +186,9 @@ def run():
         else:
             status_atual = existente['status_hub']
             # execucao e gerenciada pelo app do tecnico — nao sobrescreve
-            # a menos que o IXC finalize ou reagende
-            if status_atual == 'execucao' and status_hub not in ('finalizada', 'reagendada', 'pendente'):
-                pass  # protege execucao ativa
+            # a menos que o IXC finalize
+            if status_atual == 'execucao' and status_hub != 'finalizada':
+                pass  # protege execucao
             else:
                 # IXC sempre vence — atualiza status, tecnico e dados
                 id_tecnico_banco = None

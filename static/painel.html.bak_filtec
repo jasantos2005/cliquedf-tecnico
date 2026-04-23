@@ -245,10 +245,6 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span class="ni-label">Controle de OS</span>
       </div>
-      <div class="ni" id="ni-agenda" style="display:none" onclick="navTo('agenda')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span class="ni-label">Agenda</span>
-      </div>
       <div class="sb-group" id="grp-frota" style="display:none">FROTA</div>
       <div class="ni" id="ni-frota" style="display:none" onclick="navTo('frota')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -312,9 +308,6 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
           <option value="instalacao">Servico</option>
           <option value="infra">Infra</option>
           <option value="retirada">Retirada</option>
-        </select>
-        <select id="sel-tecnico" onchange="filtrarTecnico(this.value)" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;flex-shrink:0;max-width:140px">
-          <option value="todos">👷 Todos técnicos</option>
         </select>
         <input type="date" id="filtro-data-ini" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;flex-shrink:0" onchange="renderSidebar();renderMapa()">
         <span style="color:var(--text3);font-size:.75rem;flex-shrink:0">até</span>
@@ -393,7 +386,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
               <div class="card-dia-num" style="color:var(--green)"><span id="cd-finalizada">0</span></div>
               <div class="card-dia-label">Finali-<br>zadas</div>
             </div>
-
+            <div class="card-dia" style="border-left:1px solid var(--border)">
+              <div class="card-dia-num" style="color:var(--text2)"><span id="cd-tecnicos">0</span></div>
+              <div class="card-dia-label">Tec em<br>deslocam.</div>
+            </div>
           </div>
         </div>
 
@@ -809,58 +805,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
       </div>
 
       <!-- SECAO USUARIOS -->
-      <div class="secao" id="secao-agenda" style="padding:20px;overflow-y:auto;flex-direction:column">
-
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div style="font-size:1.1rem;font-weight:800">📅 Agenda Automática</div>
-      <div style="font-size:.78rem;color:var(--text3)">Rotas sugeridas por pontos e localização</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input type="date" id="agenda-data" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:.82rem;outline:none">
-      <button onclick="agendaGerarRotas()" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:.82rem;font-weight:700;cursor:pointer">⚡ Gerar Rotas</button>
-      <button onclick="agendaVerDia()" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 14px;font-size:.82rem;cursor:pointer">📋 Ver Dia</button>
-    </div>
-  </div>
-
-  <div id="agenda-kpis" style="display:none;gap:10px;margin-bottom:18px;flex-wrap:wrap">
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;min-width:120px;text-align:center">
-      <div style="font-size:1.4rem;font-weight:800;color:var(--accent)" id="kpi-rotas">0</div>
-      <div style="font-size:.72rem;color:var(--text3)">Rotas</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;min-width:120px;text-align:center">
-      <div style="font-size:1.4rem;font-weight:800;color:var(--green)" id="kpi-os">0</div>
-      <div style="font-size:.72rem;color:var(--text3)">OS</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;min-width:120px;text-align:center">
-      <div style="font-size:1.4rem;font-weight:800;color:var(--amber)" id="kpi-tecnicos">0</div>
-      <div style="font-size:.72rem;color:var(--text3)">Técnicos disponíveis</div>
-    </div>
-  </div>
-
-  <div id="agenda-loading" style="display:none;text-align:center;padding:40px;color:var(--text3)">
-    <div style="font-size:1.5rem;margin-bottom:8px">⏳</div>
-    <div>Gerando rotas...</div>
-  </div>
-
-  <div id="agenda-rotas" style="display:flex;flex-direction:column;gap:12px"></div>
-
-  <div id="modal-agenda" class="modal-bg" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:var(--surf);border-radius:14px;padding:28px;width:420px;max-width:95vw">
-      <div style="font-size:1rem;font-weight:800;margin-bottom:16px">👷 Atribuir Técnico</div>
-      <div id="modal-agenda-info" style="background:var(--surf2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--text2)"></div>
-      <div style="font-size:.78rem;color:var(--text3);margin-bottom:8px">Selecione o técnico:</div>
-      <div id="modal-agenda-tecnicos" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto"></div>
-      <div style="display:flex;gap:8px;margin-top:16px">
-        <button onclick="document.getElementById('modal-agenda').style.display='none'" style="flex:1;padding:9px;background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:7px;cursor:pointer">Cancelar</button>
-        <button onclick="agendaConfirmar()" id="btn-confirmar-rota" style="flex:1;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer">✅ Confirmar</button>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<div class="secao" id="secao-usuarios" style="padding:20px;overflow-y:auto">
+      <div class="secao" id="secao-usuarios" style="padding:20px;overflow-y:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div style="font-size:1.1rem;font-weight:800">⚙️ Usuarios</div>
           <button class="btn btn-primary" onclick="abrirNovoUsuario()">+ Novo</button>
@@ -1044,8 +989,7 @@ function iniciarApp(u) {
     document.getElementById('ni-abastecimentos').style.display='flex';
     document.getElementById('ni-despesas').style.display='flex';
   }
-  if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex';
-    if (u.nivel >= 50) { document.getElementById('ni-agenda').style.display='flex'; } }
+  if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex'; }
   if (u.nivel >= 50) { navTo('os'); } else if (u.nivel >= 40) { navTo('frota'); }
 }
 
@@ -1090,8 +1034,6 @@ function navTo(secao) {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Proximas Revisoes';
     carregarRevisoes();
-  } else if (secao==='agenda') {
-    agendaIniciar();
   } else if (secao==='usuarios') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Usuarios';
@@ -1437,7 +1379,6 @@ async function carregarDados() {
       }
     } catch(e) {}
     atualizarStats(dados.stats || {});
-    popularSelectTecnicos();
     renderSidebar();
     renderMapa();
   } catch(e) { console.log('Erro ao carregar:', e); }
@@ -1466,17 +1407,29 @@ function atualizarStats(s) {
   var total = pend+desl+agend+exec+fin;
   var tecDesl = tecnicosCache.filter(function(t){ return parseFloat(t.velocidade||0)>3; }).length;
 
-  var _s = function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
   // topbar pills
-  _s('cnt-pendente',pend); _s('cnt-deslocamento',desl); _s('cnt-agendada',agend); _s('cnt-execucao',exec);
+  document.getElementById('cnt-pendente').textContent = pend;
+  document.getElementById('cnt-deslocamento').textContent = desl;
+  document.getElementById('cnt-agendada').textContent = agend;
+  document.getElementById('cnt-execucao').textContent = exec;
+
   // sidebar stats
-  _s('st-total',total); _s('st-pendente',pend); _s('st-deslocamento',desl);
-  _s('st-agendada',agend); _s('st-execucao',exec); _s('st-finalizada',fin);
-  _s('st-tecnicos',tecnicosCache.length);
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-pendente').textContent = pend;
+  document.getElementById('st-deslocamento').textContent = desl;
+  document.getElementById('st-agendada').textContent = agend;
+  document.getElementById('st-execucao').textContent = exec;
+  document.getElementById('st-finalizada').textContent = fin;
+  document.getElementById('st-tecnicos').textContent = tecnicosCache.length;
+
   // cards dia
-  _s('cd-total',total); _s('cd-pendente',pend); _s('cd-deslocamento',desl);
-  _s('cd-agendada',agend); _s('cd-execucao',exec); _s('cd-finalizada',fin);
-  _s('cd-tecnicos',tecDesl);
+  document.getElementById('cd-total').textContent = total;
+  document.getElementById('cd-pendente').textContent = pend;
+  document.getElementById('cd-deslocamento').textContent = desl;
+  document.getElementById('cd-agendada').textContent = agend;
+  document.getElementById('cd-execucao').textContent = exec;
+  document.getElementById('cd-finalizada').textContent = fin;
+  document.getElementById('cd-tecnicos').textContent = tecDesl;
 }
 
 // ── SIDEBAR OS ────────────────────────────────────────────────
@@ -1487,10 +1440,6 @@ function renderSidebar() {
     if (tipoFiltro !== 'todos') {
       var tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
       if (tipo !== tipoFiltro) return false;
-    }
-    if (filtroTecnico !== 'todos') {
-      if (filtroTecnico === 'sem' && o.id_tecnico) return false;
-      if (filtroTecnico !== 'sem' && String(o.id_tecnico) !== filtroTecnico) return false;
     }
     return true;
   });
@@ -1524,7 +1473,6 @@ function renderMapa() {
   Object.values(marcadores).forEach(function(m){ mapa.removeLayer(m); });
   Object.values(marcadoresTec).forEach(function(m){ mapa.removeLayer(m); });
   marcadores = {}; marcadoresTec = {};
-  var _bounds = [];
 
   // OS
   osCache.forEach(function(o) {
@@ -1534,12 +1482,7 @@ function renderMapa() {
       var tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
       if (tipo !== tipoFiltro) return;
     }
-    if (filtroTecnico !== 'todos') {
-      if (filtroTecnico === 'sem' && o.id_tecnico) return;
-      if (filtroTecnico !== 'sem' && String(o.id_tecnico) !== filtroTecnico) return;
-    }
     if (!o.lat || !o.lon) return;
-    _bounds.push([o.lat, o.lon]);
     var m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub)})
       .addTo(mapa)
       .bindTooltip(function(){
@@ -1678,38 +1621,6 @@ function selecionarTipo(tipo) {
   tipoFiltro = tipo;
   renderSidebar();
   renderMapa();
-}
-
-var filtroTecnico = 'todos';
-
-function filtrarTecnico(val) {
-  filtroTecnico = val;
-  renderSidebar();
-  renderMapa();
-}
-
-function popularSelectTecnicos() {
-  var sel = document.getElementById('sel-tecnico');
-  if (!sel) return;
-  // Pega tecnicos unicos das OS no cache
-  var tecs = {};
-  osCache.forEach(function(o) {
-    if (o.id_tecnico && o.tecnico_nome) {
-      tecs[o.id_tecnico] = o.tecnico_nome;
-    }
-  });
-  // Reconstroi options
-  sel.innerHTML = '<option value="todos">👷 Todos técnicos</option>';
-  // Sem tecnico
-  var temSemTec = osCache.some(function(o){ return !o.id_tecnico; });
-  if (temSemTec) sel.innerHTML += '<option value="sem">Sem técnico</option>';
-  // Tecnicos ordenados por nome
-  Object.entries(tecs).sort(function(a,b){ return a[1].localeCompare(b[1]); }).forEach(function(e) {
-    var sel2 = document.getElementById('sel-tecnico');
-    sel2.innerHTML += '<option value="'+e[0]+'">'+e[1]+'</option>';
-  });
-  // Restaura selecao atual
-  sel.value = filtroTecnico;
 }
 
 function toggleFiltro(tipo, btn) {
@@ -2492,167 +2403,6 @@ async function excluirRevisao(id) {
     document.getElementById('P-LOGIN').style.display = 'flex';
   }
 })();
-
-// ═══════════════════════════════════════════════════════
-// AGENDA — Motor de Agendamento Automático
-// ═══════════════════════════════════════════════════════
-var agendaRotasPendentes = [];
-var agendaRotaSelecionada = null;
-var agendaTecnicosCache = [];
-
-function agendaIniciar() {
-  var hoje = new Date().toISOString().slice(0,10);
-  var el = document.getElementById('agenda-data');
-  if (el) el.value = hoje;
-}
-
-function agendaGerarRotas() {
-  var data = document.getElementById('agenda-data').value;
-  if (!data) { alert('Selecione uma data'); return; }
-  document.getElementById('agenda-loading').style.display = 'block';
-  document.getElementById('agenda-rotas').innerHTML = '';
-  document.getElementById('agenda-kpis').style.display = 'none';
-  Promise.all([
-    api('/api/agenda/rotas-sugeridas?data=' + data),
-    api('/api/agenda/tecnicos?data=' + data)
-  ]).then(function(results) {
-    var rotasData = results[0];
-    var tecData   = results[1];
-    document.getElementById('agenda-loading').style.display = 'none';
-    agendaRotasPendentes = rotasData.rotas || [];
-    agendaTecnicosCache  = tecData.tecnicos || [];
-    document.getElementById('kpi-rotas').textContent    = rotasData.total_rotas || 0;
-    document.getElementById('kpi-os').textContent       = rotasData.total_os || 0;
-    document.getElementById('kpi-tecnicos').textContent = agendaTecnicosCache.filter(function(t){ return t.pontos_disponiveis > 0; }).length;
-    document.getElementById('agenda-kpis').style.display = 'flex';
-    agendaRenderRotas(agendaRotasPendentes);
-  }).catch(function(e) {
-    document.getElementById('agenda-loading').style.display = 'none';
-    document.getElementById('agenda-rotas').innerHTML = '<div style="color:var(--red);padding:20px">Erro ao buscar rotas: ' + e.message + '</div>';
-  });
-}
-
-function agendaRenderRotas(rotas) {
-  var el = document.getElementById('agenda-rotas');
-  if (!rotas || !rotas.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Nenhuma OS disponível para esta data.</div>';
-    return;
-  }
-  el.innerHTML = rotas.map(function(r, idx) {
-    var slaCount = (r.os || []).filter(function(o){ return o.sla_estourado; }).length;
-    var slaTag = slaCount ? '<span style="background:#ff4d4d22;color:var(--red);border-radius:5px;padding:2px 7px;font-size:.7rem;font-weight:700">🚨 ' + slaCount + ' SLA</span>' : '';
-    var osList = (r.os || []).map(function(o, i) {
-      return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">' +
-        '<div style="color:var(--text3);font-size:.72rem;min-width:18px;padding-top:2px">' + (i+1) + '</div>' +
-        '<div style="flex:1"><div style="font-size:.8rem;font-weight:600">' + (o.sla_estourado ? '🚨 ' : '') + (o.cliente_nome || '') + '</div>' +
-        '<div style="font-size:.72rem;color:var(--text3)">' + (o.assunto_nome || '') + ' · ' + (o.bairro || '') + '</div></div>' +
-        '<span style="background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-size:.68rem;font-weight:700">' + (o.pontos || 0) + 'pts</span></div>';
-    }).join('');
-    return '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:4px">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">' +
-        '<div><span style="font-weight:800;font-size:.9rem">Rota #' + r.rota_num + '</span>' +
-        '<span style="color:var(--text3);font-size:.78rem;margin-left:8px">' + (r.bairro_ref || '') + '</span></div>' +
-        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' + slaTag +
-        '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">' + (r.total_os || 0) + ' OS</span>' +
-        '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">⚡ ' + (r.pontos || 0) + ' pts</span>' +
-        '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">⏱ ' + (r.tempo_fmt || '') + '</span>' +
-        '<button onclick="agendaAbrirModal(' + idx + ')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:.75rem;font-weight:700;cursor:pointer">Atribuir</button>' +
-        '</div></div><div style="max-height:200px;overflow-y:auto">' + osList + '</div></div>';
-  }).join('');
-}
-
-function agendaAbrirModal(idx) {
-  agendaRotaSelecionada = agendaRotasPendentes[idx];
-  var r = agendaRotaSelecionada;
-  document.getElementById('modal-agenda-info').innerHTML =
-    '<b>Rota #' + r.rota_num + '</b> · ' + (r.bairro_ref || '') +
-    '<br>' + r.total_os + ' OS · ⚡ ' + r.pontos + ' pts · ⏱ ' + (r.tempo_fmt || '');
-  var el = document.getElementById('modal-agenda-tecnicos');
-  el.innerHTML = agendaTecnicosCache.map(function(t) {
-    var livre = t.pontos_disponiveis >= r.pontos;
-    return '<div class="tecnico-option" data-id="' + t.id + '" data-nome="' + t.nome + '" ' +
-      'style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:7px;cursor:pointer;border:1px solid transparent;' + (!livre ? 'opacity:.5;pointer-events:none' : '') + '" ' +
-      'onclick="agendaSelecionarTecnico(this,' + t.id + ',' + JSON.stringify(t.nome) + ')">' +
-      '<div><div style="font-weight:600;font-size:.85rem">' + t.nome + '</div>' +
-      '<div style="font-size:.72rem;color:var(--text3)">' + (t.pontos_alocados || 0) + ' pts alocados · ' + (t.pontos_disponiveis || 0) + ' disponíveis</div></div>' +
-      '<span style="font-size:.72rem;font-weight:600;color:' + (livre ? 'var(--green)' : 'var(--red)') + '">' + (livre ? '✅ Disponível' : '⚠️ Sem capacidade') + '</span></div>';
-  }).join('');
-  document.getElementById('modal-agenda').style.display = 'flex';
-  var btn = document.getElementById('btn-confirmar-rota');
-  btn.dataset.tecnicoId = '';
-  btn.dataset.tecnicoNome = '';
-}
-
-function agendaSelecionarTecnico(el, id, nome) {
-  document.querySelectorAll('.tecnico-option').forEach(function(x){ x.style.background = ''; x.style.border = '1px solid transparent'; });
-  el.style.background = 'var(--accent)22';
-  el.style.border = '1px solid var(--accent)';
-  var btn = document.getElementById('btn-confirmar-rota');
-  btn.dataset.tecnicoId = id;
-  btn.dataset.tecnicoNome = nome;
-}
-
-function agendaConfirmar() {
-  var btn   = document.getElementById('btn-confirmar-rota');
-  var tId   = parseInt(btn.dataset.tecnicoId);
-  var tNome = btn.dataset.tecnicoNome;
-  var data  = document.getElementById('agenda-data').value;
-  if (!tId) { alert('Selecione um técnico'); return; }
-  var r = agendaRotaSelecionada;
-  btn.textContent = 'Salvando...';
-  btn.disabled = true;
-  api('/api/agenda/confirmar', { method: 'POST', body: JSON.stringify({ data_rota: data, tecnico_id: tId, tecnico_nome: tNome, os_ids: r.os, pontos: r.pontos, tempo_est: r.tempo_est, bairro_ref: r.bairro_ref }) }).then(function(res){ return res.json(); }).then(function(d) {
-    document.getElementById('modal-agenda').style.display = 'none';
-    btn.textContent = '✅ Confirmar';
-    btn.disabled = false;
-    if (d.ok) { alert('✅ ' + d.msg); agendaGerarRotas(); }
-    else { alert('Erro: ' + (d.detail || JSON.stringify(d))); }
-  }).catch(function(e) {
-    btn.textContent = '✅ Confirmar';
-    btn.disabled = false;
-    alert('Erro de rede: ' + e.message);
-  });
-}
-
-function agendaVerDia() {
-  var data = document.getElementById('agenda-data').value;
-  if (!data) { alert('Selecione uma data'); return; }
-  document.getElementById('agenda-loading').style.display = 'block';
-  document.getElementById('agenda-rotas').innerHTML = '';
-  api('/api/agenda/dia?data=' + data)
-    .then(function(d) {
-      document.getElementById('agenda-loading').style.display = 'none';
-      document.getElementById('agenda-kpis').style.display = 'flex';
-      document.getElementById('kpi-rotas').textContent    = d.total_rotas || 0;
-      document.getElementById('kpi-os').textContent       = (d.rotas || []).reduce(function(a,r){ return a + (r.os||[]).length; }, 0);
-      document.getElementById('kpi-tecnicos').textContent = '—';
-      var el = document.getElementById('agenda-rotas');
-      if (!d.rotas || !d.rotas.length) {
-        el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Nenhuma rota confirmada para esta data.</div>';
-        return;
-      }
-      el.innerHTML = d.rotas.map(function(r) {
-        var osList = (r.os||[]).map(function(o) {
-          return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:.78rem">' +
-            '<span style="color:var(--text3);min-width:20px">' + (o.ordem || '') + '</span>' +
-            '<div><div style="font-weight:600">' + (o.cliente_nome || '') + '</div>' +
-            '<div style="color:var(--text3)">' + (o.assunto_nome || '') + ' · ' + (o.bairro || '') + '</div></div></div>';
-        }).join('');
-        return '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:4px">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
-            '<div><span style="font-weight:800">👷 ' + (r.tecnico_nome || '—') + '</span>' +
-            '<span style="color:var(--text3);font-size:.75rem;margin-left:8px">' + (r.bairro_ref || '') + '</span></div>' +
-            '<div style="display:flex;gap:6px">' +
-              '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">⚡ ' + (r.pontos || 0) + ' pts</span>' +
-              '<span style="background:var(--green)22;color:var(--green);border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:700">' + (r.status || '') + '</span>' +
-            '</div></div>' + osList + '</div>';
-      }).join('');
-    }).catch(function(e) {
-      document.getElementById('agenda-loading').style.display = 'none';
-      document.getElementById('agenda-rotas').innerHTML = '<div style="color:var(--red);padding:20px">Erro: ' + e.message + '</div>';
-    });
-}
-
 </script>
 
 <!-- MODAL DESPESA -->

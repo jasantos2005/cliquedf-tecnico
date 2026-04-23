@@ -1,0 +1,159 @@
+from fastapi import APIRouter
+from datetime import datetime, timezone, timedelta
+import sqlite3
+
+router = APIRouter()
+DB = "/opt/automacoes/cliquedf/tecnico/hub_tecnico.db"
+
+def brt():
+    return datetime.now(timezone.utc) - timedelta(hours=3)
+
+def get_db():
+    con = sqlite3.connect(DB)
+    con.row_factory = sqlite3.Row
+    return con
+
+def minutos_parado(registrado_em_str):
+    if not registrado_em_str:
+        return 9999
+    try:
+        dt = datetime.fromisoformat(registrado_em_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone(timedelta(hours=-3)))
+        agora = brt().replace(tzinfo=timezone(timedelta(hours=-3)))
+        return (agora - dt).total_seconds() / 60
+    except:
+        return 9999
+
+@router.get("/api/tv/status")
+def tv_status():
+    """Retorna status atual de todos os tecnicos/veiculos para tela TV."""
+    db = get_db()
+    cur = db.cursor()
+
+    # Ultima posicao de cada tecnico
+    cur.execute("""
+        SELECT g.id_tecnico, g.lat, g.lon, g.velocidade, g.status_tecnico,
+               g.registrado_em, u.nome as tecnico_nome,
+               tv.id_veiculo, v.placa, v.marca_modelo, v.tipo
+        FROM ht_gps_track g
+        JOIN ht_usuarios u ON u.id = g.id_tecnico
+        LEFT JOIN ht_tecnico_veiculo tv ON tv.id_tecnico = g.id_tecnico
+            AND tv.data = date('now','-3 hours')
+        LEFT JOIN ht_veiculos v ON v.id = tv.id_veiculo
+        WHERE g.id = (
+            SELECT MAX(g2.id) FROM ht_gps_track g2
+            WHERE g2.id_tecnico = g.id_tecnico
+        )
+        AND u.ativo = 1
+        ORDER BY u.nome
+    """)
+    rows = cur.fetchall()
+
+    agora = brt()
+    resultado = []
+    stats = {"total": 0, "em_movimento": 0, "parados": 0, "alertas": 0}
+
+    for row in rows:
+        r = dict(row)
+        vel = float(r["velocidade"] or 0)
+        min_parado = minutos_parado(r["registrado_em"])
+        em_movimento = vel > 2
+
+        # Determina status/cor
+        if vel > 80:
+            status = "critico"
+            cor = "#ef4444"
+            alerta_txt = f"Velocidade {vel:.0f} km/h"
+        elif vel > 60:
+            status = "atencao"
+            cor = "#f59e0b"
+            alerta_txt = f"Velocidade {vel:.0f} km/h"
+        elif not em_movimento and min_parado > 40:
+            status = "critico"
+            cor = "#ef4444"
+            alerta_txt = f"Parado ha {min_parado:.0f} min"
+        elif not em_movimento and min_parado > 20:
+            status = "atencao"
+            cor = "#f59e0b"
+            alerta_txt = f"Parado ha {min_parado:.0f} min"
+        else:
+            status = "normal"
+            cor = "#22c55e"
+            alerta_txt = None
+
+        # Registra evento se critico/atencao e nao registrado recentemente
+        if alerta_txt:
+            tipo = "velocidade" if vel > 80 else "parado" if not em_movimento else "velocidade_media"
+            cur.execute("""
+                SELECT id FROM ht_eventos_frota
+                WHERE id_tecnico=? AND tipo_evento=?
+                AND registrado_em > datetime('now','-3 hours','-30 minutes')
+            """, (r["id_tecnico"], tipo))
+            if not cur.fetchone():
+                cur.execute("""
+                    INSERT INTO ht_eventos_frota
+                    (id_tecnico, tipo_evento, lat, lon, velocidade, registrado_em, alertado)
+                    VALUES (?,?,?,?,?,?,0)
+                """, (r["id_tecnico"], tipo, r["lat"], r["lon"], vel,
+                      agora.strftime("%Y-%m-%d %H:%M:%S")))
+                db.commit()
+
+        stats["total"] += 1
+        if em_movimento:
+            stats["em_movimento"] += 1
+        else:
+            stats["parados"] += 1
+        if status != "normal":
+            stats["alertas"] += 1
+
+        r["velocidade"] = vel
+        r["min_parado"] = round(min_parado) if not em_movimento else 0
+        r["em_movimento"] = em_movimento
+        r["status"] = status
+        r["cor"] = cor
+        r["alerta_txt"] = alerta_txt
+        resultado.append(r)
+
+    # Alertas recentes nao alertados
+    cur.execute("""
+        SELECT e.*, u.nome as tecnico_nome, v.placa
+        FROM ht_eventos_frota e
+        JOIN ht_usuarios u ON u.id = e.id_tecnico
+        LEFT JOIN ht_tecnico_veiculo tv ON tv.id_tecnico = e.id_tecnico
+            AND tv.data = date('now','-3 hours')
+        LEFT JOIN ht_veiculos v ON v.id = tv.id_veiculo
+        WHERE e.registrado_em > datetime('now','-3 hours','-2 hours')
+        ORDER BY e.id DESC LIMIT 20
+    """)
+    alertas = [dict(a) for a in cur.fetchall()]
+
+    db.close()
+    return {
+        "tecnicos": resultado,
+        "stats": stats,
+        "alertas": alertas,
+        "atualizado_em": agora.strftime("%d/%m/%Y %H:%M:%S")
+    }
+
+@router.get("/api/tv/alertas")
+def tv_alertas():
+    """Retorna alertas nao visualizados."""
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT e.*, u.nome as tecnico_nome
+        FROM ht_eventos_frota e
+        JOIN ht_usuarios u ON u.id = e.id_tecnico
+        WHERE e.alertado = 0
+        AND e.registrado_em > datetime('now','-3 hours','-1 hours')
+        ORDER BY e.id DESC
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    # Marca como alertado
+    if rows:
+        ids = [r["id"] for r in rows]
+        cur.execute(f"UPDATE ht_eventos_frota SET alertado=1 WHERE id IN ({','.join('?'*len(ids))})", ids)
+        db.commit()
+    db.close()
+    return rows

@@ -176,22 +176,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
       margin-bottom: 10px;
       margin-top: 4px;
     }
-  
-    .chip-item {
-      display:inline-block;
-      padding:4px 10px;
-      background:var(--surf2);
-      border:1.5px solid var(--border);
-      border-radius:20px;
-      font-size:.75rem;
-      cursor:pointer;
-      transition:all .15s;
-      user-select:none;
-      color:var(--text);
-    }
-    .chip-item:hover { border-color:var(--accent); color:var(--accent); }
-    .chip-item.selecionado { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
-</style>
+  </style>
 </head>
 <body>
 
@@ -245,18 +230,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span class="ni-label">Controle de OS</span>
       </div>
-      <div class="ni" id="ni-agenda" style="display:none" onclick="navTo('agenda')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span class="ni-label">Agenda</span>
-      </div>
       <div class="sb-group" id="grp-frota" style="display:none">FROTA</div>
       <div class="ni" id="ni-frota" style="display:none" onclick="navTo('frota')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         <span class="ni-label">Frota</span>
-      </div>
-      <div class="ni" id="ni-rastreamento" style="display:none" onclick="navTo('rastreamento')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M12 3l9 9-9 9"/><circle cx="12" cy="12" r="3"/></svg>
-        <span class="ni-label">Rastreamento</span>
       </div>
       <div class="ni" id="ni-revisoes" style="display:none" onclick="navTo('revisoes')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -265,18 +242,6 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
       <div class="ni" id="ni-despesas" style="display:none" onclick="navTo('despesas')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         <span class="ni-label">Despesas</span>
-      </div>
-      <div class="ni" id="ni-custos" style="display:none" onclick="navTo('custos')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        <span class="ni-label">Custos</span>
-      </div>
-      <div class="ni" id="ni-checklists" style="display:none" onclick="navTo('checklists')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-        <span class="ni-label">Checklists</span>
-      </div>
-      <div class="ni" id="ni-abastecimentos" style="display:none" onclick="navTo('abastecimentos')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V10l9-8 9 8v12H3z"/><path d="M9 22v-6h6v6"/><path d="M12 2v4m0 0a2 2 0 110 4 2 2 0 010-4z"/></svg>
-        <span class="ni-label">Abastecimentos</span>
       </div>
       <div class="sb-group" id="grp-admin" style="display:none">ADMINISTRACAO</div>
       <div class="ni" id="ni-usuarios" style="display:none" onclick="navTo('usuarios')">
@@ -313,16 +278,12 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
           <option value="infra">Infra</option>
           <option value="retirada">Retirada</option>
         </select>
-        <select id="sel-tecnico" onchange="filtrarTecnico(this.value)" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;flex-shrink:0;max-width:140px">
-          <option value="todos">👷 Todos técnicos</option>
-        </select>
         <input type="date" id="filtro-data-ini" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;flex-shrink:0" onchange="renderSidebar();renderMapa()">
         <span style="color:var(--text3);font-size:.75rem;flex-shrink:0">até</span>
         <input type="date" id="filtro-data-fim" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;flex-shrink:0" onchange="renderSidebar();renderMapa()">
         <button class="btn btn-o" style="padding:4px 8px;font-size:.75rem;flex-shrink:0" onclick="limparDatas()">✕</button>
       </div>
       <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
-        <button class="btn btn-o" onclick="window.open('/tv','_blank')" title="Tela TV">📺 TV</button>
         <button class="btn btn-o" onclick="carregarDados()">↻</button>
         <button class="btn btn-o" onclick="logout()">Sair</button>
       </div>
@@ -393,90 +354,16 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
               <div class="card-dia-num" style="color:var(--green)"><span id="cd-finalizada">0</span></div>
               <div class="card-dia-label">Finali-<br>zadas</div>
             </div>
-
+            <div class="card-dia" style="border-left:1px solid var(--border)">
+              <div class="card-dia-num" style="color:var(--text2)"><span id="cd-tecnicos">0</span></div>
+              <div class="card-dia-label">Tec em<br>deslocam.</div>
+            </div>
           </div>
         </div>
 
       </div>
 
       <!-- SECAO FROTA -->
-      <!-- SECAO RASTREAMENTO -->
-      <div class="secao" id="secao-rastreamento" style="padding:0;overflow:hidden;flex-direction:row">
-
-        <!-- SIDEBAR VEICULOS -->
-        <div style="width:260px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden">
-
-          <!-- FILTROS PERIODO -->
-          <div style="padding:12px;border-bottom:1px solid var(--border);flex-shrink:0">
-            <div style="font-size:.7rem;font-weight:800;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Período</div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px">
-              <button class="btn btn-o active" id="rp-hoje" onclick="setPeriodo(0,this)" style="padding:3px 10px;font-size:.72rem">Hoje</button>
-              <button class="btn btn-o" id="rp-ontem" onclick="setPeriodo(1,this)" style="padding:3px 10px;font-size:.72rem">Ontem</button>
-              <button class="btn btn-o" id="rp-3d" onclick="setPeriodo(3,this)" style="padding:3px 10px;font-size:.72rem">3 dias</button>
-              <button class="btn btn-o" id="rp-7d" onclick="setPeriodo(7,this)" style="padding:3px 10px;font-size:.72rem">7 dias</button>
-            </div>
-          </div>
-
-          <!-- RESUMO DO VEICULO SELECIONADO -->
-          <div id="rast-resumo" style="padding:10px 12px;border-bottom:1px solid var(--border);display:none;flex-shrink:0">
-            <div style="font-size:.7rem;font-weight:800;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Resumo</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-              <div style="background:var(--surf2);border-radius:7px;padding:6px 8px;text-align:center">
-                <div style="font-size:1.1rem;font-weight:900;color:var(--accent)" id="rast-km">—</div>
-                <div style="font-size:.62rem;color:var(--text3)">KM total</div>
-              </div>
-              <div style="background:var(--surf2);border-radius:7px;padding:6px 8px;text-align:center">
-                <div style="font-size:1.1rem;font-weight:900;color:var(--blue)" id="rast-velmax">—</div>
-                <div style="font-size:.62rem;color:var(--text3)">Vel. máx</div>
-              </div>
-              <div style="background:var(--surf2);border-radius:7px;padding:6px 8px;text-align:center">
-                <div style="font-size:1.1rem;font-weight:900;color:var(--amber)" id="rast-paradas">—</div>
-                <div style="font-size:.62rem;color:var(--text3)">Paradas</div>
-              </div>
-              <div style="background:var(--surf2);border-radius:7px;padding:6px 8px;text-align:center">
-                <div style="font-size:1.1rem;font-weight:900;color:var(--green)" id="rast-pontos">—</div>
-                <div style="font-size:.62rem;color:var(--text3)">Pontos GPS</div>
-              </div>
-            </div>
-            <div style="font-size:.68rem;color:var(--text3);margin-top:6px;text-align:center" id="rast-periodo-txt"></div>
-          </div>
-
-          <!-- TIMELINE PARADAS -->
-          <div id="rast-timeline" style="display:none;flex-shrink:0;border-bottom:1px solid var(--border)">
-            <div style="font-size:.68rem;font-weight:800;color:var(--text3);padding:8px 12px 4px;text-transform:uppercase;letter-spacing:.05em">⏱ Timeline de Paradas</div>
-            <div id="rast-timeline-lista" style="max-height:220px;overflow-y:auto;padding:4px 10px 8px"></div>
-          </div>
-
-          <!-- LISTA VEICULOS -->
-          <div style="font-size:.68rem;font-weight:800;color:var(--text3);padding:8px 12px 4px;text-transform:uppercase;letter-spacing:.05em">Veículos ativos</div>
-          <div id="rast-lista-veiculos" style="flex:1;overflow-y:auto;padding:4px 8px">
-            <div style="text-align:center;color:var(--text3);padding:20px;font-size:.82rem">Carregando...</div>
-          </div>
-        </div>
-
-        <!-- MAPA RASTREAMENTO -->
-        <div style="flex:1;position:relative">
-          <div id="rast-mapa" style="width:100%;height:100%"></div>
-          <div id="rast-vazio" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
-            <div style="text-align:center;color:var(--text3)">
-              <div style="font-size:2.5rem;margin-bottom:12px">🗺️</div>
-              <div style="font-size:.9rem;font-weight:700">Selecione um veículo</div>
-              <div style="font-size:.78rem;margin-top:4px">para ver o trajeto no mapa</div>
-            </div>
-          </div>
-          <!-- LEGENDA -->
-          <div style="position:absolute;bottom:20px;right:10px;background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.68rem;z-index:1000">
-            <div style="font-weight:700;margin-bottom:5px;color:var(--text3)">Velocidade</div>
-            <div style="display:flex;flex-direction:column;gap:3px">
-              <div><span style="color:#22c55e">━</span> Normal (&lt;60)</div>
-              <div><span style="color:#f59e0b">━</span> Moderada (60-80)</div>
-              <div><span style="color:#ef4444">━</span> Alta (&gt;80)</div>
-              <div><span style="color:#6366f1">●</span> Parada detectada</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- SECAO REVISOES -->
       <div class="secao" id="secao-revisoes" style="padding:0;overflow:hidden;flex-direction:column">
 
@@ -536,25 +423,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
             </div>
             <div>
               <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:4px">Item de Revisão *</label>
-              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px" id="chips-itens">
-                <span class="chip-item" onclick="toggleChip(this)">🛢️ Troca de óleo</span>
-                <span class="chip-item" onclick="toggleChip(this)">🔧 Revisão geral</span>
-                <span class="chip-item" onclick="toggleChip(this)">🔵 Filtro de óleo</span>
-                <span class="chip-item" onclick="toggleChip(this)">💨 Filtro de ar</span>
-                <span class="chip-item" onclick="toggleChip(this)">⛽ Filtro de combustível</span>
-                <span class="chip-item" onclick="toggleChip(this)">🔋 Bateria</span>
-                <span class="chip-item" onclick="toggleChip(this)">🔴 Pastilha de freio</span>
-                <span class="chip-item" onclick="toggleChip(this)">⚙️ Correia dentada</span>
-                <span class="chip-item" onclick="toggleChip(this)">🟡 Velas</span>
-                <span class="chip-item" onclick="toggleChip(this)">🚗 Pneus</span>
-                <span class="chip-item" onclick="toggleChip(this)">💧 Fluido de freio</span>
-                <span class="chip-item" onclick="toggleChip(this)">❄️ Fluido de arrefecimento</span>
-                <span class="chip-item" onclick="toggleChip(this)">📋 IPVA</span>
-                <span class="chip-item" onclick="toggleChip(this)">📄 Licenciamento</span>
-                <span class="chip-item" onclick="toggleChip(this)">🔦 Alinhamento/Balanceamento</span>
-              </div>
-              <input type="text" id="rev-item" placeholder="Ou digite um item personalizado..." style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
-              <div style="font-size:.72rem;color:var(--text3);margin-top:4px">Clique nos itens acima para selecionar (pode selecionar vários) ou digite abaixo</div>
+              <input type="text" id="rev-item" placeholder="ex: Troca de óleo, Revisão geral, Pneus..." style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.85rem;outline:none;box-sizing:border-box">
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
               <div>
@@ -627,7 +496,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
           <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surf2)">
             <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Vínculos de Hoje</div>
             <div id="vinculos-hoje" style="display:flex;flex-direction:column;gap:4px"></div>
-            <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:6px" onclick="abrirVincular()">+ Vincular Técnico ↔ Veículo</button>
+            <button class="btn btn-p" style="width:100%;margin-top:8px;padding:6px" onclick="abrirVincular()">+ Vincular Técnico ↔ Veículo</button>
           </div>
           <div style="flex:1;overflow-y:auto;padding:8px">
             <div id="lista-veiculos"></div>
@@ -658,7 +527,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
             <input type="date" id="desp-fil-ini" onchange="carregarDespesas()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
             <span style="color:var(--text3);font-size:.75rem">ate</span>
             <input type="date" id="desp-fil-fim" onchange="carregarDespesas()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
-            <button class="btn btn-primary" onclick="abrirNovaDespesa()">+ Nova Despesa</button>
+            <button class="btn btn-p" onclick="abrirNovaDespesa()">+ Nova Despesa</button>
           </div>
         </div>
         <div id="desp-total" style="font-size:.82rem;color:var(--text3);margin-bottom:10px"></div>
@@ -673,197 +542,11 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         </div>
       </div>
 
-      <!-- SECAO ABASTECIMENTOS -->
-      <div class="secao" id="secao-abastecimentos" style="padding:0;overflow:hidden;flex-direction:column">
-
-        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surf);flex-shrink:0;flex-wrap:wrap">
-          <div style="font-weight:800;font-size:.95rem">Abastecimentos</div>
-          <select id="abst-veiculo" onchange="carregarAbast()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
-            <option value="">Todos os veiculos</option>
-          </select>
-          <select id="abst-mes" onchange="carregarAbast()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
-            <option value="">Todos os meses</option>
-            <option value="01">Janeiro</option><option value="02">Fevereiro</option>
-            <option value="03">Marco</option><option value="04">Abril</option>
-            <option value="05">Maio</option><option value="06">Junho</option>
-            <option value="07">Julho</option><option value="08">Agosto</option>
-            <option value="09">Setembro</option><option value="10">Outubro</option>
-            <option value="11">Novembro</option><option value="12">Dezembro</option>
-          </select>
-          <input type="number" id="abst-ano" placeholder="Ano" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;width:72px" onchange="carregarAbast()">
-          <button class="btn btn-primary" onclick="abrirNovoAbast()" style="margin-left:auto;padding:4px 12px;font-size:.78rem">+ Novo Abastecimento</button>
-          <button class="btn btn-o" onclick="carregarAbast()" style="padding:4px 10px;font-size:.78rem">&#8635; Atualizar</button>
-        </div>
-
-        <div style="display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0;flex-wrap:wrap">
-          <div class="rev-stat-card" style="border-color:var(--blue)">
-            <div class="rsc-num" id="abst-c-litros" style="color:var(--blue)">--</div>
-            <div class="rsc-label">Total Litros</div>
-          </div>
-          <div class="rev-stat-card" style="border-color:var(--amber)">
-            <div class="rsc-num" id="abst-c-gasto" style="color:var(--amber)">--</div>
-            <div class="rsc-label">Total Gasto</div>
-          </div>
-          <div class="rev-stat-card" style="border-color:var(--green)">
-            <div class="rsc-num" id="abst-c-kml" style="color:var(--green)">--</div>
-            <div class="rsc-label">Media km/L</div>
-          </div>
-          <div class="rev-stat-card" style="border-color:var(--border)">
-            <div class="rsc-num" id="abst-c-custoKm" style="color:var(--text)">--</div>
-            <div class="rsc-label">Custo/km</div>
-          </div>
-          <div class="rev-stat-card" style="border-color:#ef4444">
-            <div class="rsc-num" id="abst-c-alertas" style="color:#ef4444">0</div>
-            <div class="rsc-label">Alertas consum.</div>
-          </div>
-        </div>
-
-        <div style="flex:1;overflow-y:auto;padding:16px 20px">
-          <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            <table>
-              <thead><tr>
-                <th>Data</th><th>Veiculo</th><th>KM</th><th>Litros</th>
-                <th>Valor</th><th>R$/L</th><th>km/L</th><th></th>
-              </tr></thead>
-              <tbody id="tbody-abast"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Selecione Abastecimentos no menu</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- SECAO CHECKLISTS -->
-      <div class="secao" id="secao-checklists" style="padding:0;overflow:hidden;flex-direction:column">
-
-        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surf);flex-shrink:0;flex-wrap:wrap">
-          <div style="font-weight:800;font-size:.95rem">Checklists de Veiculo</div>
-          <select id="chk-veiculo" onchange="carregarChecklists()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
-            <option value="">Todos os veiculos</option>
-          </select>
-          <input type="date" id="chk-data" onchange="carregarChecklists()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
-          <select id="chk-tipo" onchange="carregarChecklists()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
-            <option value="">Saida + Retorno</option>
-            <option value="saida">Saida</option>
-            <option value="retorno">Retorno</option>
-          </select>
-          <button class="btn btn-primary" onclick="abrirNovoChecklist()" style="margin-left:auto;padding:4px 12px;font-size:.78rem">+ Novo Checklist</button>
-        </div>
-
-        <div style="flex:1;overflow-y:auto;padding:16px 20px">
-          <div id="chk-lista" style="display:flex;flex-direction:column;gap:12px"></div>
-        </div>
-      </div>
-
-      <!-- SECAO CUSTOS -->
-      <div class="secao" id="secao-custos" style="padding:0;overflow:hidden;flex-direction:column">
-
-        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surf);flex-shrink:0;flex-wrap:wrap">
-          <div style="font-weight:800;font-size:.95rem">Custos da Frota</div>
-          <select id="cst-mes" onchange="carregarCustos()" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none">
-            <option value="">Todos os meses</option>
-            <option value="01">Janeiro</option><option value="02">Fevereiro</option>
-            <option value="03">Marco</option><option value="04">Abril</option>
-            <option value="05">Maio</option><option value="06">Junho</option>
-            <option value="07">Julho</option><option value="08">Agosto</option>
-            <option value="09">Setembro</option><option value="10">Outubro</option>
-            <option value="11">Novembro</option><option value="12">Dezembro</option>
-          </select>
-          <input type="number" id="cst-ano" placeholder="Ano" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:4px 8px;font-size:.78rem;outline:none;width:72px" onchange="carregarCustos()">
-          <button class="btn btn-o" onclick="carregarCustos()" style="padding:4px 10px;font-size:.78rem">&#8635; Atualizar</button>
-        </div>
-
-        <div style="display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0;flex-wrap:wrap">
-          <div class="rev-stat-card" style="border-color:var(--amber)">
-            <div class="rsc-num" id="cst-t-total" style="color:var(--amber)">--</div>
-            <div class="rsc-label">Total Geral</div>
-          </div>
-          <div class="rev-stat-card" style="border-color:var(--blue)">
-            <div class="rsc-num" id="cst-t-comb" style="color:var(--blue)">--</div>
-            <div class="rsc-label">Combustivel</div>
-          </div>
-          <div class="rev-stat-card" style="border-color:var(--green)">
-            <div class="rsc-num" id="cst-t-manut" style="color:var(--green)">--</div>
-            <div class="rsc-label">Manutencao</div>
-          </div>
-          <div class="rev-stat-card" style="border-color:var(--text3)">
-            <div class="rsc-num" id="cst-t-outros" style="color:var(--text3)">--</div>
-            <div class="rsc-label">Outros</div>
-          </div>
-          <div class="rev-stat-card" style="border-color:#ef4444">
-            <div class="rsc-num" id="cst-t-acima" style="color:#ef4444">0</div>
-            <div class="rsc-label">Veic. acima media</div>
-          </div>
-        </div>
-
-        <div style="flex:1;overflow-y:auto;padding:16px 20px">
-          <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            <table>
-              <thead><tr>
-                <th>Veiculo</th><th>Tipo</th>
-                <th>Combustivel</th><th>Manutencao</th><th>Outros</th>
-                <th>Total</th><th>vs. Media</th>
-              </tr></thead>
-              <tbody id="tbody-custos"><tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Selecione Custos no menu</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
       <!-- SECAO USUARIOS -->
-      <div class="secao" id="secao-agenda" style="padding:20px;overflow-y:auto;flex-direction:column">
-
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div style="font-size:1.1rem;font-weight:800">📅 Agenda Automática</div>
-      <div style="font-size:.78rem;color:var(--text3)">Rotas sugeridas por pontos e localização</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input type="date" id="agenda-data" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:.82rem;outline:none">
-      <button onclick="agendaGerarRotas()" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:.82rem;font-weight:700;cursor:pointer">⚡ Gerar Rotas</button>
-      <button onclick="agendaVerDia()" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 14px;font-size:.82rem;cursor:pointer">📋 Ver Dia</button>
-    </div>
-  </div>
-
-  <div id="agenda-kpis" style="display:none;gap:10px;margin-bottom:18px;flex-wrap:wrap">
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;min-width:120px;text-align:center">
-      <div style="font-size:1.4rem;font-weight:800;color:var(--accent)" id="kpi-rotas">0</div>
-      <div style="font-size:.72rem;color:var(--text3)">Rotas</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;min-width:120px;text-align:center">
-      <div style="font-size:1.4rem;font-weight:800;color:var(--green)" id="kpi-os">0</div>
-      <div style="font-size:.72rem;color:var(--text3)">OS</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;min-width:120px;text-align:center">
-      <div style="font-size:1.4rem;font-weight:800;color:var(--amber)" id="kpi-tecnicos">0</div>
-      <div style="font-size:.72rem;color:var(--text3)">Técnicos disponíveis</div>
-    </div>
-  </div>
-
-  <div id="agenda-loading" style="display:none;text-align:center;padding:40px;color:var(--text3)">
-    <div style="font-size:1.5rem;margin-bottom:8px">⏳</div>
-    <div>Gerando rotas...</div>
-  </div>
-
-  <div id="agenda-rotas" style="display:flex;flex-direction:column;gap:12px"></div>
-
-  <div id="modal-agenda" class="modal-bg" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:var(--surf);border-radius:14px;padding:28px;width:420px;max-width:95vw">
-      <div style="font-size:1rem;font-weight:800;margin-bottom:16px">👷 Atribuir Técnico</div>
-      <div id="modal-agenda-info" style="background:var(--surf2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--text2)"></div>
-      <div style="font-size:.78rem;color:var(--text3);margin-bottom:8px">Selecione o técnico:</div>
-      <div id="modal-agenda-tecnicos" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto"></div>
-      <div style="display:flex;gap:8px;margin-top:16px">
-        <button onclick="document.getElementById('modal-agenda').style.display='none'" style="flex:1;padding:9px;background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:7px;cursor:pointer">Cancelar</button>
-        <button onclick="agendaConfirmar()" id="btn-confirmar-rota" style="flex:1;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer">✅ Confirmar</button>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<div class="secao" id="secao-usuarios" style="padding:20px;overflow-y:auto">
+      <div class="secao" id="secao-usuarios" style="padding:20px;overflow-y:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div style="font-size:1.1rem;font-weight:800">⚙️ Usuarios</div>
-          <button class="btn btn-primary" onclick="abrirNovoUsuario()">+ Novo</button>
+          <button class="btn btn-p" onclick="abrirNovoUsuario()">+ Novo</button>
         </div>
         <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;overflow:hidden">
           <table>
@@ -890,7 +573,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
     <hr class="detalhe-divider">
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-o" onclick="fecharDetalhe()">Fechar</button>
-      <button class="btn btn-primary" id="md-btn-atribuir" onclick="abrirAtribuirDaModal()" style="display:none">Agendar Tecnico</button>
+      <button class="btn btn-p" id="md-btn-atribuir" onclick="abrirAtribuirDaModal()" style="display:none">Agendar Tecnico</button>
     </div>
   </div>
 </div>
@@ -907,7 +590,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
     <div class="field"><label>Veículo</label><select id="vincular-veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none"></select></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <button class="btn btn-o" onclick="fecharVincular()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarVinculo()">Salvar</button>
+      <button class="btn btn-p" onclick="salvarVinculo()">Salvar</button>
     </div>
   </div>
 </div>
@@ -953,7 +636,7 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <button class="btn btn-o" onclick="fecharModalUsuario()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarUsuario()">Salvar</button>
+      <button class="btn btn-p" onclick="salvarUsuario()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1038,14 +721,9 @@ function iniciarApp(u) {
     document.getElementById('grp-frota').style.display='block';
     document.getElementById('ni-frota').style.display='flex';
     document.getElementById('ni-revisoes').style.display='flex';
-    document.getElementById('ni-rastreamento').style.display='flex';
-    document.getElementById('ni-custos').style.display='flex';
-    document.getElementById('ni-checklists').style.display='flex';
-    document.getElementById('ni-abastecimentos').style.display='flex';
     document.getElementById('ni-despesas').style.display='flex';
   }
-  if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex';
-    if (u.nivel >= 50) { document.getElementById('ni-agenda').style.display='flex'; } }
+  if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex'; }
   if (u.nivel >= 50) { navTo('os'); } else if (u.nivel >= 40) { navTo('frota'); }
 }
 
@@ -1066,311 +744,24 @@ function navTo(secao) {
   } else if (secao==='frota') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Controle de Frota';
-  } else if (secao==='abastecimentos') {
-    document.getElementById('tb-stats-os').style.display = 'none';
-    document.getElementById('tb-titulo').textContent = 'Abastecimentos';
-    carregarAbast();
+    setTimeout(function(){
+      iniciarMapaFrota();
+      carregarFrota();
+    }, 100);
   } else if (secao==='despesas') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Despesas de Frota';
     carregarDespesas();
-  } else if (secao==='custos') {
-    document.getElementById('tb-stats-os').style.display = 'none';
-    document.getElementById('tb-titulo').textContent = 'Custos da Frota';
-    carregarCustos();
-  } else if (secao==='checklists') {
-    document.getElementById('tb-stats-os').style.display = 'none';
-    document.getElementById('tb-titulo').textContent = 'Checklists de Veiculo';
-    carregarChecklists();
-  } else if (secao==='rastreamento') {
-    document.getElementById('tb-stats-os').style.display = 'none';
-    document.getElementById('tb-titulo').textContent = 'Rastreamento Histórico';
-    iniciarRastreamento();
   } else if (secao==='revisoes') {
     document.getElementById('tb-stats-os').style.display = 'none';
-    document.getElementById('tb-titulo').textContent = 'Proximas Revisoes';
+    document.getElementById('tb-titulo').textContent = 'Próximas Revisões';
     carregarRevisoes();
-  } else if (secao==='agenda') {
-    agendaIniciar();
   } else if (secao==='usuarios') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Usuarios';
     carregarUsuarios();
   }
 }
-
-// ── ABASTECIMENTOS ────────────────────────────────────────────
-var _veiculosAbast = [];
-
-async function carregarAbast() {
-  if (_veiculosAbast.length === 0) {
-    _veiculosAbast = await api('/api/despesas/veiculos');
-    var sel = document.getElementById('abst-veiculo');
-    if (sel) {
-      sel.innerHTML = '<option value="">Todos os veiculos</option>';
-      _veiculosAbast.forEach(function(v) {
-        sel.innerHTML += '<option value="' + v.ixc_veiculo_id + '">' + v.placa + ' -- ' + v.marca_modelo + '</option>';
-      });
-    }
-    var anoEl = document.getElementById('abst-ano');
-    if (anoEl && !anoEl.value) anoEl.value = new Date().getFullYear();
-  }
-
-  var veiculo = document.getElementById('abst-veiculo').value;
-  var mes = document.getElementById('abst-mes').value;
-  var ano = document.getElementById('abst-ano').value;
-
-  var url = '/api/abastecimentos?x=1';
-  if (veiculo) url += '&id_veiculo=' + veiculo;
-  if (mes) url += '&mes=' + mes;
-  if (ano) url += '&ano=' + ano;
-
-  var rows = await api(url);
-  if (!Array.isArray(rows)) rows = [];
-
-  var totalLitros = 0, totalGasto = 0, somaKml = 0, nKml = 0, kmTotal = 0, alertas = 0;
-  rows.forEach(function(r) {
-    totalLitros += r.quantidade_litros || 0;
-    totalGasto += r.valor || 0;
-    if (r.km_por_litro) { somaKml += r.km_por_litro; nKml++; }
-    if (r.km_rodados) kmTotal += r.km_rodados;
-    if (r.alerta_consumo) alertas++;
-  });
-  var mediaKml = nKml ? somaKml / nKml : null;
-  var custoKm = kmTotal > 0 ? totalGasto / kmTotal : null;
-
-  document.getElementById('abst-c-litros').textContent = totalLitros.toFixed(1) + ' L';
-  document.getElementById('abst-c-gasto').textContent = 'R$ ' + totalGasto.toFixed(2).replace('.', ',');
-  document.getElementById('abst-c-kml').textContent = mediaKml ? mediaKml.toFixed(2) + ' km/L' : '--';
-  document.getElementById('abst-c-custoKm').textContent = custoKm ? 'R$ ' + custoKm.toFixed(4) : '--';
-  document.getElementById('abst-c-alertas').textContent = alertas;
-
-  var tb = '';
-  rows.forEach(function(r) {
-    var kml = r.km_por_litro ? r.km_por_litro.toFixed(2) : '--';
-    var kmlColor = r.km_por_litro ? (r.alerta_consumo ? '#ef4444' : 'var(--green)') : 'var(--text3)';
-    var alerta = r.alerta_consumo
-      ? '<span title="Consumo ' + (r.km_por_litro||0).toFixed(2) + ' km/L vs media ' + (r.media_km_litro||0).toFixed(2) + ' km/L" style="color:#ef4444">&#9888;</span>'
-      : '';
-    tb += '<tr>'
-      + '<td>' + r.data + '</td>'
-      + '<td style="font-size:.78rem">' + (r.placa || '--') + '</td>'
-      + '<td style="color:var(--text3);font-size:.78rem">' + (r.kilometragem ? Number(r.kilometragem).toLocaleString() + ' km' : '--') + '</td>'
-      + '<td>' + Number(r.quantidade_litros).toFixed(2) + ' L</td>'
-      + '<td style="font-weight:700;color:var(--amber)">R$ ' + Number(r.valor).toFixed(2).replace('.', ',') + '</td>'
-      + '<td style="font-size:.78rem;color:var(--text3)">' + (r.valor_litro ? 'R$ ' + Number(r.valor_litro).toFixed(3) : '--') + '</td>'
-      + '<td style="font-weight:700;color:' + kmlColor + '">' + kml + '</td>'
-      + '<td>' + alerta + '</td>'
-      + '</tr>';
-  });
-  if (!tb) tb = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Nenhum abastecimento encontrado no periodo</td></tr>';
-  document.getElementById('tbody-abast').innerHTML = tb;
-}
-
-function abrirNovoAbast() {
-  abrirNovaDespesa();
-  setTimeout(function() {
-    var el = document.getElementById('d-tipo');
-    if (el) { el.value = 'Abastecimento'; mostrarCamposAbast(); }
-  }, 80);
-}
-
-
-
-// ── CHECKLISTS ────────────────────────────────────────────────
-var _veiculosChk = [];
-var _itensChkPadrao = [];
-
-async function carregarChecklists() {
-  if (_veiculosChk.length === 0) {
-    _veiculosChk = await api('/api/despesas/veiculos');
-    var sel = document.getElementById('chk-veiculo');
-    if (sel) {
-      sel.innerHTML = '<option value="">Todos os veiculos</option>';
-      _veiculosChk.forEach(function(v) {
-        sel.innerHTML += '<option value="' + v.id + '">' + v.placa + ' -- ' + v.marca_modelo + '</option>';
-      });
-    }
-    var dEl = document.getElementById('chk-data');
-    if (dEl && !dEl.value) dEl.value = new Date().toISOString().split('T')[0];
-  }
-
-  var veiculo = document.getElementById('chk-veiculo').value;
-  var data = document.getElementById('chk-data').value;
-  var tipo = document.getElementById('chk-tipo').value;
-  var url = '/api/checklists?x=1';
-  if (veiculo) url += '&id_veiculo=' + veiculo;
-  if (data) url += '&data=' + data;
-  if (tipo) url += '&tipo=' + tipo;
-
-  var rows = await api(url);
-  if (!Array.isArray(rows)) rows = [];
-
-  var lista = document.getElementById('chk-lista');
-  if (!rows.length) {
-    lista.innerHTML = '<div style="text-align:center;padding:50px"><div style="font-size:2rem;margin-bottom:12px">📋</div><div style="color:var(--text3);font-size:.9rem;margin-bottom:16px">Nenhum checklist encontrado para o filtro selecionado.</div><button class="btn btn-primary" onclick="abrirNovoChecklist()" style="padding:6px 16px">+ Criar primeiro checklist</button></div>';
-    return;
-  }
-
-  var html = '';
-  rows.forEach(function(r) {
-    var itens = [];
-    try { itens = JSON.parse(r.itens_json || '[]'); } catch(e) {}
-    var cor = r.itens_nao_ok > 0 ? '#ef4444' : 'var(--green)';
-    var badge = r.itens_nao_ok > 0
-      ? '<span style="background:#ef444420;color:#ef4444;font-size:.72rem;padding:2px 8px;border-radius:4px;font-weight:700">' + r.itens_nao_ok + ' item(ns) NOK</span>'
-      : '<span style="background:var(--green)20;color:var(--green);font-size:.72rem;padding:2px 8px;border-radius:4px;font-weight:700">Tudo OK</span>';
-    var tipoBadge = r.tipo === 'saida'
-      ? '<span style="background:var(--blue)20;color:var(--blue);font-size:.72rem;padding:2px 8px;border-radius:4px">Saida</span>'
-      : '<span style="background:var(--amber)20;color:var(--amber);font-size:.72rem;padding:2px 8px;border-radius:4px">Retorno</span>';
-
-    html += '<div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid ' + cor + ';border-radius:10px;padding:14px">';
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
-    html += '<span style="font-weight:700">' + (r.placa || '--') + '</span>';
-    html += '<span style="color:var(--text3);font-size:.78rem">' + (r.marca_modelo || '') + '</span>';
-    html += tipoBadge + badge;
-    html += '<span style="margin-left:auto;font-size:.75rem;color:var(--text3)">' + r.data + (r.km ? ' &bull; ' + r.km.toLocaleString() + ' km' : '') + '</span>';
-    html += '<span style="font-size:.75rem;color:var(--text3)">' + (r.tecnico_nome || '--') + '</span>';
-    html += '</div>';
-
-    if (itens.length) {
-      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-      itens.forEach(function(it) {
-        var c = it.ok ? 'var(--green)' : '#ef4444';
-        html += '<span style="font-size:.72rem;padding:2px 8px;border-radius:4px;background:' + c + '20;color:' + c + '">'
-          + (it.ok ? '&#10003;' : '&#10007;') + ' ' + it.item
-          + (it.obs ? ' (' + it.obs + ')' : '') + '</span>';
-      });
-      html += '</div>';
-    }
-    if (r.observacao) html += '<div style="font-size:.78rem;color:var(--text3);margin-top:6px">' + r.observacao + '</div>';
-    html += '</div>';
-  });
-  lista.innerHTML = html;
-}
-
-async function abrirNovoChecklist() {
-  try {
-    if (_itensChkPadrao.length === 0) {
-      _itensChkPadrao = await api('/api/checklists/itens-padrao');
-    }
-  } catch(e) {
-    _itensChkPadrao = ["Nivel de oleo","Nivel de agua","Pneus","Freios","Luzes","Combustivel","Documentos","Equipamentos de seguranca","Limpeza"];
-  }
-  try {
-    if (_veiculosChk.length === 0) {
-      _veiculosChk = await api('/api/despesas/veiculos');
-    }
-  } catch(e) { toast('Erro ao carregar veiculos','err'); return; }
-  var selV = document.getElementById('chk-m-veiculo');
-  selV.innerHTML = '<option value="">Selecione...</option>';
-  _veiculosChk.forEach(function(v) {
-    selV.innerHTML += '<option value="' + v.id + '">' + v.placa + ' -- ' + v.marca_modelo + '</option>';
-  });
-
-  var itensDiv = document.getElementById('chk-m-itens');
-  itensDiv.innerHTML = '';
-  _itensChkPadrao.forEach(function(item, i) {
-    itensDiv.innerHTML += '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--surf2);border-radius:7px">'
-      + '<input type="checkbox" id="chki-' + i + '" checked style="width:16px;height:16px;accent-color:var(--accent)">'
-      + '<label for="chki-' + i + '" style="flex:1;font-size:.85rem;cursor:pointer">' + item + '</label>'
-      + '<input type="text" placeholder="Obs" id="chko-' + i + '" style="width:120px;background:var(--surf);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:3px 7px;font-size:.75rem;outline:none">'
-      + '</div>';
-  });
-
-  document.getElementById('chk-m-km').value = '';
-  document.getElementById('chk-m-obs').value = '';
-  document.getElementById('chk-erro').style.display = 'none';
-  document.getElementById('modal-checklist').classList.add('open');
-}
-
-function fecharChecklist() {
-  document.getElementById('modal-checklist').classList.remove('open');
-}
-
-async function salvarChecklist() {
-  var erro = document.getElementById('chk-erro');
-  erro.style.display = 'none';
-  var veiculo = document.getElementById('chk-m-veiculo').value;
-  if (!veiculo) { erro.textContent = 'Selecione o veiculo.'; erro.style.display = 'block'; return; }
-  var itens = _itensChkPadrao.map(function(item, i) {
-    return {
-      item: item,
-      ok: document.getElementById('chki-' + i).checked,
-      obs: document.getElementById('chko-' + i).value.trim()
-    };
-  });
-  var body = {
-    id_veiculo: parseInt(veiculo),
-    tipo: document.getElementById('chk-m-tipo').value,
-    km: parseInt(document.getElementById('chk-m-km').value) || null,
-    itens: itens,
-    observacao: document.getElementById('chk-m-obs').value.trim()
-  };
-  var r = await api('/api/checklists', {method: 'POST', body: JSON.stringify(body)});
-  if (r && r.ok) {
-    fecharChecklist();
-    carregarChecklists();
-    var nok = itens.filter(function(i){return !i.ok;}).length;
-    toast('Checklist salvo' + (nok ? ' — ' + nok + ' item(ns) NOK' : ' — Tudo OK'), 'ok');
-  } else {
-    erro.textContent = (r && r.detail) || 'Erro ao salvar';
-    erro.style.display = 'block';
-  }
-}
-
-
-
-// ── CUSTOS ───────────────────────────────────────────────────
-async function carregarCustos() {
-  var anoEl = document.getElementById('cst-ano');
-  if (anoEl && !anoEl.value) anoEl.value = new Date().getFullYear();
-  var mes = document.getElementById('cst-mes').value;
-  var ano = document.getElementById('cst-ano').value;
-
-  var url = '/api/custos?x=1';
-  if (mes) url += '&mes=' + mes;
-  if (ano) url += '&ano=' + ano;
-
-  var rows = await api(url);
-  if (!Array.isArray(rows)) rows = [];
-
-  var totalGeral = 0, totalComb = 0, totalManut = 0, totalOutros = 0;
-  rows.forEach(function(r) {
-    totalGeral  += r.total || 0;
-    totalComb   += r.combustivel || 0;
-    totalManut  += r.manutencao || 0;
-    totalOutros += r.outros || 0;
-  });
-  var media = rows.length ? totalGeral / rows.length : 0;
-  var acimaMedia = rows.filter(function(r){ return r.total > media * 1.2; }).length;
-
-  function fmt(v) { return 'R$ ' + (v||0).toFixed(2).replace('.',','); }
-  document.getElementById('cst-t-total').textContent  = fmt(totalGeral);
-  document.getElementById('cst-t-comb').textContent   = fmt(totalComb);
-  document.getElementById('cst-t-manut').textContent  = fmt(totalManut);
-  document.getElementById('cst-t-outros').textContent = fmt(totalOutros);
-  document.getElementById('cst-t-acima').textContent  = acimaMedia;
-
-  var tb = '';
-  rows.forEach(function(r) {
-    var pct = media > 0 ? ((r.total - media) / media * 100) : 0;
-    var pctTxt = pct > 0 ? '+' + pct.toFixed(0) + '%' : pct.toFixed(0) + '%';
-    var pctColor = pct > 20 ? '#ef4444' : pct < -10 ? 'var(--green)' : 'var(--text3)';
-    tb += '<tr>'
-      + '<td style="font-weight:700">' + (r.placa||'--') + '<br><span style="font-weight:400;color:var(--text3);font-size:.72rem">' + (r.marca_modelo||'') + '</span></td>'
-      + '<td style="font-size:.75rem;color:var(--text3)">' + (r.tipo_veiculo||'--') + '</td>'
-      + '<td style="color:var(--blue)">' + fmt(r.combustivel) + '</td>'
-      + '<td style="color:var(--green)">' + fmt(r.manutencao) + '</td>'
-      + '<td style="color:var(--text3)">' + fmt(r.outros) + '</td>'
-      + '<td style="font-weight:800;color:var(--amber)">' + fmt(r.total) + '</td>'
-      + '<td style="font-weight:700;color:' + pctColor + '">' + (media > 0 ? pctTxt : '--') + '</td>'
-      + '</tr>';
-  });
-  if (!tb) tb = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Nenhum dado de custo encontrado no periodo</td></tr>';
-  document.getElementById('tbody-custos').innerHTML = tb;
-}
-
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
 function logout() {
@@ -1437,7 +828,6 @@ async function carregarDados() {
       }
     } catch(e) {}
     atualizarStats(dados.stats || {});
-    popularSelectTecnicos();
     renderSidebar();
     renderMapa();
   } catch(e) { console.log('Erro ao carregar:', e); }
@@ -1462,21 +852,33 @@ function passaFiltroData(o) {
 
 function atualizarStats(s) {
   var pend = s.pendentes||0, desl = s.deslocamento||0, exec = s.execucao||0, fin = s.finalizadas||0;
-  var agend = s.agendadas || osCache.filter(function(o){ return o.status_hub==='agendada'||o.status_hub==='reagendada'; }).length;
+  var agend = osCache.filter(function(o){ return o.status_hub==='agendada'||o.status_hub==='reagendada'; }).length;
   var total = pend+desl+agend+exec+fin;
   var tecDesl = tecnicosCache.filter(function(t){ return parseFloat(t.velocidade||0)>3; }).length;
 
-  var _s = function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
   // topbar pills
-  _s('cnt-pendente',pend); _s('cnt-deslocamento',desl); _s('cnt-agendada',agend); _s('cnt-execucao',exec);
+  document.getElementById('cnt-pendente').textContent = pend;
+  document.getElementById('cnt-deslocamento').textContent = desl;
+  document.getElementById('cnt-agendada').textContent = agend;
+  document.getElementById('cnt-execucao').textContent = exec;
+
   // sidebar stats
-  _s('st-total',total); _s('st-pendente',pend); _s('st-deslocamento',desl);
-  _s('st-agendada',agend); _s('st-execucao',exec); _s('st-finalizada',fin);
-  _s('st-tecnicos',tecnicosCache.length);
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-pendente').textContent = pend;
+  document.getElementById('st-deslocamento').textContent = desl;
+  document.getElementById('st-agendada').textContent = agend;
+  document.getElementById('st-execucao').textContent = exec;
+  document.getElementById('st-finalizada').textContent = fin;
+  document.getElementById('st-tecnicos').textContent = tecnicosCache.length;
+
   // cards dia
-  _s('cd-total',total); _s('cd-pendente',pend); _s('cd-deslocamento',desl);
-  _s('cd-agendada',agend); _s('cd-execucao',exec); _s('cd-finalizada',fin);
-  _s('cd-tecnicos',tecDesl);
+  document.getElementById('cd-total').textContent = total;
+  document.getElementById('cd-pendente').textContent = pend;
+  document.getElementById('cd-deslocamento').textContent = desl;
+  document.getElementById('cd-agendada').textContent = agend;
+  document.getElementById('cd-execucao').textContent = exec;
+  document.getElementById('cd-finalizada').textContent = fin;
+  document.getElementById('cd-tecnicos').textContent = tecDesl;
 }
 
 // ── SIDEBAR OS ────────────────────────────────────────────────
@@ -1487,10 +889,6 @@ function renderSidebar() {
     if (tipoFiltro !== 'todos') {
       var tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
       if (tipo !== tipoFiltro) return false;
-    }
-    if (filtroTecnico !== 'todos') {
-      if (filtroTecnico === 'sem' && o.id_tecnico) return false;
-      if (filtroTecnico !== 'sem' && String(o.id_tecnico) !== filtroTecnico) return false;
     }
     return true;
   });
@@ -1524,7 +922,6 @@ function renderMapa() {
   Object.values(marcadores).forEach(function(m){ mapa.removeLayer(m); });
   Object.values(marcadoresTec).forEach(function(m){ mapa.removeLayer(m); });
   marcadores = {}; marcadoresTec = {};
-  var _bounds = [];
 
   // OS
   osCache.forEach(function(o) {
@@ -1534,21 +931,10 @@ function renderMapa() {
       var tipo = ASSUNTO_TIPO[o.id_assunto] || 'default';
       if (tipo !== tipoFiltro) return;
     }
-    if (filtroTecnico !== 'todos') {
-      if (filtroTecnico === 'sem' && o.id_tecnico) return;
-      if (filtroTecnico !== 'sem' && String(o.id_tecnico) !== filtroTecnico) return;
-    }
     if (!o.lat || !o.lon) return;
-    _bounds.push([o.lat, o.lon]);
     var m = L.marker([o.lat, o.lon], {icon: iconeOS(o.status_hub)})
       .addTo(mapa)
-      .bindTooltip(function(){
-        var status = {pendente:'🔴 Pendente',deslocamento:'🟡 Deslocamento',agendada:'📅 Agendada',reagendada:'🔄 Reagendada',execucao:'🔵 Execução',finalizada:'✅ Finalizada'}[o.status_hub]||o.status_hub;
-        var tec = o.tecnico_nome ? '<br>👷 '+o.tecnico_nome : '<br>👷 Sem técnico';
-        var hora = (o.data_agenda&&o.data_agenda!='0000-00-00 00:00') ? '<br>🕐 '+o.data_agenda.substring(11,16) : '';
-        var end = o.endereco ? '<br>📍 '+o.endereco.substring(0,40) : '';
-        return '<div style="min-width:160px"><b>OS #'+o.ixc_os_id+'</b> — '+status+'<br><b>'+(o.cliente_nome||'')+'</b>'+tec+'<br>🔧 '+(o.assunto_nome||'')+hora+end+'</div>';
-      }, {direction:'top', sticky:true});
+      .bindTooltip('<b>OS #'+o.ixc_os_id+'</b><br>'+(o.cliente_nome||'')+'<br>'+(o.assunto_nome||''), {direction:'top'});
     (function(osId){ m.on('click', function(){ selecionarOS(osId); }); })(o.ixc_os_id);
     marcadores[o.ixc_os_id] = m;
 
@@ -1650,7 +1036,7 @@ async function abrirAtribuir(ixc_os_id) {
         html += '<div class="tecnico-option '+(i===0?'best':'')+'" data-id="'+t.id+'">';
         html += '<div><div style="font-weight:700;font-size:.88rem">'+(i===0?'⭐ ':'')+t.nome+'</div>';
         html += '<div style="font-size:.75rem;color:var(--text3)">'+t.distancia_km+' km &middot; '+t.os_ativas+' OS ativas</div></div>';
-        html += '<button class="btn btn-primary" style="font-size:.75rem" onclick="atribuirOS('+t.id+')">Atribuir</button>';
+        html += '<button class="btn btn-p" style="font-size:.75rem" onclick="atribuirOS('+t.id+')">Atribuir</button>';
         html += '</div>';
       });
     }
@@ -1678,38 +1064,6 @@ function selecionarTipo(tipo) {
   tipoFiltro = tipo;
   renderSidebar();
   renderMapa();
-}
-
-var filtroTecnico = 'todos';
-
-function filtrarTecnico(val) {
-  filtroTecnico = val;
-  renderSidebar();
-  renderMapa();
-}
-
-function popularSelectTecnicos() {
-  var sel = document.getElementById('sel-tecnico');
-  if (!sel) return;
-  // Pega tecnicos unicos das OS no cache
-  var tecs = {};
-  osCache.forEach(function(o) {
-    if (o.id_tecnico && o.tecnico_nome) {
-      tecs[o.id_tecnico] = o.tecnico_nome;
-    }
-  });
-  // Reconstroi options
-  sel.innerHTML = '<option value="todos">👷 Todos técnicos</option>';
-  // Sem tecnico
-  var temSemTec = osCache.some(function(o){ return !o.id_tecnico; });
-  if (temSemTec) sel.innerHTML += '<option value="sem">Sem técnico</option>';
-  // Tecnicos ordenados por nome
-  Object.entries(tecs).sort(function(a,b){ return a[1].localeCompare(b[1]); }).forEach(function(e) {
-    var sel2 = document.getElementById('sel-tecnico');
-    sel2.innerHTML += '<option value="'+e[0]+'">'+e[1]+'</option>';
-  });
-  // Restaura selecao atual
-  sel.value = filtroTecnico;
 }
 
 function toggleFiltro(tipo, btn) {
@@ -2058,429 +1412,6 @@ function fecharModalDespesa() {
   document.getElementById('modal-despesa').classList.remove('open');
 }
 
-
-// ── RASTREAMENTO HISTORICO ────────────────────────────────────
-var rastMapa       = null;
-var rastVeiculo    = null;
-var rastDias       = 0;
-var rastLayers     = [];
-var _veiculosRast  = [];
-
-function iniciarRastreamento() {
-  if (!rastMapa) {
-    rastMapa = L.map('rast-mapa').setView([-10.321962,-36.579507], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(rastMapa);
-  }
-  carregarVeiculosRast();
-}
-
-function setPeriodo(dias, btn) {
-  rastDias = dias;
-  document.querySelectorAll('[id^="rp-"]').forEach(function(b){b.classList.remove('active');});
-  if (btn) btn.classList.add('active');
-  if (rastVeiculo) verTrajeto(rastVeiculo);
-}
-
-async function carregarVeiculosRast() {
-  var lista = document.getElementById('rast-lista-veiculos');
-  lista.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px">Carregando...</div>';
-  try {
-    _veiculosRast = await api('/api/tv/veiculos-ativos');
-    renderListaVeiculos();
-  } catch(e) {
-    lista.innerHTML = '<div style="text-align:center;color:var(--red);padding:20px">Erro ao carregar</div>';
-  }
-}
-
-function renderListaVeiculos() {
-  var lista = document.getElementById('rast-lista-veiculos');
-  if (!_veiculosRast.length) {
-    lista.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:.82rem">Nenhum veículo rodou nos últimos 7 dias</div>';
-    return;
-  }
-  var html = '';
-  _veiculosRast.forEach(function(v) {
-    var ativo = rastVeiculo && rastVeiculo.id === v.id;
-    var tipo = (v.tipo||'carro').toLowerCase();
-    var emojiTipo = {carro:'🚗',pickup:'🛻',moto:'🏍️',eletrico:'⚡',barco:'⛵',outros:'🔧'}[tipo]||'🚗';
-    var ultimoUso = v.ultimo_gps ? v.ultimo_gps.substring(0,16) : '—';
-    html += '<div onclick="verTrajeto('+JSON.stringify(v).replace(/"/g,"'")+')" style="'
-      +'background:'+(ativo?'var(--accent)':'var(--surf2)')
-      +';border-radius:9px;padding:9px 11px;margin-bottom:5px;cursor:pointer;'
-      +'border:1px solid '+(ativo?'var(--accent)':'var(--border)')
-      +';transition:all .15s">'
-      +'<div style="display:flex;align-items:center;gap:7px">'
-      +'<span style="font-size:1.1rem">'+emojiTipo+'</span>'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-weight:800;font-size:.82rem;color:'+(ativo?'#fff':'var(--text)')+'">'+v.placa+'</div>'
-      +'<div style="font-size:.7rem;color:'+(ativo?'rgba(255,255,255,.7)':'var(--text3)')+'">'+v.tecnico_nome+'</div>'
-      +'</div>'
-      +'<div style="font-size:.62rem;color:'+(ativo?'rgba(255,255,255,.6)':'var(--text3)')+'">'+ultimoUso.substring(0,10)+'</div>'
-      +'</div>'
-      +'</div>';
-  });
-  lista.innerHTML = html;
-}
-
-async function verTrajeto(veiculo) {
-  if (typeof veiculo === 'string') veiculo = JSON.parse(veiculo.replace(/'/g,'"'));
-  rastVeiculo = veiculo;
-  renderListaVeiculos();
-
-  // Limpa layers anteriores
-  rastLayers.forEach(function(l){ rastMapa.removeLayer(l); });
-  rastLayers = [];
-
-  document.getElementById('rast-vazio').style.display = 'none';
-
-  var horas = rastDias === 0 ? 24 : rastDias * 24;
-  try {
-    var dados = await api('/api/tv/historico?id_veiculo='+veiculo.id+'&horas='+horas);
-    var pontos = dados.pontos || [];
-    var resumo = dados.resumo || {};
-
-    if (!pontos.length) {
-      document.getElementById('rast-vazio').style.display = 'flex';
-      document.getElementById('rast-vazio').querySelector('div > div:last-child').textContent = 'Sem dados GPS no período';
-      limparResumo();
-      return;
-    }
-
-    // Desenha trajeto segmentado por velocidade
-    var bounds = [];
-    for (var i = 1; i < pontos.length; i++) {
-      var p0 = pontos[i-1], p1 = pontos[i];
-      var v = p1.velocidade || 0;
-      var cor = v > 80 ? '#ef4444' : v > 60 ? '#f59e0b' : '#22c55e';
-      var linha = L.polyline([[p0.lat,p0.lon],[p1.lat,p1.lon]],{
-        color:cor, weight:3, opacity:.8
-      }).addTo(rastMapa);
-      rastLayers.push(linha);
-      bounds.push([p1.lat,p1.lon]);
-    }
-
-    // Marcador inicio
-    var ini = pontos[0];
-    var mIni = L.circleMarker([ini.lat,ini.lon],{
-      radius:8, color:'#22c55e', fillColor:'#22c55e', fillOpacity:1, weight:2
-    }).addTo(rastMapa).bindTooltip('🟢 Início: '+ini.registrado_em.substring(11,16),{permanent:false});
-    rastLayers.push(mIni);
-    bounds.push([ini.lat,ini.lon]);
-
-    // Marcador fim
-    var fim = pontos[pontos.length-1];
-    var mFim = L.circleMarker([fim.lat,fim.lon],{
-      radius:8, color:'#ef4444', fillColor:'#ef4444', fillOpacity:1, weight:2
-    }).addTo(rastMapa).bindTooltip('🔴 Fim: '+fim.registrado_em.substring(11,16),{permanent:false});
-    rastLayers.push(mFim);
-
-    // Paradas enriquecidas vindas do backend
-    var paradas = dados.paradas || [];
-    paradas.forEach(function(par, idx) {
-      var cor = par.dur_min > 60 ? '#ef4444' : par.dur_min > 20 ? '#f59e0b' : '#6366f1';
-      var os = par.os;
-      var popupHtml =
-        '<div style="min-width:200px;font-family:sans-serif">' +
-        '<div style="font-weight:800;font-size:.85rem;margin-bottom:6px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">&#9646; Parada #'+(idx+1)+'</div>' +
-        '<div style="font-size:.78rem;line-height:1.7">' +
-        '<div>&#128336; <b>In&iacute;cio:</b> '+par.inicio.substring(11,16)+'</div>' +
-        '<div>&#128336; <b>Fim:</b> '+par.fim.substring(11,16)+'</div>' +
-        '<div>&#9201; <b>Dura&ccedil;&atilde;o:</b> '+(par.dur_min >= 60 ? Math.floor(par.dur_min/60)+'h '+(par.dur_min%60)+'min' : par.dur_min+'min')+'</div>' +
-        (par.endereco ? '<div>&#128205; <b>Local:</b> '+par.endereco+'</div>' : '') +
-        (os ? '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0">' +
-          '<div>&#128295; <b>OS #'+os.ixc_os_id+'</b></div>' +
-          '<div>&#128100; '+os.cliente_nome+'</div>' +
-          '<div>&#128203; '+os.assunto_nome+'</div>' +
-          '<div>&#128204; '+os.status_hub+'</div>' +
-          (par.os_dist_m != null ? '<div style="color:#22c55e;font-size:.68rem">&#128205; '+par.os_dist_m+'m do cliente</div>' : '<div style="color:#f59e0b;font-size:.68rem">&#128336; Vinculada por hor&aacute;rio</div>') +
-          '</div>' : '<div style="margin-top:4px;color:#94a3b8;font-size:.72rem">Sem OS vinculada</div>') +
-        '</div></div>';
-      var mPar = L.circleMarker([par.lat,par.lon],{
-        radius: par.dur_min > 60 ? 9 : par.dur_min > 20 ? 7 : 5,
-        color: cor, fillColor: cor, fillOpacity:.9, weight:2
-      }).addTo(rastMapa).bindPopup(popupHtml, {maxWidth:260});
-      mPar.bindTooltip(par.dur_min+'min — '+par.inicio.substring(11,16), {permanent:false});
-      rastLayers.push(mPar);
-      bounds.push([par.lat, par.lon]);
-    });
-
-    // Ajusta mapa
-    if (bounds.length) rastMapa.fitBounds(bounds, {padding:[30,30]});
-
-    // Resumo + timeline
-    atualizarResumo(resumo, pontos, veiculo);
-    renderTimeline(paradas);
-
-  } catch(e) {
-    console.error('Erro trajeto:', e);
-    document.getElementById('rast-vazio').style.display = 'flex';
-  }
-}
-
-function atualizarResumo(resumo, pontos, veiculo) {
-  document.getElementById('rast-resumo').style.display = 'block';
-  // Calcula KM aproximado pelo numero de pontos e distancia
-  var kmTotal = 0;
-  for (var i = 1; i < pontos.length; i++) {
-    var p0 = pontos[i-1], p1 = pontos[i];
-    var R = 6371;
-    var dLat = (p1.lat-p0.lat)*Math.PI/180;
-    var dLon = (p1.lon-p0.lon)*Math.PI/180;
-    var a = Math.sin(dLat/2)*Math.sin(dLat/2)+
-            Math.cos(p0.lat*Math.PI/180)*Math.cos(p1.lat*Math.PI/180)*
-            Math.sin(dLon/2)*Math.sin(dLon/2);
-    kmTotal += R * 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-  }
-
-  var el = function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
-  el('rast-km', kmTotal.toFixed(1)+' km');
-  el('rast-velmax', (resumo.vel_max||0).toFixed(0)+' km/h');
-  el('rast-paradas', resumo.paradas||0);
-  el('rast-pontos', resumo.total_pontos||pontos.length);
-
-  var periodo = rastDias===0?'Hoje':rastDias===1?'Ontem':'Últimos '+rastDias+' dias';
-  document.getElementById('rast-periodo-txt').textContent = veiculo.placa+' — '+periodo;
-}
-
-function renderTimeline(paradas) {
-  var tl = document.getElementById('rast-timeline');
-  var lista = document.getElementById('rast-timeline-lista');
-  if (!paradas || !paradas.length) { tl.style.display='none'; return; }
-  tl.style.display = 'block';
-  lista.innerHTML = paradas.map(function(par, i) {
-    var cor = par.dur_min > 60 ? '#ef4444' : par.dur_min > 20 ? '#f59e0b' : '#6366f1';
-    var dur = par.dur_min >= 60 ? Math.floor(par.dur_min/60)+'h '+(par.dur_min%60)+'min' : par.dur_min+'min';
-    var os = par.os;
-    return '<div style="display:flex;gap:8px;margin-bottom:8px;cursor:pointer" onclick="rastMapa.setView(['+par.lat+','+par.lon+'],17)">' +
-      '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">' +
-        '<div style="width:10px;height:10px;border-radius:50%;background:'+cor+';margin-top:3px"></div>' +
-        (i < paradas.length-1 ? '<div style="width:2px;flex:1;background:var(--border);margin-top:2px"></div>' : '') +
-      '</div>' +
-      '<div style="flex:1;background:var(--surf2);border-radius:7px;padding:6px 8px;font-size:.7rem;line-height:1.6">' +
-        '<div style="font-weight:800;color:'+cor+'">⏸ Parada #'+(i+1)+' — '+dur+'</div>' +
-        '<div style="color:var(--text2)">'+par.inicio.substring(11,16)+' → '+par.fim.substring(11,16)+'</div>' +
-        (par.endereco ? '<div style="color:var(--text3);font-size:.65rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 '+par.endereco+'</div>' : '') +
-        (os ? '<div style="color:var(--blue);font-size:.65rem">🔧 OS#'+os.ixc_os_id+' — '+os.cliente_nome+'</div>' : '') +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function limparResumo() {
-  document.getElementById('rast-resumo').style.display = 'none';
-  document.getElementById('rast-timeline').style.display = 'none';
-}
-
-// ── REVISOES ──────────────────────────────────────────────────
-function toggleChip(el) {
-  el.classList.toggle('selecionado');
-  // Atualiza o input com os chips selecionados
-  var selecionados = Array.from(document.querySelectorAll('.chip-item.selecionado'))
-    .map(function(c){ return c.textContent.trim(); });
-  var input = document.getElementById('rev-item');
-  if (selecionados.length) {
-    input.value = selecionados.join(', ');
-  } else {
-    input.value = '';
-  }
-}
-
-function limparChips() {
-  document.querySelectorAll('.chip-item.selecionado').forEach(function(c){ c.classList.remove('selecionado'); });
-}
-
-function marcarChipsSalvos(texto) {
-  // Ao editar, marca os chips que batem com o texto salvo
-  limparChips();
-  if (!texto) return;
-  document.querySelectorAll('.chip-item').forEach(function(chip) {
-    var label = chip.textContent.trim();
-    if (texto.includes(label)) chip.classList.add('selecionado');
-  });
-}
-
-
-var diasFiltroRevisao = 15;
-var _veiculosLista = [];
-
-function mudarFiltroRevisao(dias, btn) {
-  diasFiltroRevisao = dias;
-  document.querySelectorAll('[id^="rbtn-"]').forEach(function(b){b.classList.remove('active');});
-  if (btn) btn.classList.add('active');
-  carregarRevisoes();
-}
-
-async function carregarRevisoes() {
-  var lista = document.getElementById('rev-lista');
-  if (lista) lista.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px">Carregando...</div>';
-  try {
-    var dias = diasFiltroRevisao > 0 ? diasFiltroRevisao : 3650;
-    var dados = await api('/api/frota/revisoes/proximas?dias=' + dias);
-    renderRevisoes(dados);
-  } catch(e) {
-    if (lista) lista.innerHTML = '<div style="text-align:center;color:var(--red);padding:40px">Erro ao carregar revisoes.</div>';
-  }
-}
-
-function renderRevisoes(dados) {
-  var stats = dados.stats || {};
-  var revisoes = dados.revisoes || [];
-  var el = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
-  el('rsc-num-vencido', stats.vencidos||0);
-  el('rsc-num-urgente', stats.urgentes||0);
-  el('rsc-num-aviso', stats.avisos||0);
-  el('rsc-num-ok', stats.ok||0);
-  el('rsc-num-total', stats.total||0);
-  var lista = document.getElementById('rev-lista');
-  if (!lista) return;
-  if (!revisoes.length) {
-    lista.innerHTML = '<div style="text-align:center;color:var(--text3);padding:60px;font-size:.9rem">Nenhuma revisao pendente.<br><span style="font-size:.8rem;display:block;margin-top:8px">Use "+ Nova Revisao" para cadastrar itens.</span></div>';
-    return;
-  }
-  var por_veiculo = {};
-  revisoes.forEach(function(r) {
-    var key = r.ht_veiculo_id;
-    if (!por_veiculo[key]) por_veiculo[key] = {placa:r.placa, modelo:r.marca_modelo, items:[]};
-    por_veiculo[key].items.push(r);
-  });
-  var urgLabels = {vencido:'🚨 VENCIDO', urgente:'⚠️ Urgente', aviso:'📅 Aviso', ok:'✅ Em dia'};
-  var html = '';
-  Object.values(por_veiculo).forEach(function(v) {
-    var temVencido = v.items.some(function(i){return i.urgencia==='vencido';});
-    var temUrgente = v.items.some(function(i){return i.urgencia==='urgente';});
-    var corPlaca = temVencido?'#ef4444':temUrgente?'#f59e0b':'var(--text)';
-    html += '<div style="margin-bottom:24px">';
-    html += '<div class="rev-grupo-titulo" style="color:'+corPlaca+'">🚗 '+v.placa+' <span style="font-weight:400;color:var(--text3);font-size:.7rem">— '+(v.modelo||'').substring(0,50)+'</span></div>';
-    v.items.forEach(function(r) {
-      var diasTxt = '';
-      if (r.dias_restantes !== null && r.dias_restantes !== undefined) {
-        if (r.dias_restantes < 0) diasTxt = '<span style="color:#ef4444;font-weight:800">Vencido ha '+Math.abs(r.dias_restantes)+' dias</span>';
-        else if (r.dias_restantes === 0) diasTxt = '<span style="color:#ef4444;font-weight:800">Vence hoje!</span>';
-        else diasTxt = '<span style="color:'+(r.dias_restantes<=7?'#f59e0b':r.dias_restantes<=15?'#3b82f6':'#22c55e')+';font-weight:700">Em '+r.dias_restantes+' dias</span>';
-      }
-      html += '<div class="rev-card '+r.urgencia+'">'
-        +'<div style="display:flex;align-items:flex-start;gap:10px">'
-        +'<div style="flex:1"><div style="font-weight:700;font-size:.9rem;margin-bottom:5px">'+r.item+'</div>'
-        +'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--text3)">'
-        +(r.data_prevista?'<span>📅 '+r.data_prevista+'</span>':'')
-        +(r.km_previsto?'<span>🛣️ '+r.km_previsto.toLocaleString()+' km</span>':'')
-        +(r.ultima_data?'<span>✔ Ultima: '+r.ultima_data+'</span>':'')
-        +(r.intervalo_dias?'<span>🔁 '+r.intervalo_dias+'d</span>':'')
-        +(r.intervalo_km?'<span>🔁 '+r.intervalo_km.toLocaleString()+' km</span>':'')
-        +'</div>'+(r.obs?'<div style="font-size:.75rem;color:var(--text3);margin-top:4px">'+r.obs+'</div>':'')+'</div>'
-        +'<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;min-width:90px">'
-        +'<span style="font-size:.72rem;font-weight:800">'+urgLabels[r.urgencia]+'</span>'
-        +'<span style="font-size:.72rem">'+diasTxt+'</span></div></div>'
-        +'<div style="display:flex;gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:8px">'
-        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px" onclick="abrirModalRealizar('+r.id+','+JSON.stringify(r.item)+')">✅ Realizada</button>'
-        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px" onclick="editarRevisao('+r.id+')">✏️ Editar</button>'
-        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px;color:var(--red)" onclick="excluirRevisao('+r.id+')">🗑️</button>'
-        +'</div></div>';
-    });
-    html += '</div>';
-  });
-  lista.innerHTML = html;
-}
-
-async function abrirModalNovaRevisao() {
-  document.getElementById('modal-rev-titulo').textContent = 'Nova Revisao';
-  limparChips();
-  ['rev-id','rev-item','rev-data','rev-km','rev-int-dias','rev-int-km','rev-obs'].forEach(function(id){
-    document.getElementById(id).value='';
-  });
-  await carregarVeiculosSelect();
-  document.getElementById('modal-revisao').style.display='flex';
-}
-
-async function editarRevisao(id) {
-  try {
-    var dados = await api('/api/frota/revisoes/proximas?dias=3650');
-    var r = (dados.revisoes||[]).find(function(x){return x.id===id;});
-    if (!r) { toast('Revisao nao encontrada','err'); return; }
-    document.getElementById('modal-rev-titulo').textContent = 'Editar Revisao';
-    document.getElementById('rev-id').value = r.id;
-    await carregarVeiculosSelect(r.ht_veiculo_id);
-    document.getElementById('rev-item').value = r.item||'';
-    marcarChipsSalvos(r.item||'');
-    document.getElementById('rev-data').value = r.data_prevista||'';
-    document.getElementById('rev-km').value = r.km_previsto||'';
-    document.getElementById('rev-int-dias').value = r.intervalo_dias||'';
-    document.getElementById('rev-int-km').value = r.intervalo_km||'';
-    document.getElementById('rev-obs').value = r.obs||'';
-    document.getElementById('modal-revisao').style.display='flex';
-  } catch(e) { toast('Erro ao carregar','err'); }
-}
-
-async function carregarVeiculosSelect(selecionado) {
-  if (!_veiculosLista.length) {
-    try { _veiculosLista = await api('/api/frota/veiculos'); } catch(e) { _veiculosLista=[]; }
-  }
-  var sel = document.getElementById('rev-veiculo');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Selecione...</option>'
-    + _veiculosLista.map(function(v){
-        return '<option value="'+v.id+'"'+(selecionado==v.id?' selected':'')+'>'+v.placa+' - '+(v.marca_modelo||'').substring(0,35)+'</option>';
-      }).join('');
-}
-
-async function salvarRevisao() {
-  var id = document.getElementById('rev-id').value;
-  var veiculo = document.getElementById('rev-veiculo').value;
-  var item = document.getElementById('rev-item').value.trim();
-  if (!veiculo) { toast('Selecione o veiculo','err'); return; }
-  if (!item) { toast('Informe o item de revisao','err'); return; }
-  var data = {
-    ht_veiculo_id: parseInt(veiculo), item: item,
-    data_prevista: document.getElementById('rev-data').value||null,
-    km_previsto: parseInt(document.getElementById('rev-km').value)||null,
-    intervalo_dias: parseInt(document.getElementById('rev-int-dias').value)||0,
-    intervalo_km: parseInt(document.getElementById('rev-int-km').value)||0,
-    obs: document.getElementById('rev-obs').value.trim()
-  };
-  try {
-    if (id) await api('/api/frota/revisoes/'+id,{method:'PUT',body:JSON.stringify(data)});
-    else await api('/api/frota/revisoes',{method:'POST',body:JSON.stringify(data)});
-    fecharModalRevisao(); carregarRevisoes(); toast('Revisao salva!','ok');
-  } catch(e) { toast('Erro ao salvar','err'); }
-}
-
-function fecharModalRevisao() { document.getElementById('modal-revisao').style.display='none'; }
-
-function abrirModalRealizar(id, item) {
-  document.getElementById('realizar-id').value = id;
-  document.getElementById('realizar-info').textContent = item;
-  document.getElementById('realizar-data').value = new Date().toISOString().substring(0,10);
-  document.getElementById('realizar-km').value = '';
-  document.getElementById('realizar-obs').value = '';
-  document.getElementById('modal-realizar').style.display='flex';
-}
-
-function fecharModalRealizar() { document.getElementById('modal-realizar').style.display='none'; }
-
-async function confirmarRealizacao() {
-  var id = document.getElementById('realizar-id').value;
-  var dataR = document.getElementById('realizar-data').value;
-  if (!dataR) { toast('Informe a data','err'); return; }
-  var data = {
-    data_realizada: dataR,
-    km_realizado: parseInt(document.getElementById('realizar-km').value)||null,
-    obs: document.getElementById('realizar-obs').value.trim()
-  };
-  try {
-    var r = await api('/api/frota/revisoes/'+id+'/realizar',{method:'POST',body:JSON.stringify(data)});
-    fecharModalRealizar(); carregarRevisoes();
-    toast('Revisao registrada!'+(r.proxima_data?' Proxima: '+r.proxima_data:''),'ok');
-  } catch(e) { toast('Erro ao registrar','err'); }
-}
-
-async function excluirRevisao(id) {
-  if (!confirm('Remover este item?')) return;
-  try {
-    await api('/api/frota/revisoes/'+id,{method:'DELETE'});
-    carregarRevisoes(); toast('Removido','ok');
-  } catch(e) { toast('Erro ao remover','err'); }
-}
-
 // ── INIT ──────────────────────────────────────────────────────
 (function(){
   var t = localStorage.getItem('ht_hub_token') || localStorage.getItem('ht_despacho_token');
@@ -2492,167 +1423,6 @@ async function excluirRevisao(id) {
     document.getElementById('P-LOGIN').style.display = 'flex';
   }
 })();
-
-// ═══════════════════════════════════════════════════════
-// AGENDA — Motor de Agendamento Automático
-// ═══════════════════════════════════════════════════════
-var agendaRotasPendentes = [];
-var agendaRotaSelecionada = null;
-var agendaTecnicosCache = [];
-
-function agendaIniciar() {
-  var hoje = new Date().toISOString().slice(0,10);
-  var el = document.getElementById('agenda-data');
-  if (el) el.value = hoje;
-}
-
-function agendaGerarRotas() {
-  var data = document.getElementById('agenda-data').value;
-  if (!data) { alert('Selecione uma data'); return; }
-  document.getElementById('agenda-loading').style.display = 'block';
-  document.getElementById('agenda-rotas').innerHTML = '';
-  document.getElementById('agenda-kpis').style.display = 'none';
-  Promise.all([
-    api('/api/agenda/rotas-sugeridas?data=' + data),
-    api('/api/agenda/tecnicos?data=' + data)
-  ]).then(function(results) {
-    var rotasData = results[0];
-    var tecData   = results[1];
-    document.getElementById('agenda-loading').style.display = 'none';
-    agendaRotasPendentes = rotasData.rotas || [];
-    agendaTecnicosCache  = tecData.tecnicos || [];
-    document.getElementById('kpi-rotas').textContent    = rotasData.total_rotas || 0;
-    document.getElementById('kpi-os').textContent       = rotasData.total_os || 0;
-    document.getElementById('kpi-tecnicos').textContent = agendaTecnicosCache.filter(function(t){ return t.pontos_disponiveis > 0; }).length;
-    document.getElementById('agenda-kpis').style.display = 'flex';
-    agendaRenderRotas(agendaRotasPendentes);
-  }).catch(function(e) {
-    document.getElementById('agenda-loading').style.display = 'none';
-    document.getElementById('agenda-rotas').innerHTML = '<div style="color:var(--red);padding:20px">Erro ao buscar rotas: ' + e.message + '</div>';
-  });
-}
-
-function agendaRenderRotas(rotas) {
-  var el = document.getElementById('agenda-rotas');
-  if (!rotas || !rotas.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Nenhuma OS disponível para esta data.</div>';
-    return;
-  }
-  el.innerHTML = rotas.map(function(r, idx) {
-    var slaCount = (r.os || []).filter(function(o){ return o.sla_estourado; }).length;
-    var slaTag = slaCount ? '<span style="background:#ff4d4d22;color:var(--red);border-radius:5px;padding:2px 7px;font-size:.7rem;font-weight:700">🚨 ' + slaCount + ' SLA</span>' : '';
-    var osList = (r.os || []).map(function(o, i) {
-      return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">' +
-        '<div style="color:var(--text3);font-size:.72rem;min-width:18px;padding-top:2px">' + (i+1) + '</div>' +
-        '<div style="flex:1"><div style="font-size:.8rem;font-weight:600">' + (o.sla_estourado ? '🚨 ' : '') + (o.cliente_nome || '') + '</div>' +
-        '<div style="font-size:.72rem;color:var(--text3)">' + (o.assunto_nome || '') + ' · ' + (o.bairro || '') + '</div></div>' +
-        '<span style="background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-size:.68rem;font-weight:700">' + (o.pontos || 0) + 'pts</span></div>';
-    }).join('');
-    return '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:4px">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">' +
-        '<div><span style="font-weight:800;font-size:.9rem">Rota #' + r.rota_num + '</span>' +
-        '<span style="color:var(--text3);font-size:.78rem;margin-left:8px">' + (r.bairro_ref || '') + '</span></div>' +
-        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' + slaTag +
-        '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">' + (r.total_os || 0) + ' OS</span>' +
-        '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">⚡ ' + (r.pontos || 0) + ' pts</span>' +
-        '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">⏱ ' + (r.tempo_fmt || '') + '</span>' +
-        '<button onclick="agendaAbrirModal(' + idx + ')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:.75rem;font-weight:700;cursor:pointer">Atribuir</button>' +
-        '</div></div><div style="max-height:200px;overflow-y:auto">' + osList + '</div></div>';
-  }).join('');
-}
-
-function agendaAbrirModal(idx) {
-  agendaRotaSelecionada = agendaRotasPendentes[idx];
-  var r = agendaRotaSelecionada;
-  document.getElementById('modal-agenda-info').innerHTML =
-    '<b>Rota #' + r.rota_num + '</b> · ' + (r.bairro_ref || '') +
-    '<br>' + r.total_os + ' OS · ⚡ ' + r.pontos + ' pts · ⏱ ' + (r.tempo_fmt || '');
-  var el = document.getElementById('modal-agenda-tecnicos');
-  el.innerHTML = agendaTecnicosCache.map(function(t) {
-    var livre = t.pontos_disponiveis >= r.pontos;
-    return '<div class="tecnico-option" data-id="' + t.id + '" data-nome="' + t.nome + '" ' +
-      'style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:7px;cursor:pointer;border:1px solid transparent;' + (!livre ? 'opacity:.5;pointer-events:none' : '') + '" ' +
-      'onclick="agendaSelecionarTecnico(this,' + t.id + ',' + JSON.stringify(t.nome) + ')">' +
-      '<div><div style="font-weight:600;font-size:.85rem">' + t.nome + '</div>' +
-      '<div style="font-size:.72rem;color:var(--text3)">' + (t.pontos_alocados || 0) + ' pts alocados · ' + (t.pontos_disponiveis || 0) + ' disponíveis</div></div>' +
-      '<span style="font-size:.72rem;font-weight:600;color:' + (livre ? 'var(--green)' : 'var(--red)') + '">' + (livre ? '✅ Disponível' : '⚠️ Sem capacidade') + '</span></div>';
-  }).join('');
-  document.getElementById('modal-agenda').style.display = 'flex';
-  var btn = document.getElementById('btn-confirmar-rota');
-  btn.dataset.tecnicoId = '';
-  btn.dataset.tecnicoNome = '';
-}
-
-function agendaSelecionarTecnico(el, id, nome) {
-  document.querySelectorAll('.tecnico-option').forEach(function(x){ x.style.background = ''; x.style.border = '1px solid transparent'; });
-  el.style.background = 'var(--accent)22';
-  el.style.border = '1px solid var(--accent)';
-  var btn = document.getElementById('btn-confirmar-rota');
-  btn.dataset.tecnicoId = id;
-  btn.dataset.tecnicoNome = nome;
-}
-
-function agendaConfirmar() {
-  var btn   = document.getElementById('btn-confirmar-rota');
-  var tId   = parseInt(btn.dataset.tecnicoId);
-  var tNome = btn.dataset.tecnicoNome;
-  var data  = document.getElementById('agenda-data').value;
-  if (!tId) { alert('Selecione um técnico'); return; }
-  var r = agendaRotaSelecionada;
-  btn.textContent = 'Salvando...';
-  btn.disabled = true;
-  api('/api/agenda/confirmar', { method: 'POST', body: JSON.stringify({ data_rota: data, tecnico_id: tId, tecnico_nome: tNome, os_ids: r.os, pontos: r.pontos, tempo_est: r.tempo_est, bairro_ref: r.bairro_ref }) }).then(function(res){ return res.json(); }).then(function(d) {
-    document.getElementById('modal-agenda').style.display = 'none';
-    btn.textContent = '✅ Confirmar';
-    btn.disabled = false;
-    if (d.ok) { alert('✅ ' + d.msg); agendaGerarRotas(); }
-    else { alert('Erro: ' + (d.detail || JSON.stringify(d))); }
-  }).catch(function(e) {
-    btn.textContent = '✅ Confirmar';
-    btn.disabled = false;
-    alert('Erro de rede: ' + e.message);
-  });
-}
-
-function agendaVerDia() {
-  var data = document.getElementById('agenda-data').value;
-  if (!data) { alert('Selecione uma data'); return; }
-  document.getElementById('agenda-loading').style.display = 'block';
-  document.getElementById('agenda-rotas').innerHTML = '';
-  api('/api/agenda/dia?data=' + data)
-    .then(function(d) {
-      document.getElementById('agenda-loading').style.display = 'none';
-      document.getElementById('agenda-kpis').style.display = 'flex';
-      document.getElementById('kpi-rotas').textContent    = d.total_rotas || 0;
-      document.getElementById('kpi-os').textContent       = (d.rotas || []).reduce(function(a,r){ return a + (r.os||[]).length; }, 0);
-      document.getElementById('kpi-tecnicos').textContent = '—';
-      var el = document.getElementById('agenda-rotas');
-      if (!d.rotas || !d.rotas.length) {
-        el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Nenhuma rota confirmada para esta data.</div>';
-        return;
-      }
-      el.innerHTML = d.rotas.map(function(r) {
-        var osList = (r.os||[]).map(function(o) {
-          return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:.78rem">' +
-            '<span style="color:var(--text3);min-width:20px">' + (o.ordem || '') + '</span>' +
-            '<div><div style="font-weight:600">' + (o.cliente_nome || '') + '</div>' +
-            '<div style="color:var(--text3)">' + (o.assunto_nome || '') + ' · ' + (o.bairro || '') + '</div></div></div>';
-        }).join('');
-        return '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:4px">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
-            '<div><span style="font-weight:800">👷 ' + (r.tecnico_nome || '—') + '</span>' +
-            '<span style="color:var(--text3);font-size:.75rem;margin-left:8px">' + (r.bairro_ref || '') + '</span></div>' +
-            '<div style="display:flex;gap:6px">' +
-              '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">⚡ ' + (r.pontos || 0) + ' pts</span>' +
-              '<span style="background:var(--green)22;color:var(--green);border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:700">' + (r.status || '') + '</span>' +
-            '</div></div>' + osList + '</div>';
-      }).join('');
-    }).catch(function(e) {
-      document.getElementById('agenda-loading').style.display = 'none';
-      document.getElementById('agenda-rotas').innerHTML = '<div style="color:var(--red);padding:20px">Erro: ' + e.message + '</div>';
-    });
-}
-
 </script>
 
 <!-- MODAL DESPESA -->
@@ -2721,47 +1491,7 @@ function agendaVerDia() {
     <div id="d-erro" style="color:var(--red);font-size:.82rem;margin-bottom:8px;display:none"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <button class="btn btn-o" onclick="fecharModalDespesa()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarDespesa()">Salvar e Enviar IXC</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL CHECKLIST -->
-<div class="modal-bg" id="modal-checklist">
-  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
-    <div class="modal-title">
-      <span id="chk-modal-titulo">Checklist de Saida</span>
-      <button onclick="fecharChecklist()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.1rem">x</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div class="field" style="grid-column:1/-1">
-        <label>Veiculo</label>
-        <select id="chk-m-veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
-          <option value="">Selecione...</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Tipo</label>
-        <select id="chk-m-tipo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
-          <option value="saida">Saida</option>
-          <option value="retorno">Retorno</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>KM atual</label>
-        <input type="number" id="chk-m-km" placeholder="KM do veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px">
-      </div>
-    </div>
-    <div style="font-size:.82rem;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Itens de Inspecao</div>
-    <div id="chk-m-itens" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
-    <div class="field">
-      <label>Observacoes gerais</label>
-      <textarea id="chk-m-obs" rows="2" placeholder="Observacoes opcionais..." style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none;margin-top:5px;resize:vertical;font-family:inherit;font-size:.85rem"></textarea>
-    </div>
-    <div id="chk-erro" style="color:var(--red);font-size:.82rem;margin-bottom:8px;display:none"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-      <button class="btn btn-o" onclick="fecharChecklist()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarChecklist()">Salvar Checklist</button>
+      <button class="btn btn-p" onclick="salvarDespesa()">Salvar e Enviar IXC</button>
     </div>
   </div>
 </div>

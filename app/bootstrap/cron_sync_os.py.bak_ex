@@ -8,38 +8,6 @@ DB = os.path.join(os.path.dirname(__file__), "../../hub_tecnico.db")
 
 IXC_TECNICOS_IDS = [13,17,32,35,47,50,55,56,60,46]
 
-from app.services.geocoder import geocoder as _reverse_geo_os
-import re as _re
-
-def _geocode_endereco(endereco):
-    """Geocoding direto pelo endereço da OS."""
-    if not endereco:
-        return None, None
-    cidade = ""
-    rua = ""
-    m = _re.match(r'[A-Z]{2}\s+(.+?)\s+\d{5}-\d{3}', endereco)
-    if m:
-        cidade = m.group(1).strip()
-    if " - " in endereco:
-        rua = endereco.split(" - ", 1)[1].strip()
-        rua = _re.sub(r',?\s*SN$', '', rua).strip()
-        rua = _re.sub(r',\s*\d+$', '', rua).strip()
-    query = f"{rua}, {cidade}, Sergipe, Brasil" if rua and cidade else endereco
-    try:
-        import requests, time
-        r = requests.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": query, "format": "json", "limit": 1, "countrycodes": "br"},
-            headers={"User-Agent": "HubTecnico/1.0"},
-            timeout=4
-        )
-        data = r.json()
-        if data:
-            return float(data[0]["lat"]), float(data[0]["lon"])
-    except:
-        pass
-    return None, None
-
 def get_db():
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
@@ -64,7 +32,7 @@ def run():
         JOIN cliente cl ON cl.id = o.id_cliente
         JOIN su_oss_assunto a ON a.id = o.id_assunto
         WHERE (
-            (o.status IN ('A','AS','EX','EN','AG','RAG')
+            (o.status IN ('A','EN','AG','RAG')
              AND (o.id_tecnico = 0 OR o.id_tecnico IN ({ids_str})))
             OR
             (o.status = 'F'
@@ -127,12 +95,10 @@ def run():
             status_hub = 'agendada'
         elif status_ixc == 'RAG':
             status_hub = 'reagendada'
-        elif status_ixc == 'AS' and tem_tecnico:
-            status_hub = 'deslocamento'
-        elif status_ixc in ('EX', 'A') and tem_tecnico:
-            status_hub = 'execucao'
         elif status_ixc == 'EN' and tem_tecnico:
-            status_hub = 'agendada'
+            status_hub = 'deslocamento'
+        elif status_ixc == 'A' and tem_tecnico:
+            status_hub = 'execucao'
         else:
             status_hub = 'pendente'
 
@@ -174,21 +140,12 @@ def run():
                 str(o.get('data_reservada') or '')[:16] or None
             ))
             novos += 1
-            # Geocoding automático se IXC não enviou coords
-            if not o['latitude'] and not o['longitude'] and o.get('endereco'):
-                import time
-                _lat, _lon = _geocode_endereco(o['endereco'])
-                if _lat:
-                    db.execute("UPDATE ht_os SET lat=?, lon=? WHERE ixc_os_id=?",
-                               (_lat, _lon, o['id']))
-                    db.commit()
-                time.sleep(1.1)
         else:
             status_atual = existente['status_hub']
             # execucao e gerenciada pelo app do tecnico — nao sobrescreve
-            # a menos que o IXC finalize ou reagende
-            if status_atual == 'execucao' and status_hub not in ('finalizada', 'reagendada', 'pendente'):
-                pass  # protege execucao ativa
+            # a menos que o IXC finalize
+            if status_atual == 'execucao' and status_hub != 'finalizada':
+                pass  # protege execucao
             else:
                 # IXC sempre vence — atualiza status, tecnico e dados
                 id_tecnico_banco = None

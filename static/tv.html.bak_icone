@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor de Frota — TV</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0e1a; color:#e2e8f0; font-family:'Segoe UI',sans-serif; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+
+  /* HEADER */
+  #tv-header {
+    background:#111827;
+    border-bottom:2px solid #1e3a5f;
+    padding:10px 20px;
+    display:flex;
+    align-items:center;
+    gap:20px;
+    flex-shrink:0;
+    height:56px;
+  }
+  #tv-header .titulo { font-size:1.1rem; font-weight:900; color:#38bdf8; letter-spacing:.05em; }
+  #tv-hora { font-size:1rem; font-weight:700; color:#94a3b8; margin-left:auto; }
+  .tv-badge { background:#1e3a5f; border-radius:8px; padding:4px 12px; font-size:.78rem; font-weight:700; }
+
+  /* MAIN */
+  #tv-main {
+    flex:1;
+    display:flex;
+    overflow:hidden;
+  }
+
+  /* MAPA */
+  #tv-mapa { flex:1; }
+
+  /* PAINEL LATERAL */
+  #tv-lateral {
+    width:300px;
+    background:#111827;
+    border-left:1px solid #1e293b;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+
+  .tv-section {
+    padding:12px 14px;
+    border-bottom:1px solid #1e293b;
+  }
+  .tv-section-title {
+    font-size:.68rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:#475569;
+    margin-bottom:10px;
+  }
+
+  /* CARDS DE STATS */
+  .tv-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .tv-stat {
+    background:#0f172a;
+    border-radius:10px;
+    padding:10px;
+    text-align:center;
+    border:1px solid #1e293b;
+  }
+  .tv-stat-num { font-size:1.8rem; font-weight:900; line-height:1; }
+  .tv-stat-label { font-size:.65rem; color:#64748b; margin-top:3px; font-weight:600; }
+
+  /* LISTA VEICULOS */
+  #tv-lista-veiculos { flex:1; overflow-y:auto; padding:8px; }
+  .tv-veiculo {
+    background:#0f172a;
+    border-radius:8px;
+    padding:8px 10px;
+    margin-bottom:6px;
+    border-left:3px solid #22c55e;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .tv-veiculo.atencao { border-left-color:#f59e0b; }
+  .tv-veiculo.critico { border-left-color:#ef4444; animation:piscar 1s infinite; }
+  .tv-veiculo-info { flex:1; min-width:0; }
+  .tv-veiculo-nome { font-size:.78rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tv-veiculo-placa { font-size:.68rem; color:#64748b; }
+  .tv-veiculo-status { font-size:.68rem; font-weight:700; text-align:right; }
+  .tv-veiculo-vel { font-size:.85rem; font-weight:900; }
+
+  /* ALERTAS */
+  #tv-alertas-lista { max-height:180px; overflow-y:auto; }
+  .tv-alerta-item {
+    background:#1a0a0a;
+    border:1px solid #7f1d1d;
+    border-radius:6px;
+    padding:6px 10px;
+    margin-bottom:5px;
+    font-size:.75rem;
+  }
+  .tv-alerta-item.atencao { background:#1a120a; border-color:#78350f; }
+  .tv-alerta-nome { font-weight:700; color:#fca5a5; }
+  .tv-alerta-nome.atencao { color:#fcd34d; }
+  .tv-alerta-desc { color:#94a3b8; font-size:.7rem; margin-top:2px; }
+
+  /* TICKER RODAPE */
+  #tv-ticker {
+    background:#0a0e1a;
+    border-top:2px solid #1e3a5f;
+    height:36px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    flex-shrink:0;
+  }
+  #tv-ticker-label {
+    background:#ef4444;
+    color:#fff;
+    font-size:.7rem;
+    font-weight:900;
+    padding:0 10px;
+    height:100%;
+    display:flex;
+    align-items:center;
+    letter-spacing:.05em;
+    flex-shrink:0;
+  }
+  #tv-ticker-content {
+    flex:1;
+    overflow:hidden;
+    position:relative;
+    height:100%;
+  }
+  #tv-ticker-text {
+    position:absolute;
+    white-space:nowrap;
+    font-size:.78rem;
+    font-weight:600;
+    color:#e2e8f0;
+    top:50%;
+    transform:translateY(-50%);
+    animation:ticker-move 30s linear infinite;
+  }
+
+  @keyframes ticker-move {
+    0%   { left:100%; }
+    100% { left:-100%; }
+  }
+  @keyframes piscar {
+    0%,100% { opacity:1; }
+    50% { opacity:.5; }
+  }
+
+  /* SEM ALERTAS */
+  .tv-sem-alertas { color:#334155; font-size:.78rem; text-align:center; padding:20px; }
+
+  /* SCROLL CUSTOM */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:#0f172a; }
+  ::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+
+  /* ICONE NO MAPA */
+  .tv-marker-label {
+    background:#0f172a;
+    border:2px solid #22c55e;
+    border-radius:8px;
+    padding:2px 8px;
+    font-size:12px;
+    font-weight:800;
+    color:#e2e8f0;
+    white-space:nowrap;
+    box-shadow:0 2px 8px rgba(0,0,0,.6);
+  }
+  .tv-marker-label.atencao { border-color:#f59e0b; color:#fcd34d; }
+  .tv-marker-label.critico { border-color:#ef4444; color:#fca5a5; animation:piscar 1s infinite; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="tv-header">
+  <div class="titulo">🚛 MONITORAMENTO DE FROTA</div>
+  <div class="tv-badge" id="tv-badge-mov">🟢 Em movimento: <b id="hd-mov">—</b></div>
+  <div class="tv-badge" id="tv-badge-par">🔴 Parados: <b id="hd-par">—</b></div>
+  <div class="tv-badge" style="background:#3b0000" id="tv-badge-alert">🚨 Alertas: <b id="hd-alert">—</b></div>
+  <div id="tv-hora">—</div>
+</div>
+
+<!-- MAIN -->
+<div id="tv-main">
+
+  <!-- MAPA -->
+  <div id="tv-mapa"></div>
+
+  <!-- LATERAL -->
+  <div id="tv-lateral">
+
+    <!-- STATS -->
+    <div class="tv-section">
+      <div class="tv-section-title">📊 Resumo da Frota</div>
+      <div class="tv-stats">
+        <div class="tv-stat">
+          <div class="tv-stat-num" id="st-total" style="color:#38bdf8">—</div>
+          <div class="tv-stat-label">Total</div>
+        </div>
+        <div class="tv-stat">
+          <div class="tv-stat-num" id="st-mov" style="color:#22c55e">—</div>
+          <div class="tv-stat-label">Em Movimento</div>
+        </div>
+        <div class="tv-stat">
+          <div class="tv-stat-num" id="st-par" style="color:#f59e0b">—</div>
+          <div class="tv-stat-label">Parados</div>
+        </div>
+        <div class="tv-stat">
+          <div class="tv-stat-num" id="st-alert" style="color:#ef4444">—</div>
+          <div class="tv-stat-label">Alertas</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTAS ATIVOS -->
+    <div class="tv-section">
+      <div class="tv-section-title">🚨 Alertas Ativos</div>
+      <div id="tv-alertas-lista">
+        <div class="tv-sem-alertas">Sem alertas ativos</div>
+      </div>
+    </div>
+
+    <!-- LISTA VEICULOS -->
+    <div class="tv-section-title" style="padding:10px 14px 4px;font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#475569">🚗 Veículos</div>
+    <div id="tv-lista-veiculos"></div>
+
+  </div>
+</div>
+
+<!-- TICKER -->
+<div id="tv-ticker">
+  <div id="tv-ticker-label">⚡ ALERTAS</div>
+  <div id="tv-ticker-content">
+    <div id="tv-ticker-text">Sistema de monitoramento ativo — aguardando dados...</div>
+  </div>
+</div>
+
+<script>
+// ── MAPA ──────────────────────────────────────────────────────
+var mapa = L.map('tv-mapa', {zoomControl:true, attributionControl:false}).setView([-15.7942,-47.8825], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(mapa);
+
+var marcadores = {};
+var primeiroLoad = true;
+var ultimoAlertaCritico = 0;
+
+// ── AUDIO ─────────────────────────────────────────────────────
+var audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function beep(freq, dur, vol) {
+  try {
+    var ctx = getAudio();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.value = vol || 0.3;
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+function alertaSom(nivel) {
+  if (nivel === 'critico') { beep(880,0.2,0.4); setTimeout(function(){beep(660,0.3,0.4);},250); }
+  else { beep(520,0.15,0.2); }
+}
+
+// ── ICONE NO MAPA ─────────────────────────────────────────────
+function iconeTV(t) {
+  var cls = t.status === 'critico' ? 'critico' : t.status === 'atencao' ? 'atencao' : '';
+  var emoji = t.em_movimento ? '🚗' : '🅿️';
+  if (t.status === 'critico' && t.velocidade > 80) emoji = '⚡';
+  var vel = t.em_movimento ? ' ' + Math.round(t.velocidade) + 'km/h' : '';
+  var label = (t.placa || t.tecnico_nome || '—') + vel;
+  return L.divIcon({
+    className:'',
+    html:'<div class="tv-marker-label '+cls+'">'+emoji+' '+label+'</div>',
+    iconSize:[null,28], iconAnchor:[0,14]
+  });
+}
+
+// ── ATUALIZAR MAPA ────────────────────────────────────────────
+function atualizarMapa(tecnicos) {
+  var bounds = [];
+  var ids_atuais = tecnicos.map(function(t){return t.id_tecnico;});
+
+  // Remove marcadores de tecnicos que sumiram
+  Object.keys(marcadores).forEach(function(id) {
+    if (ids_atuais.indexOf(parseInt(id)) === -1) {
+      mapa.removeLayer(marcadores[id]);
+      delete marcadores[id];
+    }
+  });
+
+  tecnicos.forEach(function(t) {
+    if (!t.lat || !t.lon) return;
+    bounds.push([t.lat, t.lon]);
+    var icon = iconeTV(t);
+    if (marcadores[t.id_tecnico]) {
+      marcadores[t.id_tecnico].setLatLng([t.lat, t.lon]).setIcon(icon);
+    } else {
+      marcadores[t.id_tecnico] = L.marker([t.lat, t.lon], {icon:icon})
+        .addTo(mapa)
+        .bindTooltip(
+          '<b>'+(t.placa||'Sem veículo')+'</b> — '+t.tecnico_nome+
+          '<br>Vel: '+Math.round(t.velocidade)+' km/h'+
+          (t.min_parado > 0 ? '<br>Parado: '+t.min_parado+' min' : ''),
+          {permanent:false, direction:'top'}
+        );
+    }
+  });
+
+  if (primeiroLoad && bounds.length) {
+    mapa.fitBounds(bounds, {padding:[30,30]});
+    primeiroLoad = false;
+  }
+}
+
+// ── ATUALIZAR LATERAL ─────────────────────────────────────────
+function atualizarLateral(dados) {
+  var stats = dados.stats || {};
+  var tecnicos = dados.tecnicos || [];
+  var alertas = dados.alertas || [];
+
+  // Header
+  document.getElementById('hd-mov').textContent = stats.em_movimento || 0;
+  document.getElementById('hd-par').textContent = stats.parados || 0;
+  document.getElementById('hd-alert').textContent = stats.alertas || 0;
+  document.getElementById('tv-hora').textContent = dados.atualizado_em || '';
+
+  // Stats
+  document.getElementById('st-total').textContent = stats.total || 0;
+  document.getElementById('st-mov').textContent = stats.em_movimento || 0;
+  document.getElementById('st-par').textContent = stats.parados || 0;
+  document.getElementById('st-alert').textContent = stats.alertas || 0;
+
+  // Badge alertas
+  var badgeAlert = document.getElementById('tv-badge-alert');
+  badgeAlert.style.background = stats.alertas > 0 ? '#7f1d1d' : '#14532d';
+
+  // Lista veiculos
+  var html = '';
+  tecnicos.forEach(function(t) {
+    var velTxt = t.em_movimento
+      ? '<span style="color:#22c55e">'+Math.round(t.velocidade)+' km/h</span>'
+      : '<span style="color:#64748b">'+t.min_parado+' min</span>';
+    var emoji = t.em_movimento ? '🚗' : '🅿️';
+    html += '<div class="tv-veiculo '+t.status+'">'
+      + '<div style="font-size:1.2rem">'+emoji+'</div>'
+      + '<div class="tv-veiculo-info">'
+      + '<div class="tv-veiculo-nome">'+t.tecnico_nome+'</div>'
+      + '<div class="tv-veiculo-placa">'+(t.placa||'Sem veículo')+'</div>'
+      + '</div>'
+      + '<div class="tv-veiculo-status" style="color:'+t.cor+'">'
+      + velTxt
+      + '</div>'
+      + '</div>';
+  });
+  document.getElementById('tv-lista-veiculos').innerHTML = html ||
+    '<div class="tv-sem-alertas">Sem veículos rastreados</div>';
+
+  // Alertas ativos (tecnicos com status != normal)
+  var comAlerta = tecnicos.filter(function(t){return t.status !== 'normal' && t.alerta_txt;});
+  var htmlA = '';
+  comAlerta.forEach(function(t) {
+    var cls = t.status === 'critico' ? '' : 'atencao';
+    htmlA += '<div class="tv-alerta-item '+cls+'">'
+      + '<div class="tv-alerta-nome '+cls+'">'+(t.placa||t.tecnico_nome)+'</div>'
+      + '<div class="tv-alerta-desc">'+t.alerta_txt+'</div>'
+      + '</div>';
+  });
+  document.getElementById('tv-alertas-lista').innerHTML = htmlA ||
+    '<div class="tv-sem-alertas">✅ Sem alertas ativos</div>';
+
+  // Ticker
+  var ticker_itens = comAlerta.map(function(t){
+    return '⚠️ ' + (t.placa||t.tecnico_nome) + ': ' + t.alerta_txt;
+  });
+  if (!ticker_itens.length) ticker_itens = ['✅ Frota operando normalmente'];
+  document.getElementById('tv-ticker-text').textContent = ticker_itens.join('   •   ');
+
+  // Som se critico novo
+  var temCritico = comAlerta.some(function(t){return t.status==='critico';});
+  var agora = Date.now();
+  if (temCritico && agora - ultimoAlertaCritico > 30000) {
+    alertaSom('critico');
+    ultimoAlertaCritico = agora;
+  } else if (comAlerta.length && agora - ultimoAlertaCritico > 60000) {
+    alertaSom('atencao');
+  }
+}
+
+// ── POLLING ───────────────────────────────────────────────────
+async function atualizar() {
+  try {
+    var r = await fetch('/api/tv/status');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var dados = await r.json();
+    atualizarMapa(dados.tecnicos || []);
+    atualizarLateral(dados);
+  } catch(e) {
+    console.warn('Erro ao atualizar:', e);
+  }
+}
+
+// Atualiza hora a cada segundo
+setInterval(function() {
+  var agora = new Date();
+  var h = agora.toLocaleString('pt-BR', {
+    day:'2-digit', month:'2-digit', year:'numeric',
+    hour:'2-digit', minute:'2-digit', second:'2-digit'
+  });
+  document.getElementById('tv-hora').textContent = h;
+}, 1000);
+
+// Polling a cada 10s
+atualizar();
+setInterval(atualizar, 10000);
+
+// Fullscreen ao clicar
+document.body.addEventListener('dblclick', function() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+});
+</script>
+</body>
+</html>

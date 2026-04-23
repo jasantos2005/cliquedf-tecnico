@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Monitor de Frota — TV</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#060d1a;color:#e2e8f0;font-family:'Segoe UI',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+body.noturno{background:#02050a;}
+body.noturno #tv-header{background:#050a14;border-color:#0f1e35;}
+body.noturno #tv-lateral{background:#050a14;}
+
+#tv-header{background:#0d1526;border-bottom:2px solid #1e3a5f;padding:0 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;height:50px;transition:background .5s;}
+.tv-titulo{font-size:.95rem;font-weight:900;color:#38bdf8;letter-spacing:.05em;white-space:nowrap;}
+.tv-titulo.noturno{color:#1e3a5f;}
+.tv-badge{background:#0f2040;border:1px solid #1e3a5f;border-radius:7px;padding:3px 10px;font-size:.72rem;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#tv-hora{font-size:.88rem;font-weight:700;color:#64748b;margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.noturno-badge{background:#0f1e35;color:#334155;border:1px solid #1e293b;border-radius:7px;padding:3px 10px;font-size:.72rem;font-weight:700;display:none;}
+
+#tv-main{flex:1;display:flex;overflow:hidden;}
+#tv-mapa{flex:1;}
+
+#tv-lateral{width:285px;background:#0d1526;border-left:1px solid #1e293b;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:background .5s;}
+.tv-sec{padding:9px 11px;border-bottom:1px solid #1a2540;}
+.tv-sec-title{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#334155;margin-bottom:7px;}
+
+.tv-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.tv-stat{background:#060d1a;border-radius:7px;padding:6px 3px;text-align:center;border:1px solid #1e293b;}
+.tv-stat-num{font-size:1.3rem;font-weight:900;line-height:1;}
+.tv-stat-label{font-size:.56rem;color:#475569;margin-top:2px;font-weight:600;}
+
+#tv-alertas-lista{max-height:140px;overflow-y:auto;}
+.tv-alerta{background:#1a0808;border:1px solid #7f1d1d;border-radius:6px;padding:5px 9px;margin-bottom:4px;font-size:.7rem;}
+.tv-alerta.atencao{background:#140f00;border-color:#78350f;}
+.tv-alerta-nome{font-weight:700;color:#fca5a5;}
+.tv-alerta.atencao .tv-alerta-nome{color:#fcd34d;}
+.tv-alerta-desc{color:#94a3b8;font-size:.65rem;margin-top:1px;}
+
+.tv-sec-title-inline{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#334155;padding:7px 11px 3px;}
+#tv-lista{flex:1;overflow-y:auto;padding:3px 5px;}
+.tv-vei{background:#060d1a;border-radius:8px;padding:7px 9px;margin-bottom:4px;border-left:3px solid #22c55e;cursor:pointer;transition:background .15s;}
+.tv-vei:hover{background:#0f1f35;}
+.tv-vei.atencao{border-left-color:#f59e0b;}
+.tv-vei.critico{border-left-color:#ef4444;animation:piscar 1.2s infinite;}
+.tv-vei.parado_sem_os{border-left-color:#dc2626;}
+.tv-vei.offline{border-left-color:#334155;opacity:.5;}
+.tv-vei.noturno{border-left-color:#1e293b;opacity:.4;}
+.tv-vei-top{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+.tv-vei-nome{font-size:.75rem;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tv-vei-vel{font-size:.7rem;font-weight:800;}
+.tv-vei-sub{display:flex;justify-content:space-between;font-size:.65rem;color:#475569;}
+.tv-vei-os{font-size:.65rem;color:#38bdf8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+#tv-ticker{background:#04080f;border-top:2px solid #1e3a5f;height:32px;display:flex;align-items:center;flex-shrink:0;overflow:hidden;}
+#tv-ticker-label{background:#1d4ed8;color:#fff;font-size:.62rem;font-weight:900;padding:0 10px;height:100%;display:flex;align-items:center;letter-spacing:.05em;flex-shrink:0;white-space:nowrap;}
+#tv-ticker-wrap{flex:1;overflow:hidden;position:relative;height:100%;}
+#tv-ticker-txt{position:absolute;white-space:nowrap;font-size:.72rem;font-weight:600;color:#94a3b8;top:50%;transform:translateY(-50%);animation:ticker 40s linear infinite;}
+
+@keyframes ticker{0%{left:100%;}100%{left:-300%;}}
+@keyframes piscar{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+.tv-sem{color:#1e293b;font-size:.72rem;text-align:center;padding:14px;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:#060d1a;}
+::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px;}
+
+/* POPUP */
+.leaflet-popup-content-wrapper{background:#0d1526;border:1px solid #1e3a5f;border-radius:10px;color:#e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.6);}
+.leaflet-popup-tip{background:#0d1526;}
+.leaflet-popup-content{margin:10px 14px;font-family:'Segoe UI',sans-serif;}
+</style>
+</head>
+<body>
+
+<div id="tv-header">
+  <div class="tv-titulo" id="tv-titulo-txt">🚛 MONITORAMENTO DE FROTA</div>
+  <div class="tv-badge" style="border-color:#166534"><span style="color:#22c55e">●</span>&nbsp;Movimento:&nbsp;<b id="hd-mov" style="color:#22c55e">—</b></div>
+  <div class="tv-badge" style="border-color:#78350f"><span style="color:#f59e0b">●</span>&nbsp;Parados:&nbsp;<b id="hd-par" style="color:#f59e0b">—</b></div>
+  <div class="tv-badge" style="border-color:#334155"><span style="color:#475569">●</span>&nbsp;Offline:&nbsp;<b id="hd-off" style="color:#475569">—</b></div>
+  <div class="tv-badge" id="badge-alert" style="border-color:#7f1d1d"><span>🚨</span>&nbsp;Alertas:&nbsp;<b id="hd-alert" style="color:#ef4444">—</b></div>
+  <div class="noturno-badge" id="badge-noturno">🌙 MODO NOTURNO</div>
+  <div id="tv-hora">—</div>
+</div>
+
+<div id="tv-main">
+  <div id="tv-mapa"></div>
+  <div id="tv-lateral">
+    <div class="tv-sec">
+      <div class="tv-sec-title">📊 Resumo da Frota</div>
+      <div class="tv-stats">
+        <div class="tv-stat"><div class="tv-stat-num" id="st-total" style="color:#38bdf8">—</div><div class="tv-stat-label">Total</div></div>
+        <div class="tv-stat"><div class="tv-stat-num" id="st-mov" style="color:#22c55e">—</div><div class="tv-stat-label">Movimento</div></div>
+        <div class="tv-stat"><div class="tv-stat-num" id="st-par" style="color:#f59e0b">—</div><div class="tv-stat-label">Parados</div></div>
+        <div class="tv-stat"><div class="tv-stat-num" id="st-alert" style="color:#ef4444">—</div><div class="tv-stat-label">Alertas</div></div>
+      </div>
+    </div>
+    <div class="tv-sec">
+      <div class="tv-sec-title">🚨 Alertas Ativos</div>
+      <div id="tv-alertas-lista"><div class="tv-sem">✅ Sem alertas</div></div>
+    </div>
+    <div class="tv-sec-title-inline">🚗 Veículos em Campo</div>
+    <div id="tv-lista"></div>
+  </div>
+</div>
+
+<div id="tv-ticker">
+  <div id="tv-ticker-label">⚡ AO VIVO</div>
+  <div id="tv-ticker-wrap"><div id="tv-ticker-txt">Monitoramento ativo...</div></div>
+</div>
+
+<script>
+// ── MAPA ──────────────────────────────────────────────────────
+var mapa = L.map('tv-mapa',{zoomControl:true,attributionControl:false}).setView([-10.321962,-36.579507],11);
+var tileEscuro = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19});
+var tileNormal = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{maxZoom:19});
+tileEscuro.addTo(mapa);
+
+// Cercas no mapa
+var cercaOperacao = L.circle([-10.321962,-36.579507], {
+  radius:25000, color:'#1e3a5f', fillColor:'#1e3a5f',
+  fillOpacity:.05, weight:1.5, dashArray:'6,8'
+}).addTo(mapa).bindTooltip('Área de operação',{permanent:false});
+
+var cercaGaragem = L.circle([-10.321962,-36.579507], {
+  radius:500, color:'#22c55e', fillColor:'#22c55e',
+  fillOpacity:.08, weight:1.5
+}).addTo(mapa).bindTooltip('Garagem',{permanent:true,direction:'right',
+  className:'leaflet-tooltip',offset:[10,0]});
+
+// Marcador garagem
+L.marker([-10.321962,-36.579507],{
+  icon:L.divIcon({className:'',
+    html:'<div style="background:#0d1526;border:2px solid #22c55e;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;color:#22c55e;white-space:nowrap">🏠 Garagem</div>',
+    iconSize:[null,24],iconAnchor:[0,12]})
+}).addTo(mapa);
+
+var marcadores  = {};
+var rastroLayers = {};
+var primeiroLoad = true;
+var ultimoSom    = 0;
+var audioCtx     = null;
+
+// ── AUDIO ─────────────────────────────────────────────────────
+function beep(f,d,v){
+  try{
+    if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);
+    o.frequency.value=f;g.gain.value=v||.3;
+    o.start();o.stop(audioCtx.currentTime+d);
+  }catch(e){}
+}
+function somCritico(){beep(880,.15,.4);setTimeout(function(){beep(660,.2,.4);},220);}
+function somAtencao(){beep(520,.12,.2);}
+
+// ── SVG ICONES POR TIPO ───────────────────────────────────────
+function svgVeiculo(tipo, cor, ang) {
+  // SVG visao de cima com rotacao
+  var svgs = {
+    carro: '<ellipse cx="16" cy="16" rx="7" ry="11" fill="COR" stroke="#000" stroke-width="1"/>'
+      +'<rect x="10" y="8" width="12" height="6" rx="2" fill="#1a2a4a"/>'
+      +'<rect x="10" y="22" width="5" height="3" rx="1" fill="#000"/>'
+      +'<rect x="17" y="22" width="5" height="3" rx="1" fill="#000"/>'
+      +'<rect x="10" y="7" width="5" height="3" rx="1" fill="#000"/>'
+      +'<rect x="17" y="7" width="5" height="3" rx="1" fill="#000"/>'
+      +'<polygon points="16,4 14,8 18,8" fill="COR"/>',
+
+    pickup: '<rect x="9" y="6" width="14" height="20" rx="3" fill="COR" stroke="#000" stroke-width="1"/>'
+      +'<rect x="10" y="7" width="12" height="7" rx="2" fill="#1a2a4a"/>'
+      +'<line x1="10" y1="17" x2="22" y2="17" stroke="#000" stroke-width="1"/>'
+      +'<rect x="9" y="23" width="5" height="3" rx="1" fill="#000"/>'
+      +'<rect x="18" y="23" width="5" height="3" rx="1" fill="#000"/>'
+      +'<polygon points="16,3 14,7 18,7" fill="COR"/>',
+
+    moto: '<ellipse cx="16" cy="16" rx="4" ry="12" fill="COR" stroke="#000" stroke-width="1"/>'
+      +'<ellipse cx="16" cy="9" rx="3" ry="4" fill="#1a2a4a"/>'
+      +'<rect x="13" y="12" width="6" height="2" fill="#1a2a4a"/>'
+      +'<polygon points="16,3 14,7 18,7" fill="COR"/>',
+
+    eletrico: '<ellipse cx="16" cy="16" rx="7" ry="11" fill="COR" stroke="#000" stroke-width="1"/>'
+      +'<rect x="10" y="8" width="12" height="6" rx="2" fill="#1a2a4a"/>'
+      +'<text x="16" y="20" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">⚡</text>'
+      +'<polygon points="16,4 14,8 18,8" fill="COR"/>',
+
+    barco: '<ellipse cx="16" cy="17" rx="9" ry="6" fill="COR" stroke="#000" stroke-width="1"/>'
+      +'<polygon points="16,5 13,14 19,14" fill="COR"/>'
+      +'<line x1="16" y1="5" x2="16" y2="14" stroke="#aaa" stroke-width="1"/>',
+
+    outros: '<rect x="10" y="8" width="12" height="16" rx="2" fill="COR" stroke="#000" stroke-width="1"/>'
+      +'<polygon points="16,3 13,8 19,8" fill="COR"/>',
+  };
+  var shape = svgs[tipo] || svgs.carro;
+  shape = shape.replace(/COR/g, cor);
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"'
+    +' style="transform:rotate('+ang+'deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))">'
+    + shape + '</svg>';
+}
+
+function iconeMarker(t) {
+  var tipo = (t.tipo||'carro').toLowerCase();
+  var cor  = t.offline?'#475569': t.status==='critico'?'#ef4444':
+             t.status==='atencao'?'#f59e0b':
+             t.status==='parado_sem_os'?'#dc2626':'#22c55e';
+  var ang  = t.em_movimento ? (t.bearing||0) : 0;
+  var svg  = svgVeiculo(tipo, cor, ang);
+  // Label abaixo do icone
+  var label = '<div style="text-align:center;margin-top:2px;background:rgba(13,21,38,.85);'
+    +'border:1px solid '+cor+';border-radius:5px;padding:1px 6px;font-size:10px;'
+    +'font-weight:800;color:'+cor+';white-space:nowrap">'
+    +(t.placa||t.tecnico_nome)
+    +(t.em_movimento?' '+Math.round(t.velocidade)+'km/h':'')
+    +'</div>';
+  return L.divIcon({
+    className:'',
+    html:'<div style="display:flex;flex-direction:column;align-items:center">'+svg+label+'</div>',
+    iconSize:[80,52], iconAnchor:[40,26]
+  });
+}
+
+// ── POPUP RICO ────────────────────────────────────────────────
+function popupHTML(t) {
+  var velTxt = t.offline
+    ? '<span style="color:#475569">💤 Offline</span>'
+    : t.em_movimento
+      ? '<span style="color:#22c55e">🟢 '+Math.round(t.velocidade)+' km/h</span>'
+      : '<span style="color:'+(t.status==='critico'?'#ef4444':'#f59e0b')+'">🅿️ Parado '+t.min_parado+'min</span>';
+
+  var osExec = t.os_exec;
+  var osDesloc = t.os_desloc;
+  var osProx = t.os_proxima;
+
+  var osTxt = '';
+  if (osExec) {
+    osTxt += '<div style="margin-top:2px;padding:5px 7px;background:#0f2040;border-radius:6px;font-size:.7rem">'
+      +'<div style="color:#3b82f6;font-weight:800">🔵 Execução — OS #'+osExec.ixc_os_id+'</div>'
+      +'<div style="color:#94a3b8;margin-top:1px">'+osExec.cliente_nome+'</div>'
+      +(osExec.assunto_nome?'<div style="color:#64748b;font-size:.65rem">'+osExec.assunto_nome+'</div>':'')
+      +'</div>';
+  } else if (osDesloc) {
+    osTxt += '<div style="margin-top:2px;padding:5px 7px;background:#1a1200;border-radius:6px;font-size:.7rem">'
+      +'<div style="color:#f59e0b;font-weight:800">🟡 Deslocamento — OS #'+osDesloc.ixc_os_id+'</div>'
+      +'<div style="color:#94a3b8;margin-top:1px">'+osDesloc.cliente_nome+'</div>'
+      +'</div>';
+  }
+  if (osProx) {
+    osTxt += '<div style="margin-top:4px;font-size:.68rem;color:#475569">'
+      +'📅 Próxima: OS#'+osProx.ixc_os_id+' — '+osProx.cliente_nome+'</div>';
+  }
+  if (!osExec && !osDesloc && t.os_total === 0) {
+    osTxt = '<div style="font-size:.68rem;color:#334155;margin-top:4px">Sem OS no dia</div>';
+  }
+
+  return '<div style="min-width:190px;font-size:.8rem">'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+    +'<div style="font-weight:800;font-size:.9rem">'+(t.placa||'—')+'</div>'
+    +'<div style="font-size:.72rem;color:#64748b">'+t.tecnico_nome+'</div>'
+    +'</div>'
+    +velTxt
+    +'<div style="margin:6px 0;display:flex;gap:10px;font-size:.68rem;color:#64748b">'
+    +'<span>✅ Fin: <b style="color:#22c55e">'+t.os_finalizadas+'</b></span>'
+    +'<span>📋 Total: <b style="color:#38bdf8">'+t.os_total+'</b></span>'
+    +'<span>🛣️ <b style="color:#94a3b8">'+t.km_dia+'km</b></span>'
+    +'</div>'
+    + osTxt
+    +(t.d_garagem_km !== undefined?'<div style="font-size:.65rem;color:#334155;margin-top:5px">📍 '+t.d_garagem_km+'km da garagem</div>':'')
+    +'</div>';
+}
+
+// ── ATUALIZAR MAPA ────────────────────────────────────────────
+function atualizarMapa(tecnicos) {
+  var bounds = [];
+  var ids = tecnicos.map(function(t){return t.id_tecnico;});
+
+  Object.keys(marcadores).forEach(function(id){
+    if(ids.indexOf(parseInt(id))===-1){mapa.removeLayer(marcadores[id]);delete marcadores[id];}
+  });
+  Object.keys(rastroLayers).forEach(function(id){
+    if(ids.indexOf(parseInt(id))===-1){mapa.removeLayer(rastroLayers[id]);delete rastroLayers[id];}
+  });
+
+  tecnicos.forEach(function(t){
+    if(!t.lat||!t.lon||t.offline) return;
+    bounds.push([t.lat,t.lon]);
+
+    // Rastro colorido por velocidade
+    if(t.rastro&&t.rastro.length>1){
+      if(rastroLayers[t.id_tecnico]) mapa.removeLayer(rastroLayers[t.id_tecnico]);
+      var segmentos = [];
+      for(var i=1;i<t.rastro.length;i++){
+        var v = t.rastro[i].vel||0;
+        var cor = v>80?'#ef4444':v>60?'#f59e0b':v>10?'#38bdf8':'#334155';
+        segmentos.push(L.polyline(
+          [[t.rastro[i-1].lat,t.rastro[i-1].lon],[t.rastro[i].lat,t.rastro[i].lon]],
+          {color:cor,weight:2,opacity:.5}
+        ));
+      }
+      rastroLayers[t.id_tecnico] = L.layerGroup(segmentos).addTo(mapa);
+    }
+
+    // Marker SVG
+    var icon = iconeMarker(t);
+    var popupContent = popupHTML(t);
+    if(marcadores[t.id_tecnico]){
+      marcadores[t.id_tecnico].setLatLng([t.lat,t.lon]).setIcon(icon);
+      if(marcadores[t.id_tecnico].getPopup())
+        marcadores[t.id_tecnico].setPopupContent(popupContent);
+    }else{
+      marcadores[t.id_tecnico] = L.marker([t.lat,t.lon],{icon:icon,zIndexOffset:100})
+        .addTo(mapa)
+        .bindPopup(popupContent,{maxWidth:230});
+    }
+  });
+
+  if(primeiroLoad&&bounds.length){
+    mapa.fitBounds(bounds,{padding:[50,50]});
+    primeiroLoad=false;
+  }
+}
+
+// ── ATUALIZAR LATERAL ─────────────────────────────────────────
+function atualizarLateral(dados){
+  var stats    = dados.stats||{};
+  var tecnicos = dados.tecnicos||[];
+  var noturno  = dados.modo_noturno||false;
+
+  // Modo noturno visual
+  document.body.classList.toggle('noturno', noturno);
+  document.getElementById('tv-titulo-txt').textContent = noturno ? '🌙 MODO NOTURNO — FROTA' : '🚛 MONITORAMENTO DE FROTA';
+  document.getElementById('badge-noturno').style.display = noturno ? 'flex' : 'none';
+
+  // Header badges
+  document.getElementById('hd-mov').textContent   = stats.em_movimento||0;
+  document.getElementById('hd-par').textContent   = stats.parados||0;
+  document.getElementById('hd-off').textContent   = stats.offline||0;
+  document.getElementById('hd-alert').textContent = stats.alertas||0;
+  document.getElementById('badge-alert').style.borderColor = stats.alertas>0?'#7f1d1d':'#14532d';
+
+  // Stats cards
+  var el=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+  el('st-total',stats.total||0);
+  el('st-mov',stats.em_movimento||0);
+  el('st-par',stats.parados||0);
+  el('st-alert',stats.alertas||0);
+
+  // Alertas ativos
+  var comAlerta = tecnicos.filter(function(t){return t.alerta_txt;});
+  var htmlA='';
+  comAlerta.forEach(function(t){
+    var cls = t.status==='critico'?'':'atencao';
+    htmlA+='<div class="tv-alerta '+cls+'">'
+      +'<div class="tv-alerta-nome">'+(t.placa||t.tecnico_nome)+'</div>'
+      +'<div class="tv-alerta-desc">'+t.alerta_txt+'</div>'
+      +'</div>';
+  });
+  document.getElementById('tv-alertas-lista').innerHTML=htmlA||'<div class="tv-sem">✅ Sem alertas</div>';
+
+  // Lista veiculos ordenada
+  var ordem={critico:0,atencao:1,parado_sem_os:2,normal:3,offline:4,noturno:5};
+  var sorted=tecnicos.slice().sort(function(a,b){return(ordem[a.status]||3)-(ordem[b.status]||3);});
+  var html='';
+  sorted.forEach(function(t){
+    var tipo=(t.tipo||'carro').toLowerCase();
+    var emojiTipo={carro:'🚗',pickup:'🛻',moto:'🏍️',eletrico:'⚡',barco:'⛵',outros:'🔧'}[tipo]||'🚗';
+    var velTxt = t.offline
+      ?'<span style="color:#334155">Offline</span>'
+      :t.em_movimento
+        ?'<span style="color:#22c55e">'+Math.round(t.velocidade)+' km/h</span>'
+        :'<span style="color:'+(t.status==='critico'||t.status==='parado_sem_os'?'#dc2626':'#f59e0b')+'">'+t.min_parado+' min</span>';
+    var osLabel = t.os_exec?'<span style="color:#3b82f6">🔵 OS#'+t.os_exec.ixc_os_id+'</span>':
+      t.os_desloc?'<span style="color:#f59e0b">🟡 OS#'+t.os_desloc.ixc_os_id+'</span>':
+      t.os_total>0?'<span style="color:#475569">'+t.os_total+' agend.</span>':'';
+    html+='<div class="tv-vei '+t.status+(noturno&&t.status==='normal'?' noturno':'')+'" onclick="focarTecnico('+t.id_tecnico+')">'
+      +'<div class="tv-vei-top">'
+      +'<span style="font-size:1rem">'+emojiTipo+'</span>'
+      +'<div class="tv-vei-nome">'+t.tecnico_nome+'</div>'
+      +'<div class="tv-vei-vel">'+velTxt+'</div>'
+      +'</div>'
+      +'<div class="tv-vei-sub">'
+      +'<span>'+(t.placa||'—')+'</span>'
+      +'<span>'+osLabel+'</span>'
+      +'</div>'
+      +(t.alerta_txt?'<div style="font-size:.62rem;color:#fca5a5;margin-top:2px">⚠ '+t.alerta_txt+'</div>':'')
+      +'</div>';
+  });
+  document.getElementById('tv-lista').innerHTML=html||'<div class="tv-sem">Nenhum veículo em campo</div>';
+
+  // Ticker
+  var ticker=[];
+  comAlerta.forEach(function(t){ticker.push('🚨 '+(t.placa||t.tecnico_nome)+': '+t.alerta_txt);});
+  tecnicos.forEach(function(t){
+    if(t.os_exec) ticker.push('🔵 '+(t.placa||t.tecnico_nome)+' executando OS#'+t.os_exec.ixc_os_id+' — '+t.os_exec.cliente_nome);
+    else if(t.os_desloc) ticker.push('🟡 '+(t.placa||t.tecnico_nome)+' em deslocamento para OS#'+t.os_desloc.ixc_os_id+' — '+t.os_desloc.cliente_nome);
+  });
+  if(!ticker.length) ticker=[noturno?'🌙 Modo noturno — Frota na garagem':'✅ Frota operando normalmente — '+dados.atualizado_em];
+  document.getElementById('tv-ticker-txt').textContent=ticker.join('   •   ');
+
+  // Som
+  var agora=Date.now();
+  var temCritico=comAlerta.some(function(t){return t.status==='critico';});
+  if(temCritico&&agora-ultimoSom>30000){somCritico();ultimoSom=agora;}
+  else if(comAlerta.length&&agora-ultimoSom>60000){somAtencao();ultimoSom=agora;}
+}
+
+// ── FOCAR TECNICO ─────────────────────────────────────────────
+function focarTecnico(id){
+  var m=marcadores[id];
+  if(m){mapa.setView(m.getLatLng(),15);m.openPopup();}
+}
+
+// ── POLLING ───────────────────────────────────────────────────
+async function atualizar(){
+  try{
+    var r=await fetch('/api/tv/status');
+    if(!r.ok) throw new Error(r.status);
+    var dados=await r.json();
+    atualizarMapa(dados.tecnicos||[]);
+    atualizarLateral(dados);
+  }catch(e){console.warn('Erro TV:',e);}
+}
+
+// Relogio
+setInterval(function(){
+  document.getElementById('tv-hora').textContent=new Date().toLocaleString('pt-BR',{
+    day:'2-digit',month:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit',second:'2-digit'
+  });
+},1000);
+
+atualizar();
+setInterval(atualizar,10000);
+
+// Fullscreen duplo clique
+document.body.addEventListener('dblclick',function(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+});
+</script>
+</body>
+</html>

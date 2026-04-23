@@ -21,8 +21,8 @@ def dados_mapa(usuario=Depends(requer_supervisor)):
         SELECT o.*, u.nome AS tecnico_nome
         FROM ht_os o
         LEFT JOIN ht_usuarios u ON u.id = o.id_tecnico
-        WHERE o.status_hub IN ('pendente','deslocamento','execucao','agendada','reagendada')
-           OR (o.status_hub = 'finalizada' AND DATE(o.data_abertura) = DATE('now','-3 hours'))
+        WHERE o.status_hub IN ('pendente','deslocamento','execucao')
+           OR DATE(o.data_abertura) = DATE('now','-3 hours')
         ORDER BY o.data_abertura ASC
     """).fetchall()
 
@@ -44,7 +44,6 @@ def dados_mapa(usuario=Depends(requer_supervisor)):
             SUM(CASE WHEN status_hub='pendente' THEN 1 ELSE 0 END) as pendentes,
             SUM(CASE WHEN status_hub='deslocamento' THEN 1 ELSE 0 END) as deslocamento,
             SUM(CASE WHEN status_hub='execucao' THEN 1 ELSE 0 END) as execucao,
-            SUM(CASE WHEN status_hub IN ('agendada','reagendada') THEN 1 ELSE 0 END) as agendadas,
             SUM(CASE WHEN status_hub='finalizada'
                 AND DATE(data_abertura)=DATE('now','-3 hours') THEN 1 ELSE 0 END) as finalizadas
         FROM ht_os
