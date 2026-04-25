@@ -334,16 +334,21 @@ def sequenciar_por_proximidade(lista_os: list, lat_inicio: float = None, lon_ini
 
 
 # ── Etapa 5b: Mesclar rotas pequenas próximas ────────────────────────────────
-def mesclar_rotas_proximas(rotas: list, capacidade: int = CAPACIDADE_PONTOS + TOLERANCIA_PONTOS, raio_km: float = 8.0) -> list:
-    def max_dist_entre_rotas(os1, os2):
-        max_d = 0
+def mesclar_rotas_proximas(rotas: list, capacidade: int = CAPACIDADE_PONTOS + TOLERANCIA_PONTOS, raio_km: float = 15.0) -> list:
+    """
+    Mescla rotas da mesma garagem que couberem em 80pts,
+    usando distância MÍNIMA entre OS (se alguma OS das duas rotas
+    estiver dentro de raio_km, considera próximas o suficiente).
+    """
+    def min_dist_entre_rotas(os1, os2):
+        min_d = float('inf')
         for a in os1:
             for b in os2:
                 if a.get('lat') and b.get('lat') and a['lat'] and b['lat']:
                     d = haversine(a['lat'], a['lon'], b['lat'], b['lon'])
-                    if d > max_d:
-                        max_d = d
-        return max_d
+                    if d < min_d:
+                        min_d = d
+        return min_d if min_d != float('inf') else 999
 
     modificou = True
     while modificou:
@@ -358,21 +363,33 @@ def mesclar_rotas_proximas(rotas: list, capacidade: int = CAPACIDADE_PONTOS + TO
             for j, r2 in enumerate(rotas):
                 if j <= i or j in usadas:
                     continue
+                # Só mescla mesma garagem
+                if r1.get('garagem') != r2.get('garagem'):
+                    continue
                 if r1['pontos'] + r2['pontos'] > capacidade:
                     continue
-                dist = max_dist_entre_rotas(r1['os'], r2['os'])
+                dist = min_dist_entre_rotas(r1['os'], r2['os'])
                 if dist < melhor_dist:
                     melhor_dist = dist
                     melhor_j = j
             if melhor_j is not None:
                 r2 = rotas[melhor_j]
-                os_merged = sequenciar_por_proximidade(r1['os'] + r2['os'])
+                garagem_obj = next((g for g in GARAGENS.values() if g['nome'] == r1['garagem']), None)
+                lat_g = garagem_obj['lat'] if garagem_obj else None
+                lon_g = garagem_obj['lon'] if garagem_obj else None
+                os_merged = sequenciar_por_proximidade(r1['os'] + r2['os'], lat_g, lon_g)
+                cidades = [o.get('cidade') or 'SEM_CIDADE' for o in os_merged]
+                bairros = [o.get('bairro') or 'SEM_BAIRRO' for o in os_merged]
+                cidade_ref = max(set(cidades), key=cidades.count).strip().upper()
+                bairro_ref = max(set(bairros), key=bairros.count).strip().upper()
                 novas.append({
-                    'os':        os_merged,
-                    'pontos':    r1['pontos'] + r2['pontos'],
-                    'tempo_est': r1['tempo_est'] + r2['tempo_est'],
-                    'bairro_ref': r1['bairro_ref'] + ' + ' + r2['bairro_ref'],
-                    'total_os':  r1['total_os'] + r2['total_os'],
+                    'os':          os_merged,
+                    'pontos':      r1['pontos'] + r2['pontos'],
+                    'tempo_est':   r1['tempo_est'] + r2['tempo_est'],
+                    'bairro_ref':  f"{cidade_ref} — {bairro_ref}",
+                    'total_os':    len(os_merged),
+                    'garagem':     r1['garagem'],
+                    'distancia_km': r1.get('distancia_km', 0),
                 })
                 usadas.add(i)
                 usadas.add(melhor_j)
@@ -397,35 +414,51 @@ def gerar_rotas(data: Optional[str] = None) -> list:
 
         os_list = enriquecer_pontos(os_list, db)
         os_list = priorizar(os_list, data)
-        clusters = clusterizar_por_cidade_bairro(os_list)
+
+        # 1. Separar por garagem mais próxima
+        por_garagem = {gid: [] for gid in GARAGENS}
+        for os in os_list:
+            gid = min(GARAGENS, key=lambda g: haversine(os['lat'], os['lon'], GARAGENS[g]['lat'], GARAGENS[g]['lon']))
+            por_garagem[gid].append(os)
 
         rotas_finais = []
         rota_num = 1
 
-        # Garagem mais próxima do cluster para definir ponto de partida
-        for chave, os_cluster in clusters.items():
-            sub_rotas = subdividir_por_pontos(os_cluster)
-            # Centroide do cluster
-            lat_c = sum(o['lat'] for o in os_cluster) / len(os_cluster)
-            lon_c = sum(o['lon'] for o in os_cluster) / len(os_cluster)
-            # Garagem mais próxima
-            garagem = min(GARAGENS.values(), key=lambda g: haversine(lat_c, lon_c, g['lat'], g['lon']))
-            for sr in sub_rotas:
-                sr['os'] = sequenciar_por_proximidade(sr['os'], garagem['lat'], garagem['lon'])
-                sr['os'] = calcular_horarios(sr['os'], data, garagem)
-                sr['rota_num']   = rota_num
-                sr['bairro_ref'] = chave
-                sr['total_os']   = len(sr['os'])
-                sr['garagem']    = garagem['nome']
-                # Distância total da rota
-                dist = haversine(garagem['lat'], garagem['lon'], sr['os'][0]['lat'], sr['os'][0]['lon'])
-                for i in range(len(sr['os'])-1):
-                    dist += haversine(sr['os'][i]['lat'], sr['os'][i]['lon'], sr['os'][i+1]['lat'], sr['os'][i+1]['lon'])
-                sr['distancia_km'] = round(dist, 1)
-                rota_num += 1
-                rotas_finais.append(sr)
+        for gid, os_garagem in por_garagem.items():
+            if not os_garagem:
+                continue
+            garagem = GARAGENS[gid]
 
-        rotas_finais = mesclar_rotas_proximas(rotas_finais)
+            # 2. Clusterizar por proximidade geográfica (8km) dentro da garagem
+            clusters = clusterizar_por_cidade_bairro(os_garagem)
+
+            # 3. Para cada cluster: subdividir por capacidade, sequenciar e calcular
+            for chave, os_cluster in clusters.items():
+                os_seq = sequenciar_por_proximidade(os_cluster, garagem['lat'], garagem['lon'])
+                sub_rotas = subdividir_por_pontos(os_seq)
+                for sr in sub_rotas:
+                    sr['os'] = sequenciar_por_proximidade(sr['os'], garagem['lat'], garagem['lon'])
+                    sr['os'] = calcular_horarios(sr['os'], data, garagem)
+                    sr['rota_num']  = rota_num
+                    sr['total_os']  = len(sr['os'])
+                    sr['garagem']   = garagem['nome']
+                    cidades = [o.get('cidade') or 'SEM_CIDADE' for o in sr['os']]
+                    bairros = [o.get('bairro') or 'SEM_BAIRRO' for o in sr['os']]
+                    cidade_ref = max(set(cidades), key=cidades.count).strip().upper()
+                    bairro_ref = max(set(bairros), key=bairros.count).strip().upper()
+                    sr['bairro_ref'] = f"{cidade_ref} — {bairro_ref}"
+                    dist = haversine(garagem['lat'], garagem['lon'], sr['os'][0]['lat'], sr['os'][0]['lon'])
+                    for i in range(len(sr['os'])-1):
+                        dist += haversine(sr['os'][i]['lat'], sr['os'][i]['lon'], sr['os'][i+1]['lat'], sr['os'][i+1]['lon'])
+                    sr['distancia_km'] = round(dist, 1)
+                    rota_num += 1
+                    rotas_finais.append(sr)
+
+            # 4. Mesclar rotas pequenas da mesma garagem que couberem em 80pts
+            rotas_garagem = [r for r in rotas_finais if r.get('garagem') == garagem['nome']]
+            outras = [r for r in rotas_finais if r.get('garagem') != garagem['nome']]
+            rotas_garagem = mesclar_rotas_proximas(rotas_garagem)
+            rotas_finais = outras + rotas_garagem
 
         for idx, r in enumerate(rotas_finais, start=1):
             r['rota_num'] = idx
