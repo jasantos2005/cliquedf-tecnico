@@ -849,7 +849,21 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 
   <div id="agenda-rotas" style="display:flex;flex-direction:column;gap:12px"></div>
 
-  <div id="modal-agenda" class="modal-bg" onclick="if(event.target===this)this.style.display='none'">
+  <!-- Modal Atribuição Parcial -->
+<div id="modal-parcial" style="display:none;position:fixed;inset:0;background:#0008;z-index:1100;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--surf2);border-radius:14px;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px #0006">
+    <div style="font-weight:800;font-size:1rem;margin-bottom:10px">✂️ Atribuição Parcial</div>
+    <div id="modal-parcial-info" style="font-size:.82rem;color:var(--text3);margin-bottom:12px;padding:8px;background:var(--surf);border-radius:7px"></div>
+    <div id="modal-parcial-os" style="max-height:300px;overflow-y:auto;margin-bottom:10px"></div>
+    <div id="modal-parcial-pts" style="font-size:.8rem;font-weight:600;margin-bottom:12px;text-align:right">0 pts selecionados</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('modal-parcial').style.display='none';document.getElementById('modal-agenda').style.display='flex';" style="background:var(--surf);border:1px solid var(--border);color:var(--text1);border-radius:7px;padding:7px 16px;font-size:.82rem;cursor:pointer">← Voltar</button>
+      <button id="btn-confirmar-parcial" onclick="agendaConfirmarParcial()" disabled style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px 18px;font-size:.82rem;font-weight:700;cursor:pointer">✅ Confirmar parcial</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-agenda" class="modal-bg" onclick="if(event.target===this)this.style.display='none'">
     <div style="background:var(--surf);border-radius:14px;padding:28px;width:420px;max-width:95vw">
       <div style="font-size:1rem;font-weight:800;margin-bottom:16px">👷 Atribuir Técnico</div>
       <div id="modal-agenda-info" style="background:var(--surf2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--text2)"></div>
@@ -2702,13 +2716,25 @@ function agendaAbrirModal(idx) {
     '<br>' + r.total_os + ' OS · ⚡ ' + r.pontos + ' pts · ⏱ ' + (r.tempo_fmt || '');
   var el = document.getElementById('modal-agenda-tecnicos');
   el.innerHTML = agendaTecnicosCache.map(function(t) {
-    var livre = t.pontos_disponiveis >= r.pontos;
-    return '<div class="tecnico-option" data-id="' + t.id + '" data-nome="' + t.nome + '" ' +
-      'style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:7px;cursor:pointer;border:1px solid transparent;' + (!livre ? 'opacity:.5;pointer-events:none' : '') + '" ' +
-      'onclick="agendaSelecionarTecnico(this)">' +
-      '<div><div style="font-weight:600;font-size:.85rem">' + t.nome + '</div>' +
-      '<div style="font-size:.72rem;color:var(--text3)">' + (t.pontos_alocados || 0) + ' pts alocados · ' + (t.pontos_disponiveis || 0) + ' disponíveis</div></div>' +
-      '<span style="font-size:.72rem;font-weight:600;color:' + (livre ? 'var(--green)' : 'var(--red)') + '">' + (livre ? '✅ Disponível' : '⚠️ Sem capacidade') + '</span></div>';
+    var livre   = t.pontos_disponiveis >= r.pontos;
+    var parcial = !livre && t.pontos_disponiveis > 0;
+    var bloq    = !livre && !parcial;
+    var statusTag = livre
+      ? '<span style="font-size:.72rem;font-weight:600;color:var(--green)">✅ Disponível</span>'
+      : parcial
+        ? '<div style="display:flex;gap:5px;align-items:center">'
+          + '<span style="font-size:.68rem;color:var(--yellow)">⚡ ' + t.pontos_disponiveis + ' pts livres</span>'
+          + '<button onclick="event.stopPropagation();agendaAbrirParcial(' + t.id + ',\'' + t.nome + '\',' + t.pontos_disponiveis + ')" '
+          + 'style="background:var(--yellow);color:#000;border:none;border-radius:5px;padding:2px 8px;font-size:.7rem;font-weight:700;cursor:pointer">Parcial</button>'
+          + '</div>'
+        : '<span style="font-size:.72rem;color:var(--text3)">⛔ Sem capacidade</span>';
+    return '<div class="tecnico-option" data-id="' + t.id + '" data-nome="' + t.nome + '" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:7px;'
+      + (bloq ? 'opacity:.4;' : 'cursor:pointer;') + 'border:1px solid transparent" '
+      + (bloq ? '' : 'onclick="agendaSelecionarTecnico(this)"') + '>'
+      + '<div><div style="font-weight:600;font-size:.85rem">' + t.nome + '</div>'
+      + '<div style="font-size:.72rem;color:var(--text3)">' + (t.pontos_alocados || 0) + ' pts alocados · ' + (t.pontos_disponiveis || 0) + ' disponíveis</div></div>'
+      + statusTag + '</div>';
   }).join('');
   document.getElementById('modal-agenda').style.display = 'flex';
   var btn = document.getElementById('btn-confirmar-rota');
@@ -2725,6 +2751,86 @@ function agendaSelecionarTecnico(el) {
   var btn = document.getElementById('btn-confirmar-rota');
   btn.dataset.tecnicoId = id;
   btn.dataset.tecnicoNome = nome;
+}
+
+var agendaParcialTecnicoId   = null;
+var agendaParcialTecnicoNome = '';
+var agendaParcialPtsLivres   = 0;
+
+function agendaAbrirParcial(tId, tNome, ptsLivres) {
+  agendaParcialTecnicoId   = tId;
+  agendaParcialTecnicoNome = tNome;
+  agendaParcialPtsLivres   = ptsLivres;
+  document.getElementById('modal-agenda').style.display = 'none';
+  var r = agendaRotaSelecionada;
+  var el = document.getElementById('modal-parcial-os');
+  document.getElementById('modal-parcial-info').innerHTML =
+    '<b>' + tNome + '</b> · ' + ptsLivres + ' pts disponíveis<br>'
+    + 'Selecione as OS para atribuir (limite: ' + ptsLivres + ' pts)';
+  var ptsSel = 0;
+  el.innerHTML = (r.os || []).map(function(o, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">' +
+      '<input type="checkbox" id="poc_' + i + '" data-pts="' + (o.pontos||0) + '" data-idx="' + i + '" '
+      + 'onchange="agendaParcialCheck()" style="width:16px;height:16px;cursor:pointer"> ' +
+      '<div style="flex:1"><div style="font-size:.8rem;font-weight:600">' + (o.sla_estourado?'🚨 ':'') + (o.cliente_nome||'') + '</div>' +
+      '<div style="font-size:.72rem;color:var(--text3)">' + (o.assunto_nome||'') + ' · ' + (o.bairro||'') + '</div></div>' +
+      '<span style="background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-size:.68rem;font-weight:700">' + (o.pontos||0) + 'pts</span></div>';
+  }).join('');
+  document.getElementById('modal-parcial-pts').textContent = '0 / ' + ptsLivres + ' pts selecionados';
+  document.getElementById('modal-parcial').style.display = 'flex';
+}
+
+function agendaParcialCheck() {
+  var pts = 0;
+  document.querySelectorAll('#modal-parcial-os input[type=checkbox]').forEach(function(cb) {
+    if (cb.checked) pts += parseInt(cb.dataset.pts) || 0;
+  });
+  document.getElementById('modal-parcial-pts').textContent = pts + ' / ' + agendaParcialPtsLivres + ' pts selecionados';
+  document.getElementById('modal-parcial-pts').style.color = pts > agendaParcialPtsLivres ? 'var(--red)' : 'var(--green)';
+  document.getElementById('btn-confirmar-parcial').disabled = pts === 0 || pts > agendaParcialPtsLivres;
+}
+
+function agendaConfirmarParcial() {
+  var r    = agendaRotaSelecionada;
+  var data = document.getElementById('agenda-data').value;
+  var idxsSel = [];
+  document.querySelectorAll('#modal-parcial-os input[type=checkbox]').forEach(function(cb) {
+    if (cb.checked) idxsSel.push(parseInt(cb.dataset.idx));
+  });
+  if (!idxsSel.length) { alert('Selecione ao menos uma OS'); return; }
+  var osSel  = idxsSel.map(function(i){ return r.os[i]; });
+  var osRest = r.os.filter(function(_, i){ return idxsSel.indexOf(i) === -1; });
+  var ptsSel = osSel.reduce(function(a,o){ return a+(o.pontos||0); }, 0);
+  var tempoSel = osSel.reduce(function(a,o){ return a+(o.tempo_min||45); }, 0);
+  var btn = document.getElementById('btn-confirmar-parcial');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+  var endpt = agendaAbaAtual === 'retirada' ? '/api/agenda/retiradas/confirmar' : agendaAbaAtual === 'infra' ? '/api/agenda/infra/confirmar' : '/api/agenda/confirmar';
+  var body  = agendaAbaAtual === 'normal'
+    ? { data_rota: data, tecnico_id: agendaParcialTecnicoId, tecnico_nome: agendaParcialTecnicoNome, os_ids: osSel, pontos: ptsSel, tempo_est: tempoSel, bairro_ref: r.bairro_ref }
+    : { data_rota: data, tecnico_id: agendaParcialTecnicoId, tecnico_nome: agendaParcialTecnicoNome, os_ids: osSel, tempo_est: tempoSel, bairro_ref: r.bairro_ref };
+  api(endpt, { method: 'POST', body: JSON.stringify(body) }).then(function(d) {
+    btn.textContent = '✅ Confirmar parcial'; btn.disabled = false;
+    document.getElementById('modal-parcial').style.display = 'none';
+    if (d.ok) {
+      // Atualizar rota local com OS restantes ou remover se vazia
+      var idx = agendaRotasPendentes.indexOf(r);
+      if (osRest.length > 0) {
+        agendaRotasPendentes[idx] = Object.assign({}, r, {
+          os: osRest,
+          total_os: osRest.length,
+          pontos: r.pontos - ptsSel,
+          tempo_est: r.tempo_est - tempoSel
+        });
+      } else {
+        agendaRotasPendentes.splice(idx, 1);
+      }
+      agendaRenderRotas(agendaRotasPendentes);
+      alert('✅ ' + osSel.length + ' OS atribuídas para ' + agendaParcialTecnicoNome + (osRest.length ? '. ' + osRest.length + ' OS restantes na rota.' : '. Rota completa!'));
+    } else { alert('Erro: ' + (d.detail || JSON.stringify(d))); }
+  }).catch(function(e) {
+    btn.textContent = '✅ Confirmar parcial'; btn.disabled = false;
+    alert('Erro: ' + e.message);
+  });
 }
 
 function agendaConfirmar() {
