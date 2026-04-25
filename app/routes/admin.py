@@ -131,3 +131,84 @@ def editar_usuario(id: int, data: UsuarioInput, usuario=Depends(requer_admin)):
     db.commit()
     db.close()
     return {"ok": True}
+
+# ── POSSES DE VEÍCULOS ────────────────────────────────────────
+
+@router.get("/frota/posses")
+def listar_posses(usuario=Depends(requer_supervisor)):
+    db = get_db()
+    # Veículos com posse ativa
+    posses = db.execute("""
+        SELECT p.id, p.id_veiculo, p.id_tecnico, p.assumido_em,
+               u.nome as tecnico_nome,
+               v.placa, v.marca_modelo, v.tipo, v.cor, v.ano_fab, v.ativo as veiculo_ativo
+        FROM ht_veiculo_posse p
+        JOIN ht_usuarios u ON u.id = p.id_tecnico
+        JOIN ht_veiculos v ON v.id = p.id_veiculo
+        WHERE p.entregue_em IS NULL
+        ORDER BY u.nome
+    """).fetchall()
+    # Veículos sem posse ativa
+    veiculos = db.execute("""
+        SELECT v.*
+        FROM ht_veiculos v
+        WHERE v.id NOT IN (
+            SELECT id_veiculo FROM ht_veiculo_posse WHERE entregue_em IS NULL
+        )
+        ORDER BY v.placa
+    """).fetchall()
+    db.close()
+    return {
+        "posses": [dict(p) for p in posses],
+        "sem_responsavel": [dict(v) for v in veiculos]
+    }
+
+@router.post("/frota/posses")
+def atribuir_posse(data: dict, usuario=Depends(requer_supervisor)):
+    db = get_db()
+    id_veiculo = data.get('id_veiculo')
+    id_tecnico = data.get('id_tecnico')
+    agora = brt()
+    # Encerra posse ativa do veículo se existir
+    db.execute("""
+        UPDATE ht_veiculo_posse SET entregue_em=?, entregue_por=?
+        WHERE id_veiculo=? AND entregue_em IS NULL
+    """, (agora, usuario['id'], id_veiculo))
+    # Cria nova posse
+    db.execute("""
+        INSERT INTO ht_veiculo_posse (id_veiculo, id_tecnico, assumido_em, assumido_por)
+        VALUES (?,?,?,?)
+    """, (id_veiculo, id_tecnico, agora, usuario['id']))
+    db.commit()
+    db.close()
+    return {"ok": True}
+
+@router.delete("/frota/posses/{id_veiculo}")
+def encerrar_posse(id_veiculo: int, usuario=Depends(requer_supervisor)):
+    db = get_db()
+    agora = brt()
+    db.execute("""
+        UPDATE ht_veiculo_posse SET entregue_em=?, entregue_por=?
+        WHERE id_veiculo=? AND entregue_em IS NULL
+    """, (agora, usuario['id'], id_veiculo))
+    db.commit()
+    db.close()
+    return {"ok": True}
+
+@router.get("/frota/posses/{id_veiculo}/historico")
+def historico_posse(id_veiculo: int, usuario=Depends(requer_supervisor)):
+    db = get_db()
+    rows = db.execute("""
+        SELECT p.*, 
+               u.nome as tecnico_nome,
+               s.nome as assumido_por_nome,
+               e.nome as entregue_por_nome
+        FROM ht_veiculo_posse p
+        JOIN ht_usuarios u ON u.id = p.id_tecnico
+        LEFT JOIN ht_usuarios s ON s.id = p.assumido_por
+        LEFT JOIN ht_usuarios e ON e.id = p.entregue_por
+        WHERE p.id_veiculo = ?
+        ORDER BY p.assumido_em DESC
+    """, (id_veiculo,)).fetchall()
+    db.close()
+    return [dict(r) for r in rows]

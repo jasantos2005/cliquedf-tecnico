@@ -103,6 +103,12 @@ textarea:focus,select:focus{border-color:var(--accent)}
 </style>
 </head>
 <body>
+<!-- AVISO GPS INATIVO -->
+<div id="aviso-gps" onclick="reativarGPS()" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#ef4444;color:#fff;padding:10px 16px;font-size:.85rem;font-weight:700;align-items:center;gap:10px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)">
+  <span style="font-size:1.2rem">📡</span>
+  <span style="flex:1">GPS inativo! Toque aqui para reativar.</span>
+  <span style="font-size:1rem">↻</span>
+</div>
 
 <!-- LOGIN -->
 <div id="login-page">
@@ -794,18 +800,75 @@ async function finalizarOS() {
 
 // ── GPS ──────────────────────────────────────────────────────
 let wsGPS = null;
+let _gpsInterval = null;
+let _ultimaPosicao = null;
+let _ultimoEnvioGPS = null;
+let _gpsMonitorInterval = null;
+
+function _mostrarAvisoGPS(mostrar) {
+  var aviso = document.getElementById('aviso-gps');
+  if (!aviso) return;
+  aviso.style.display = mostrar ? 'flex' : 'none';
+}
+
+async function _enviarComMonitor(pos) {
+  _ultimaPosicao = pos;
+  _ultimoEnvioGPS = new Date();
+  _mostrarAvisoGPS(false);
+  const data = {
+    lat: pos.coords.latitude,
+    lon: pos.coords.longitude,
+    velocidade: Math.round((pos.coords.speed||0)*3.6),
+    status: getStatusTecnico(),
+    ixc_os_id: osAtual?.ixc_os_id || null
+  };
+  await enviarPosicao(data);
+}
+
 function iniciarGPS() {
   if (!navigator.geolocation || !usuario) return;
+
+  // watchPosition principal
   navigator.geolocation.watchPosition(pos => {
-    const data = {
-      lat: pos.coords.latitude,
-      lon: pos.coords.longitude,
-      velocidade: Math.round((pos.coords.speed||0)*3.6),
-      status: getStatusTecnico(),
-      ixc_os_id: osAtual?.ixc_os_id || null
-    };
-    enviarPosicao(data);
-  }, null, {enableHighAccuracy:true, maximumAge:10000});
+    _enviarComMonitor(pos);
+  }, err => {
+    _mostrarAvisoGPS(true);
+  }, {enableHighAccuracy:true, maximumAge:10000, timeout:30000});
+
+  // Fallback: envia posicao a cada 2 minutos
+  if (_gpsInterval) clearInterval(_gpsInterval);
+  _gpsInterval = setInterval(() => {
+    navigator.geolocation.getCurrentPosition(pos => {
+      _enviarComMonitor(pos);
+    }, err => {
+      _mostrarAvisoGPS(true);
+    }, {enableHighAccuracy:true, timeout:10000, maximumAge:60000});
+  }, 2 * 60 * 1000);
+
+  // Monitor: verifica se GPS está inativo há mais de 5 minutos
+  if (_gpsMonitorInterval) clearInterval(_gpsMonitorInterval);
+  _gpsMonitorInterval = setInterval(() => {
+    if (!_ultimoEnvioGPS) { _mostrarAvisoGPS(true); return; }
+    var minutos = (new Date() - _ultimoEnvioGPS) / 60000;
+    _mostrarAvisoGPS(minutos > 5);
+  }, 30 * 1000); // checa a cada 30 segundos
+
+  // Mantém tela ativa via Wake Lock API
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').catch(() => {});
+  }
+}
+
+function reativarGPS() {
+  _mostrarAvisoGPS(false);
+  iniciarGPS();
+  navigator.geolocation.getCurrentPosition(pos => {
+    _enviarComMonitor(pos);
+    toast('GPS reativado!', 'ok');
+  }, () => {
+    toast('Erro ao obter localização. Verifique as permissões.', 'err');
+    _mostrarAvisoGPS(true);
+  }, {enableHighAccuracy:true, timeout:10000});
 }
 
 function getStatusTecnico() {

@@ -625,9 +625,9 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
             <button class="btn btn-o" style="padding:3px 8px;font-size:.75rem" onclick="syncVeiculos()">↻ Sync IXC</button>
           </div>
           <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surf2)">
-            <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Vínculos de Hoje</div>
-            <div id="vinculos-hoje" style="display:flex;flex-direction:column;gap:4px"></div>
-            <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:6px" onclick="abrirVincular()">+ Vincular Técnico ↔ Veículo</button>
+            <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Responsáveis Atuais</div>
+            <div id="responsaveis-atuais" style="display:flex;flex-direction:column;gap:4px"></div>
+            <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:6px" onclick="abrirVincular()">+ Atribuir Responsável</button>
           </div>
           <div style="flex:1;overflow-y:auto;padding:8px">
             <div id="lista-veiculos"></div>
@@ -818,7 +818,11 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="date" id="agenda-data" style="background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:.82rem;outline:none">
-      <button onclick="agendaGerarRotas()" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:.82rem;font-weight:700;cursor:pointer">⚡ Gerar Rotas</button>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <button id="btn-aba-normal" onclick="agendaMudarAba('normal')" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.82rem;font-weight:700;cursor:pointer">⚡ Instalação/Suporte</button>
+        <button id="btn-aba-retirada" onclick="agendaMudarAba('retirada')" style="background:var(--surf);color:var(--text1);border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:.82rem;font-weight:600;cursor:pointer">📦 Retiradas</button>
+        <button id="btn-aba-infra" onclick="agendaMudarAba('infra')" style="background:var(--surf);color:var(--text1);border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:.82rem;font-weight:600;cursor:pointer">🏗️ Infra</button>
+      </div>
       <button onclick="agendaVerDia()" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 14px;font-size:.82rem;cursor:pointer">📋 Ver Dia</button>
     </div>
   </div>
@@ -899,10 +903,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 <div class="modal-bg" id="modal-vincular">
   <div class="modal" style="max-width:420px">
     <div class="modal-title">
-      <span>Vincular Técnico ↔ Veículo</span>
+      <span>Atribuir Responsável</span>
       <button class="modal-close" onclick="fecharVincular()">✕</button>
     </div>
-    <div style="font-size:.75rem;color:var(--text3);margin-bottom:14px">Vínculo para hoje — <span id="vincular-data"></span></div>
+    <input type="hidden" id="vincular-veiculo-id">
     <div class="field"><label>Técnico</label><select id="vincular-tecnico" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none"></select></div>
     <div class="field"><label>Veículo</label><select id="vincular-veiculo" style="width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;outline:none"></select></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
@@ -1810,17 +1814,25 @@ function iniciarMapaFrota() {
 async function carregarFrota() {
   try {
     var veiculos = await api('/api/admin/veiculos');
-    var vinculos = await api('/api/admin/vinculos-hoje');
+    var posses = await api('/api/admin/frota/posses');
     var gps = await api('/api/gps/posicoes');
     veiculosCache = veiculos || [];
-    renderVeiculos(veiculos, vinculos);
-    renderVinculosHoje(vinculos);
-    renderMapaFrota(gps, vinculos);
+    var posseAtiva = posses.posses || [];
+    renderVeiculos(veiculos, posseAtiva);
+    renderResponsaveisAtuais(posseAtiva);
+    renderMapaFrota(gps, posseAtiva);
     document.getElementById('frota-total').textContent = veiculos.length;
   } catch(e) { console.log('Erro frota:', e); }
 }
 
-function renderVeiculos(veiculos, vinculos) {
+function _fmtData(iso) {
+  if (!iso) return '';
+  var d = iso.substring(0,10).split('-');
+  return d[2]+'/'+d[1]+'/'+d[0];
+}
+
+function renderVeiculos(veiculos, posses) {
+  veiculos = veiculos.filter(function(v){ return v.ativo; });
   var lista = document.getElementById('lista-veiculos');
   if (!veiculos || !veiculos.length) {
     lista.innerHTML = '<div style="padding:20px;color:var(--text3);font-size:.85rem;text-align:center">Nenhum veículo.<br>Clique em Sync IXC.</div>';
@@ -1828,40 +1840,112 @@ function renderVeiculos(veiculos, vinculos) {
   }
   var html = '';
   veiculos.forEach(function(v) {
-    var vinculo = vinculos ? vinculos.find(function(vk){ return vk.id_veiculo === v.id; }) : null;
-    var tecNome = vinculo ? vinculo.tecnico_nome : null;
-    var emoji = {moto:'🏍️',pickup:'🛻',eletrico:'⚡',carro:'🚗'}[v.tipo] || '🚗';
+    var posse = posses ? posses.find(function(p){ return p.id_veiculo === v.id; }) : null;
+    var emoji = {moto:'🏍️',pickup:'🛻',eletrico:'⚡',carro:'🚗',barco:'⛵',outros:'🔧'}[v.tipo] || '🚗';
     var ativo = v.ativo ? '<span style="color:var(--green);font-size:.7rem">● Ativo</span>' : '<span style="color:var(--text3);font-size:.7rem">● Inativo</span>';
     html += '<div style="padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;background:var(--surf2)">';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
     html += '<span style="font-weight:800;font-size:.9rem">'+emoji+' '+v.placa+'</span>'+ativo;
     html += '</div>';
     html += '<div style="font-size:.8rem;color:var(--text2);margin-bottom:3px">'+v.marca_modelo+(v.ano_fab?' · '+v.ano_fab:'')+(v.cor?' · '+v.cor:'')+'</div>';
-    if (tecNome) {
-      html += '<div style="font-size:.75rem;color:var(--accent);margin-top:4px">👤 '+tecNome+' (hoje)</div>';
+    if (posse) {
+      html += '<div style="font-size:.75rem;color:var(--accent);margin-top:4px">👤 '+posse.tecnico_nome+' <span style="color:var(--text3)">desde '+_fmtData(posse.assumido_em)+'</span></div>';
+      html += '<div style="display:flex;gap:6px;margin-top:6px">';
+      html += '<button onclick="trocarPosse('+v.id+')" style="flex:1;font-size:.7rem;padding:3px 8px;background:var(--accent);color:#fff;border:none;border-radius:5px;cursor:pointer">🔄 Trocar</button>';
+      html += '<button onclick="encerrarPosse('+v.id+')" style="font-size:.7rem;padding:3px 8px;background:var(--red,#ff4d6a);color:#fff;border:none;border-radius:5px;cursor:pointer">✖ Liberar</button>';
+      html += '<button onclick="verHistorico('+v.id+')" style="font-size:.7rem;padding:3px 8px;background:var(--surf3,#2a3347);color:var(--text);border:1px solid var(--border);border-radius:5px;cursor:pointer">📋</button>';
+      html += '</div>';
     } else {
-      html += '<div style="font-size:.75rem;color:var(--text3);margin-top:4px">Sem técnico hoje</div>';
+      html += '<div style="font-size:.75rem;color:var(--text3);margin-top:4px">Sem responsável</div>';
+      html += '<button onclick="trocarPosse('+v.id+')" style="margin-top:6px;width:100%;font-size:.7rem;padding:3px 8px;background:var(--green);color:#fff;border:none;border-radius:5px;cursor:pointer">+ Atribuir</button>';
     }
     html += '</div>';
   });
   lista.innerHTML = html;
 }
 
-function renderVinculosHoje(vinculos) {
-  var el = document.getElementById('vinculos-hoje');
-  if (!vinculos || !vinculos.length) {
-    el.innerHTML = '<div style="font-size:.75rem;color:var(--text3)">Nenhum vínculo hoje</div>';
+function renderResponsaveisAtuais(posses) {
+  var el = document.getElementById('responsaveis-atuais');
+  if (!posses || !posses.length) {
+    el.innerHTML = '<div style="font-size:.75rem;color:var(--text3)">Nenhum responsável atribuído</div>';
     return;
   }
   var html = '';
-  vinculos.forEach(function(v) {
-    var emoji = {moto:'🏍️',pickup:'🛻',eletrico:'⚡',carro:'🚗'}[v.tipo] || '🚗';
+  posses.forEach(function(p) {
+    var emoji = {moto:'🏍️',pickup:'🛻',eletrico:'⚡',carro:'🚗',barco:'⛵',outros:'🔧'}[p.tipo] || '🚗';
     html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">';
-    html += '<span style="font-size:.8rem;font-weight:700;flex:1">'+v.tecnico_nome+'</span>';
-    html += '<span style="font-size:.78rem;color:var(--text2)">'+emoji+' '+v.placa+'</span>';
+    html += '<span style="font-size:.8rem;font-weight:700;flex:1">'+p.tecnico_nome+'</span>';
+    html += '<span style="font-size:.78rem;color:var(--text2)">'+emoji+' '+p.placa+'</span>';
     html += '</div>';
   });
   el.innerHTML = html;
+}
+
+async function trocarPosse(id_veiculo) {
+  // Mostra quem está atual antes de trocar
+  var posseAtual = '';
+  try {
+    var hist = await api('/api/admin/frota/posses/'+id_veiculo+'/historico');
+    var atual = hist.find(function(h){ return !h.entregue_em; });
+    if (atual) posseAtual = atual.tecnico_nome;
+  } catch(e) {}
+  var vObj = veiculosCache.find(function(v){ return v.id===id_veiculo; });
+  var placa = vObj ? vObj.placa : '#'+id_veiculo;
+  var msg = posseAtual ? 'Veículo '+placa+' está com '+posseAtual+'.\nDeseja trocar o responsável?' : 'Atribuir responsável ao veículo '+placa+'?';
+  if (!confirm(msg)) return;
+  var tecnicos = await api('/api/admin/usuarios');
+  var selTec = document.getElementById('vincular-tecnico');
+  selTec.innerHTML = tecnicos.filter(function(u){ return u.nivel===10 && u.ativo; })
+    .map(function(u){ return '<option value="'+u.id+'">'+u.nome+'</option>'; }).join('');
+  document.getElementById('vincular-veiculo-id').value = id_veiculo;
+  var selVei = document.getElementById('vincular-veiculo');
+  selVei.innerHTML = veiculosCache.filter(function(v){ return v.ativo; })
+    .map(function(v){ return '<option value="'+v.id+'"'+(v.id===id_veiculo?' selected':'')+'>'+v.placa+' — '+v.marca_modelo+'</option>'; }).join('');
+  document.getElementById('modal-vincular').classList.add('open');
+}
+
+async function encerrarPosse(id_veiculo) {
+  if (!confirm('Liberar veículo sem novo responsável?')) return;
+  var r = await api('/api/admin/frota/posses/'+id_veiculo, {method:'DELETE'});
+  if (r.ok) { toast('Veículo liberado!','ok'); carregarFrota(); }
+  else toast('Erro ao liberar','err');
+}
+
+async function verHistorico(id_veiculo) {
+  var vObj = veiculosCache.find(function(v){ return v.id===id_veiculo; });
+  var placa = vObj ? vObj.placa : '#'+id_veiculo;
+  var modelo = vObj ? vObj.marca_modelo : '';
+  var hist = await api('/api/admin/frota/posses/'+id_veiculo+'/historico');
+  var html = '';
+  if (!hist.length) {
+    html = '<div style="text-align:center;padding:20px;color:var(--text3)">Nenhum histórico encontrado</div>';
+  } else {
+    hist.forEach(function(h) {
+      var ativo = !h.entregue_em;
+      var ate = ativo ? '<span style="color:var(--green);font-weight:700">atual</span>' : _fmtData(h.entregue_em);
+      var duracao = '';
+      if (h.entregue_em) {
+        var d1 = new Date(h.assumido_em), d2 = new Date(h.entregue_em);
+        var dias = Math.round((d2-d1)/86400000);
+        duracao = ' <span style="color:var(--text3);font-size:.7rem">('+dias+' dia'+(dias!==1?'s':'')+')</span>';
+      }
+      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">';
+      html += '<div style="width:36px;height:36px;border-radius:50%;background:var(--surf3);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">'+(ativo?'🟢':'👤')+'</div>';
+      html += '<div style="flex:1">';
+      html += '<div style="font-weight:700;font-size:.85rem">'+h.tecnico_nome+'</div>';
+      html += '<div style="font-size:.75rem;color:var(--text3);margin-top:2px">'+_fmtData(h.assumido_em)+' → '+ate+duracao+'</div>';
+      if (h.assumido_por_nome) html += '<div style="font-size:.7rem;color:var(--text3)">Atribuído por: '+h.assumido_por_nome+'</div>';
+      html += '</div>';
+      html += '</div>';
+    });
+  }
+  document.getElementById('hist-veiculo-titulo').textContent = placa+' — '+modelo;
+  document.getElementById('hist-veiculo-body').innerHTML = html;
+  document.getElementById('modal-historico').classList.add('open');
+}
+
+function fecharHistorico() {
+  document.getElementById('modal-historico').classList.remove('open');
 }
 
 function renderMapaFrota(gps, vinculos) {
@@ -1911,19 +1995,20 @@ async function abrirVincular() {
   var selVei = document.getElementById('vincular-veiculo');
   selVei.innerHTML = veiculosCache.filter(function(v){ return v.ativo; })
     .map(function(v){ return '<option value="'+v.id+'">'+v.placa+' — '+v.marca_modelo+'</option>'; }).join('');
+  document.getElementById('vincular-veiculo-id').value = '';
   document.getElementById('modal-vincular').classList.add('open');
 }
 
 async function salvarVinculo() {
   var id_tecnico = parseInt(document.getElementById('vincular-tecnico').value);
-  var id_veiculo = parseInt(document.getElementById('vincular-veiculo').value);
+  var hiddenId = document.getElementById('vincular-veiculo-id').value;
+  var id_veiculo = hiddenId ? parseInt(hiddenId) : parseInt(document.getElementById('vincular-veiculo').value);
   try {
-    var r = await api('/api/admin/usuarios/'+id_tecnico+'/veiculo', {method:'POST', body:JSON.stringify({id_veiculo: id_veiculo, ixc_condutor_id: 0})});
-    if (r.ok) { fecharVincular(); carregarFrota(); toast('Vínculo salvo!','ok'); }
+    var r = await api('/api/admin/frota/posses', {method:'POST', body:JSON.stringify({id_veiculo: id_veiculo, id_tecnico: id_tecnico})});
+    if (r.ok) { fecharVincular(); carregarFrota(); toast('Responsável atribuído!','ok'); }
     else toast('Erro ao salvar','err');
   } catch(e) { toast('Erro ao salvar','err'); }
 }
-
 function fecharVincular() { document.getElementById('modal-vincular').classList.remove('open'); }
 
 
@@ -2500,6 +2585,41 @@ var agendaRotasPendentes = [];
 var agendaRotaSelecionada = null;
 var agendaTecnicosCache = [];
 
+var agendaAbaAtual = 'normal';
+
+function agendaMudarAba(aba) {
+  agendaAbaAtual = aba;
+  var abas = ['normal','retirada','infra'];
+  var labels = {'normal':'⚡ Instalação/Suporte','retirada':'📦 Retiradas','infra':'🏗️ Infra'};
+  abas.forEach(function(a) {
+    var btn = document.getElementById('btn-aba-' + a);
+    if (!btn) return;
+    if (a === aba) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = '#fff';
+      btn.style.border = 'none';
+    } else {
+      btn.style.background = 'var(--surf)';
+      btn.style.color = 'var(--text1)';
+      btn.style.border = '1px solid var(--border)';
+    }
+  });
+  agendaGerarRotas();
+}
+
+var agendaAbaAtual = 'normal';
+
+function agendaMudarAba(aba) {
+  agendaAbaAtual = aba;
+  ['normal','retirada','infra'].forEach(function(a) {
+    var btn = document.getElementById('btn-aba-' + a);
+    if (!btn) return;
+    if (a === aba) { btn.style.background='var(--accent)'; btn.style.color='#fff'; btn.style.border='none'; }
+    else { btn.style.background='var(--surf)'; btn.style.color='var(--text1)'; btn.style.border='1px solid var(--border)'; }
+  });
+  agendaGerarRotas();
+}
+
 function agendaIniciar() {
   var hoje = new Date().toISOString().slice(0,10);
   var el = document.getElementById('agenda-data');
@@ -2512,9 +2632,11 @@ function agendaGerarRotas() {
   document.getElementById('agenda-loading').style.display = 'block';
   document.getElementById('agenda-rotas').innerHTML = '';
   document.getElementById('agenda-kpis').style.display = 'none';
+  var prefixo = agendaAbaAtual === 'retirada' ? '/api/agenda/retiradas' : agendaAbaAtual === 'infra' ? '/api/agenda/infra' : '/api/agenda';
+  var tecEndpoint = (agendaAbaAtual === 'retirada') ? '/api/agenda/retiradas/tecnicos' : (agendaAbaAtual === 'infra') ? '/api/agenda/infra/tecnicos' : '/api/agenda/tecnicos?data=' + data;
   Promise.all([
-    api('/api/agenda/rotas-sugeridas?data=' + data),
-    api('/api/agenda/tecnicos?data=' + data)
+    api(prefixo + '/rotas-sugeridas?data=' + data),
+    api(tecEndpoint)
   ]).then(function(results) {
     var rotasData = results[0];
     var tecData   = results[1];
@@ -2542,12 +2664,21 @@ function agendaRenderRotas(rotas) {
     var slaCount = (r.os || []).filter(function(o){ return o.sla_estourado; }).length;
     var slaTag = slaCount ? '<span style="background:#ff4d4d22;color:var(--red);border-radius:5px;padding:2px 7px;font-size:.7rem;font-weight:700">🚨 ' + slaCount + ' SLA</span>' : '';
     var osList = (r.os || []).map(function(o, i) {
+      var distTag = (i === 0)
+        ? '<span style="color:var(--text3);font-size:.68rem">🏠 ' + (o.dist_anterior_km || 0) + 'km da garagem</span>'
+        : '<span style="color:var(--text3);font-size:.68rem">↳ ' + (o.dist_anterior_km || 0) + 'km</span>';
       return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">' +
         '<div style="color:var(--text3);font-size:.72rem;min-width:18px;padding-top:2px">' + (i+1) + '</div>' +
-        '<div style="flex:1"><div style="font-size:.8rem;font-weight:600">' + (o.sla_estourado ? '🚨 ' : '') + (o.cliente_nome || '') + '</div>' +
-        '<div style="font-size:.72rem;color:var(--text3)">' + (o.assunto_nome || '') + ' · ' + (o.bairro || '') + '</div></div>' +
+        '<div style="flex:1">' +
+          '<div style="font-size:.8rem;font-weight:600">' + (o.sla_estourado ? '🚨 ' : '') + (o.cliente_nome || '') + '</div>' +
+          '<div style="font-size:.72rem;color:var(--text3)">' + (o.assunto_nome || '') + ' · ' + (o.bairro || '') + '</div>' +
+          '<div style="display:flex;gap:8px;margin-top:2px">' + distTag +
+            (o.hora_prevista_fmt ? '<span style="color:var(--accent);font-size:.68rem;font-weight:600">🕐 ' + o.hora_prevista_fmt + '</span>' : '') +
+          '</div>' +
+        '</div>' +
         '<span style="background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-size:.68rem;font-weight:700">' + (o.pontos || 0) + 'pts</span></div>';
     }).join('');
+    var garagemTag = r.garagem ? '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.68rem">🏠 ' + r.garagem + '</span>' : '';
     return '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:4px">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">' +
         '<div><span style="font-weight:800;font-size:.9rem">Rota #' + r.rota_num + '</span>' +
@@ -2556,6 +2687,8 @@ function agendaRenderRotas(rotas) {
         '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">' + (r.total_os || 0) + ' OS</span>' +
         '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">⚡ ' + (r.pontos || 0) + ' pts</span>' +
         '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">⏱ ' + (r.tempo_fmt || '') + '</span>' +
+        '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.72rem">🛣 ' + (r.distancia_km || 0) + 'km</span>' +
+        garagemTag +
         '<button onclick="agendaAbrirModal(' + idx + ')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:.75rem;font-weight:700;cursor:pointer">Atribuir</button>' +
         '</div></div><div style="max-height:200px;overflow-y:auto">' + osList + '</div></div>';
   }).join('');
@@ -2572,7 +2705,7 @@ function agendaAbrirModal(idx) {
     var livre = t.pontos_disponiveis >= r.pontos;
     return '<div class="tecnico-option" data-id="' + t.id + '" data-nome="' + t.nome + '" ' +
       'style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:7px;cursor:pointer;border:1px solid transparent;' + (!livre ? 'opacity:.5;pointer-events:none' : '') + '" ' +
-      'onclick="agendaSelecionarTecnico(this,' + t.id + ',' + JSON.stringify(t.nome) + ')">' +
+      'onclick="agendaSelecionarTecnico(this)">' +
       '<div><div style="font-weight:600;font-size:.85rem">' + t.nome + '</div>' +
       '<div style="font-size:.72rem;color:var(--text3)">' + (t.pontos_alocados || 0) + ' pts alocados · ' + (t.pontos_disponiveis || 0) + ' disponíveis</div></div>' +
       '<span style="font-size:.72rem;font-weight:600;color:' + (livre ? 'var(--green)' : 'var(--red)') + '">' + (livre ? '✅ Disponível' : '⚠️ Sem capacidade') + '</span></div>';
@@ -2583,7 +2716,9 @@ function agendaAbrirModal(idx) {
   btn.dataset.tecnicoNome = '';
 }
 
-function agendaSelecionarTecnico(el, id, nome) {
+function agendaSelecionarTecnico(el) {
+  var id = parseInt(el.dataset.id);
+  var nome = el.dataset.nome;
   document.querySelectorAll('.tecnico-option').forEach(function(x){ x.style.background = ''; x.style.border = '1px solid transparent'; });
   el.style.background = 'var(--accent)22';
   el.style.border = '1px solid var(--accent)';
@@ -2601,7 +2736,11 @@ function agendaConfirmar() {
   var r = agendaRotaSelecionada;
   btn.textContent = 'Salvando...';
   btn.disabled = true;
-  api('/api/agenda/confirmar', { method: 'POST', body: JSON.stringify({ data_rota: data, tecnico_id: tId, tecnico_nome: tNome, os_ids: r.os, pontos: r.pontos, tempo_est: r.tempo_est, bairro_ref: r.bairro_ref }) }).then(function(res){ return res.json(); }).then(function(d) {
+  var endpointConfirmar = agendaAbaAtual === 'retirada' ? '/api/agenda/retiradas/confirmar' : agendaAbaAtual === 'infra' ? '/api/agenda/infra/confirmar' : '/api/agenda/confirmar';
+  var bodyConfirmar = agendaAbaAtual === 'normal'
+    ? { data_rota: data, tecnico_id: tId, tecnico_nome: tNome, os_ids: r.os, pontos: r.pontos, tempo_est: r.tempo_est, bairro_ref: r.bairro_ref }
+    : { data_rota: data, tecnico_id: tId, tecnico_nome: tNome, os_ids: r.os, tempo_est: r.tempo_est, bairro_ref: r.bairro_ref };
+  api(endpointConfirmar, { method: 'POST', body: JSON.stringify(bodyConfirmar) }).then(function(d) {
     document.getElementById('modal-agenda').style.display = 'none';
     btn.textContent = '✅ Confirmar';
     btn.disabled = false;
@@ -2638,7 +2777,8 @@ function agendaVerDia() {
             '<div><div style="font-weight:600">' + (o.cliente_nome || '') + '</div>' +
             '<div style="color:var(--text3)">' + (o.assunto_nome || '') + ' · ' + (o.bairro || '') + '</div></div></div>';
         }).join('');
-        return '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:4px">' +
+        var garagemTag = r.garagem ? '<span style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.68rem">🏠 ' + r.garagem + '</span>' : '';
+    return '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:4px">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
             '<div><span style="font-weight:800">👷 ' + (r.tecnico_nome || '—') + '</span>' +
             '<span style="color:var(--text3);font-size:.75rem;margin-left:8px">' + (r.bairro_ref || '') + '</span></div>' +
@@ -2762,6 +2902,20 @@ function agendaVerDia() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <button class="btn btn-o" onclick="fecharChecklist()">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarChecklist()">Salvar Checklist</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTÓRICO VEÍCULO -->
+<div class="modal-bg" id="modal-historico">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">
+      <span>📋 Histórico — <span id="hist-veiculo-titulo"></span></span>
+      <button class="modal-close" onclick="fecharHistorico()">✕</button>
+    </div>
+    <div id="hist-veiculo-body" style="max-height:400px;overflow-y:auto;padding-right:4px"></div>
+    <div style="margin-top:12px">
+      <button class="btn btn-o" style="width:100%" onclick="fecharHistorico()">Fechar</button>
     </div>
   </div>
 </div>

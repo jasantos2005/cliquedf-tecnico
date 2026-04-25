@@ -11,15 +11,21 @@ IXC_TECNICOS_IDS = [13,17,32,35,47,50,55,56,60,46]
 from app.services.geocoder import geocoder as _reverse_geo_os
 import re as _re
 
-def _geocode_endereco(endereco):
-    """Geocoding direto pelo endereço da OS."""
+def _extrair_cidade(endereco):
+    """Extrai cidade do padrão 'SE <Cidade> <CEP> ...'"""
     if not endereco:
-        return None, None
-    cidade = ""
-    rua = ""
+        return ""
     m = _re.match(r'[A-Z]{2}\s+(.+?)\s+\d{5}-\d{3}', endereco)
     if m:
-        cidade = m.group(1).strip()
+        return m.group(1).strip()
+    return ""
+
+def _geocode_endereco(endereco):
+    """Geocoding direto pelo endereço da OS. Retorna (lat, lon, cidade)."""
+    if not endereco:
+        return None, None, ""
+    cidade = _extrair_cidade(endereco)
+    rua = ""
     if " - " in endereco:
         rua = endereco.split(" - ", 1)[1].strip()
         rua = _re.sub(r',?\s*SN$', '', rua).strip()
@@ -35,10 +41,10 @@ def _geocode_endereco(endereco):
         )
         data = r.json()
         if data:
-            return float(data[0]["lat"]), float(data[0]["lon"])
+            return float(data[0]["lat"]), float(data[0]["lon"]), cidade
     except:
         pass
-    return None, None
+    return None, None, cidade
 
 def get_db():
     conn = sqlite3.connect(DB)
@@ -58,11 +64,14 @@ def run():
                o.endereco, o.bairro, o.referencia,
                cl.razao AS cliente_nome,
                cl.telefone_celular AS telefone,
+               cl.cidade AS cl_id_cidade,
                a.assunto AS assunto_nome,
+               COALESCE(cid.nome, '') AS cidade_nome,
                TIMESTAMPDIFF(HOUR, o.data_abertura, NOW()) AS horas_abertas
         FROM su_oss_chamado o
         JOIN cliente cl ON cl.id = o.id_cliente
         JOIN su_oss_assunto a ON a.id = o.id_assunto
+        LEFT JOIN cidade cid ON cid.id = cl.cidade
         WHERE (
             (o.status IN ('A','AS','EX','EN','AG','RAG')
              AND (o.id_tecnico = 0 OR o.id_tecnico IN ({ids_str})))
@@ -154,14 +163,14 @@ def run():
                 INSERT INTO ht_os (
                     ixc_os_id, ixc_tecnico_id, id_tecnico, ixc_cliente_id, id_contrato_kit,
                     id_assunto, assunto_nome, status_ixc, status_hub,
-                    cliente_nome, endereco, bairro, referencia, telefone,
+                    cliente_nome, endereco, bairro, cidade, referencia, telefone,
                     lat, lon, data_abertura, data_agenda,
                     obs_abertura, sincronizado_em, horas_abertas, sla_estourado, data_reservada
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 o['id'], o['id_tecnico'], id_tecnico_banco, o['id_cliente'], o['id_contrato_kit'],
                 o['id_assunto'], o['assunto_nome'], o['status'], status_hub,
-                o['cliente_nome'], o['endereco'], o['bairro'], o['referencia'],
+                o['cliente_nome'], o['endereco'], o['bairro'], o.get('cidade_nome') or _extrair_cidade(o.get('endereco','')), o['referencia'],
                 o['telefone'],
                 float(o['latitude']) if o['latitude'] else None,
                 float(o['longitude']) if o['longitude'] else None,
@@ -177,11 +186,14 @@ def run():
             # Geocoding automático se IXC não enviou coords
             if not o['latitude'] and not o['longitude'] and o.get('endereco'):
                 import time
-                _lat, _lon = _geocode_endereco(o['endereco'])
+                _lat, _lon, _cidade = _geocode_endereco(o['endereco'])
                 if _lat:
                     db.execute("UPDATE ht_os SET lat=?, lon=? WHERE ixc_os_id=?",
                                (_lat, _lon, o['id']))
-                    db.commit()
+                elif _cidade:
+                    db.execute("UPDATE ht_os SET cidade=? WHERE ixc_os_id=? AND (cidade IS NULL OR cidade='')",
+                               (_cidade, o['id']))
+                db.commit()
                 time.sleep(1.1)
         else:
             status_atual = existente['status_hub']

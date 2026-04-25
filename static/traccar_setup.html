@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurar Rastreamento</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  :root {
+    --bg: #0a0f1e;
+    --surf: #111827;
+    --surf2: #1a2235;
+    --border: #1e2d45;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --green: #10b981;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #475569;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .header p { color: var(--text2); font-size: .9rem; }
+
+  .card {
+    background: var(--surf);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: .95rem;
+    color: var(--accent2);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .step {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: .8rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-content { flex: 1; }
+  .step-content b { display: block; font-size: .9rem; margin-bottom: 4px; }
+  .step-content span { font-size: .82rem; color: var(--text2); }
+
+  .config-item {
+    background: var(--surf2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .config-label { font-size: .78rem; color: var(--text3); margin-bottom: 3px; }
+  .config-value {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: .9rem;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .copy-btn {
+    background: var(--surf);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text2);
+    padding: 6px 10px;
+    font-size: .75rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .2s;
+  }
+  .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .tecnico-selector {
+    background: var(--surf2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: .9rem;
+    width: 100%;
+    outline: none;
+    margin-bottom: 16px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--green);
+    color: #fff;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: .75rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .store-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surf2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: var(--text);
+    margin-bottom: 10px;
+    transition: all .2s;
+  }
+  .store-btn:hover { border-color: var(--accent); background: var(--surf); }
+  .store-btn .icon { font-size: 1.8rem; }
+  .store-btn .info b { display: block; font-size: .9rem; }
+  .store-btn .info span { font-size: .78rem; color: var(--text2); }
+
+  .alert {
+    background: #1a2a1a;
+    border: 1px solid #2d5a2d;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: .82rem;
+    color: #86efac;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🛰️ HubTécnico</div>
+  <h1>Configurar Rastreamento</h1>
+  <p>Siga as instruções para ativar o GPS no seu celular</p>
+</div>
+
+<div class="card">
+  <div class="card-title">👤 Selecione seu nome</div>
+  <select class="tecnico-selector" id="sel-tecnico" onchange="selecionarTecnico()">
+    <option value="">— Selecione —</option>
+  </select>
+  <div id="badge-tecnico" style="display:none" class="badge">✅ Configuração personalizada</div>
+</div>
+
+<div class="card">
+  <div class="card-title">📱 Passo 1 — Instalar o app</div>
+  <a class="store-btn" href="https://play.google.com/store/apps/details?id=org.traccar.client" target="_blank">
+    <div class="icon">🤖</div>
+    <div class="info"><b>Traccar Client</b><span>Google Play Store (Android)</span></div>
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-title">⚙️ Passo 2 — Configurar o app</div>
+  <div class="config-item">
+    <div>
+      <div class="config-label">URL do Servidor</div>
+      <div class="config-value">https://traccar.iatechhub.com.br</div>
+    </div>
+    <button class="copy-btn" onclick="copiar('https://traccar.iatechhub.com.br', this)">Copiar</button>
+  </div>
+  <div class="config-item">
+    <div>
+      <div class="config-label">Identificador do Dispositivo</div>
+      <div class="config-value" id="unique-id">— Selecione seu nome —</div>
+    </div>
+    <button class="copy-btn" onclick="copiar(document.getElementById('unique-id').textContent, this)">Copiar</button>
+  </div>
+  <div class="config-item">
+    <div>
+      <div class="config-label">Frequência de Envio</div>
+      <div class="config-value">30 segundos</div>
+    </div>
+  </div>
+  <div class="config-item">
+    <div>
+      <div class="config-label">Precisão</div>
+      <div class="config-value">Alta</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">▶️ Passo 3 — Ativar rastreamento</div>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <b>Abra o Traccar Client</b>
+      <span>Preencha o servidor e identificador conforme acima</span>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <b>Toque em "Iniciar serviço"</b>
+      <span>O ícone de rastreamento ficará ativo na barra de notificações</span>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <b>Mantenha o app ativo</b>
+      <span>Não force o fechamento do app. O serviço funciona em segundo plano.</span>
+    </div>
+  </div>
+  <div class="alert">
+    <span>💡</span>
+    <span>Deixe o Traccar Client em execução durante todo o período de trabalho. Ele consome pouca bateria e dados.</span>
+  </div>
+</div>
+
+<script>
+var tecnicos = [];
+
+async function carregarTecnicos() {
+  try {
+    var r = await fetch('/api/traccar/tecnicos');
+    tecnicos = await r.json();
+    var sel = document.getElementById('sel-tecnico');
+    tecnicos.forEach(function(t) {
+      var opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.nome;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    // fallback lista hardcoded
+    tecnicos = [
+      {id:2, nome:'ALEXANDRE', unique_id:'tecnico_2_cliquedf'},
+      {id:3, nome:'DENISON', unique_id:'tecnico_3_cliquedf'},
+      {id:6, nome:'LEANDRO', unique_id:'tecnico_6_cliquedf'},
+      {id:8770, nome:'MARCOS VINICIUS', unique_id:'tecnico_8770_cliquedf'},
+      {id:7, nome:'RICARDO ILHA', unique_id:'tecnico_7_cliquedf'},
+      {id:4, nome:'RODRIGO SANTOS', unique_id:'tecnico_4_cliquedf'},
+      {id:5, nome:'RODRIGO SANTOS 2', unique_id:'tecnico_5_cliquedf'},
+      {id:8, nome:'ROGERIO', unique_id:'tecnico_8_cliquedf'},
+      {id:9, nome:'VICTOR FERREIRA', unique_id:'tecnico_9_cliquedf'},
+      {id:10, nome:'WELINTON SANTOS', unique_id:'tecnico_10_cliquedf'},
+      {id:11, nome:'WELLINGTON PIACABUCU', unique_id:'tecnico_11_cliquedf'}
+    ];
+    var sel = document.getElementById('sel-tecnico');
+    tecnicos.forEach(function(t) {
+      var opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.nome;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function selecionarTecnico() {
+  var id = parseInt(document.getElementById('sel-tecnico').value);
+  var t = tecnicos.find(function(x){ return x.id === id; });
+  if (!t) {
+    document.getElementById('unique-id').textContent = '— Selecione seu nome —';
+    document.getElementById('badge-tecnico').style.display = 'none';
+    return;
+  }
+  var uid = t.unique_id || ('tecnico_'+t.id+'_cliquedf');
+  document.getElementById('unique-id').textContent = uid;
+  document.getElementById('badge-tecnico').style.display = 'inline-flex';
+}
+
+function copiar(txt, btn) {
+  if (!txt || txt.includes('Selecione')) return;
+  navigator.clipboard.writeText(txt).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = '✓ Copiado!';
+    btn.style.background = 'var(--green)';
+    btn.style.color = '#fff';
+    setTimeout(function(){ btn.textContent = orig; btn.style.background=''; btn.style.color=''; }, 2000);
+  });
+}
+
+carregarTecnicos();
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Agendar Retiradas — Hub Técnico</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+:root{--bg:#0f1117;--surf:#161b22;--surf2:#1c2330;--border:#2d3748;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--accent:#e8521a;--accent2:#ff6b35;--green:#00e5a0;--red:#ff4d6a;--amber:#ffb83f;--purple:#a78bfa;--font:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px}
+.topbar{height:52px;background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px}
+.topbar-icon{width:28px;height:28px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+.topbar-title{font-weight:800;font-size:.95rem}
+.topbar-sub{font-size:.75rem;color:var(--text3);margin-left:4px}
+.topbar-back{margin-left:auto;background:var(--surf2);border:1px solid var(--border);color:var(--text2);border-radius:7px;padding:5px 12px;font-size:.78rem;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:5px}
+.topbar-back:hover{color:var(--text);border-color:var(--accent)}
+.page{max-width:900px;margin:0 auto;padding:24px 16px}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px}
+.page-header-left h1{font-size:1.1rem;font-weight:800}
+.page-header-left p{font-size:.78rem;color:var(--text3);margin-top:2px}
+.ctrl-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type=date]{background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:.82rem;outline:none}
+input[type=date]:focus{border-color:var(--accent)}
+.btn{padding:7px 16px;border:none;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.kpis{display:none;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.kpi{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 20px;min-width:110px;text-align:center}
+.kpi-num{font-size:1.4rem;font-weight:800}
+.kpi-label{font-size:.72rem;color:var(--text3);margin-top:2px}
+.loading{display:none;text-align:center;padding:40px;color:var(--text3)}
+.rotas{display:flex;flex-direction:column;gap:12px}
+.rota-card{background:var(--surf2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.rota-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;flex-wrap:wrap;gap:8px}
+.rota-title{font-weight:800;font-size:.9rem}
+.rota-sub{font-size:.75rem;color:var(--text3);margin-top:1px}
+.rota-chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chip{background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:2px 9px;font-size:.72rem;white-space:nowrap}
+.chip-green{background:rgba(0,229,160,.1);border-color:rgba(0,229,160,.3);color:var(--green)}
+.chip-red{background:rgba(255,77,106,.1);border-color:rgba(255,77,106,.3);color:var(--red)}
+.chip-amber{background:rgba(255,184,63,.1);border-color:rgba(255,184,63,.3);color:var(--amber)}
+.btn-atribuir{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:.75rem;font-weight:700;cursor:pointer}
+.btn-atribuir:hover{background:var(--accent2)}
+.os-list{border-top:1px solid var(--border)}
+.os-row{display:flex;align-items:flex-start;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border)}
+.os-row:last-child{border-bottom:none}
+.os-num{color:var(--text3);font-size:.72rem;min-width:18px;padding-top:3px}
+.os-info{flex:1;min-width:0}
+.os-cliente{font-weight:600;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.os-meta{font-size:.71rem;color:var(--text3);margin-top:2px}
+.os-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.os-hora{font-size:.72rem;font-weight:700;color:var(--purple)}
+.os-dist{font-size:.68rem;color:var(--text3)}
+.tag-assunto{display:inline-block;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(167,139,250,.15);color:var(--purple);margin-left:4px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:26px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:1rem;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.1rem}
+.modal-info{background:var(--surf2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--text2)}
+.modal-label{font-size:.72rem;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:8px}
+.tec-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+.tec-item{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:7px;border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.tec-item:hover{border-color:var(--accent)}
+.tec-item.selected{background:rgba(232,82,26,.12);border-color:var(--accent)}
+.tec-nome{font-weight:600;font-size:.85rem}
+.tec-sub{font-size:.72rem;color:var(--text3)}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+.modal-actions button{flex:1;padding:9px;border-radius:7px;font-weight:700;font-size:.82rem;cursor:pointer}
+.btn-cancel{background:var(--surf2);border:1px solid var(--border);color:var(--text)}
+.btn-confirm{background:var(--accent);color:#fff;border:none}
+.empty{text-align:center;padding:50px;color:var(--text3)}
+.empty-icon{font-size:2rem;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-icon">📦</div>
+  <div class="topbar-title">Agendar Retiradas</div>
+  <span class="topbar-sub">Recolhimento e retirada de equipamentos</span>
+  <a href="/static/painel.html" class="topbar-back">← Voltar ao Painel</a>
+</div>
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>📦 Roteiro de Retiradas</h1>
+      <p>Agrupamento por cidade e proximidade · raio máximo 8km</p>
+    </div>
+    <div class="ctrl-bar">
+      <input type="date" id="inp-data">
+      <button class="btn btn-primary" onclick="gerarRotas()">⚡ Gerar Roteiro</button>
+    </div>
+  </div>
+  <div class="kpis" id="kpis">
+    <div class="kpi"><div class="kpi-num" id="kpi-rotas" style="color:var(--accent)">0</div><div class="kpi-label">Roteiros</div></div>
+    <div class="kpi"><div class="kpi-num" id="kpi-os" style="color:var(--green)">0</div><div class="kpi-label">OS Retirada</div></div>
+    <div class="kpi"><div class="kpi-num" id="kpi-tec" style="color:var(--amber)">0</div><div class="kpi-label">Técnicos</div></div>
+  </div>
+  <div class="loading" id="loading"><div style="font-size:1.5rem;margin-bottom:8px">⏳</div><div>Gerando roteiro...</div></div>
+  <div class="rotas" id="rotas"></div>
+</div>
+<div class="modal-bg" id="modal" onclick="if(event.target===this)fecharModal()">
+  <div class="modal">
+    <div class="modal-title"><span>👷 Atribuir Técnico</span><button class="modal-close" onclick="fecharModal()">✕</button></div>
+    <div class="modal-info" id="modal-info"></div>
+    <div class="modal-label">Selecione o técnico:</div>
+    <div class="tec-list" id="tec-list"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-confirm" id="btn-confirm" onclick="confirmar()">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+<script>
+var rotasCache=[],tecnicosCache=[],rotaSelecionada=null,tecnicoSelecionado=null;
+(function(){var d=new Date(),p=function(n){return String(n).padStart(2,'0')};document.getElementById('inp-data').value=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())})();
+function api(url,opts){var token=localStorage.getItem('ht_token')||sessionStorage.getItem('ht_token')||'';opts=opts||{};opts.headers=Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+token},opts.headers||{});return fetch(url,opts).then(function(r){if(r.status===401){window.location.href='/static/login.html';throw new Error('401')}return r.json()})}
+function gerarRotas(){
+  var data=document.getElementById('inp-data').value;
+  if(!data){alert('Selecione uma data');return}
+  document.getElementById('loading').style.display='block';
+  document.getElementById('rotas').innerHTML='';
+  document.getElementById('kpis').style.display='none';
+  Promise.all([api('/api/retiradas/rotas-sugeridas?data='+data),api('/api/retiradas/tecnicos')]).then(function(res){
+    document.getElementById('loading').style.display='none';
+    rotasCache=res[0].rotas||[];tecnicosCache=res[1].tecnicos||[];
+    document.getElementById('kpi-rotas').textContent=res[0].total_rotas||0;
+    document.getElementById('kpi-os').textContent=res[0].total_os||0;
+    document.getElementById('kpi-tec').textContent=tecnicosCache.length;
+    document.getElementById('kpis').style.display='flex';
+    renderRotas(rotasCache);
+  }).catch(function(e){document.getElementById('loading').style.display='none';document.getElementById('rotas').innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><div>Erro: '+e.message+'</div></div>'});
+}
+function renderRotas(rotas){
+  var el=document.getElementById('rotas');
+  if(!rotas||!rotas.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div>Nenhuma OS de retirada pendente.</div></div>';return}
+  el.innerHTML=rotas.map(function(r,idx){
+    var slaCount=(r.os||[]).filter(function(o){return o.sla_estourado}).length;
+    var slaChip=slaCount?'<span class="chip chip-red">🚨 '+slaCount+' SLA</span>':'';
+    var osRows=(r.os||[]).map(function(o,i){
+      var tag='<span class="tag-assunto">'+abrevAssunto(o.assunto_nome)+'</span>';
+      var dist=i===0?'🏁 da garagem: '+o.dist_anterior_km+'km':'↗ '+o.dist_anterior_km+'km';
+      return '<div class="os-row">'+
+        '<div class="os-num">'+(i+1)+'</div>'+
+        '<div class="os-info">'+
+          '<div class="os-cliente">'+(o.sla_estourado?'🚨 ':'')+(o.cliente_nome||'')+tag+'</div>'+
+          '<div class="os-meta">'+(o.cidade||'')+' · '+(o.bairro||'')+' · '+(o.horas_abertas||0).toFixed(0)+'h aberta</div>'+
+          '<div class="os-meta" style="color:var(--text2)">'+(o.endereco||'')+'</div>'+
+        '</div>'+
+        '<div class="os-right"><span class="os-hora">⏰ '+o.hora_prevista_fmt+'</span><span class="os-dist">'+dist+'</span></div>'+
+      '</div>';
+    }).join('');
+    return '<div class="rota-card">'+
+      '<div class="rota-header">'+
+        '<div><div class="rota-title">Roteiro #'+r.rota_num+' · '+r.bairro_ref+'</div><div class="rota-sub">🏚 Saída: '+r.garagem+'</div></div>'+
+        '<div class="rota-chips">'+slaChip+'<span class="chip">'+r.total_os+' OS</span><span class="chip chip-amber">⏱ '+r.tempo_fmt+'</span><span class="chip chip-green">🛣 '+r.distancia_km+'km</span><button class="btn-atribuir" onclick="abrirModal('+idx+')">Atribuir</button></div>'+
+      '</div>'+
+      '<div class="os-list">'+osRows+'</div>'+
+    '</div>';
+  }).join('');
+}
+function abrevAssunto(n){if(!n)return'';if(n.includes('RECOLHILMENTO'))return'RECOLH.TITULAR';if(n.includes('RECOLHIMENTO'))return'RECOLHIMENTO';if(n.includes('RETIRADA'))return'RETIRADA';if(n.includes('FIBRA'))return'RETIRAR FIBRA';return n.slice(0,14)}
+function abrirModal(idx){
+  rotaSelecionada=rotasCache[idx];tecnicoSelecionado=null;var r=rotaSelecionada;
+  document.getElementById('modal-info').innerHTML='<b>Roteiro #'+r.rota_num+'</b> · '+r.bairro_ref+'<br>'+r.total_os+' OS · ⏱ '+r.tempo_fmt+' · 🛣 '+r.distancia_km+'km';
+  document.getElementById('tec-list').innerHTML=tecnicosCache.map(function(t){return'<div class="tec-item" data-id="'+t.id+'" data-nome="'+t.nome+'" onclick="selecionarTec(this)"><div><div class="tec-nome">'+t.nome+'</div><div class="tec-sub">Nível '+t.nivel+'</div></div><span style="font-size:.75rem;color:var(--green)">✅ Disponível</span></div>'}).join('');
+  document.getElementById('modal').classList.add('open');
+}
+function selecionarTec(el){document.querySelectorAll('.tec-item').forEach(function(x){x.classList.remove('selected')});el.classList.add('selected');tecnicoSelecionado={id:parseInt(el.dataset.id),nome:el.dataset.nome}}
+function fecharModal(){document.getElementById('modal').classList.remove('open')}
+function confirmar(){
+  if(!tecnicoSelecionado){alert('Selecione um técnico');return}
+  var data=document.getElementById('inp-data').value,r=rotaSelecionada,btn=document.getElementById('btn-confirm');
+  btn.textContent='Salvando...';btn.disabled=true;
+  api('/api/retiradas/confirmar',{method:'POST',body:JSON.stringify({data_rota:data,tecnico_id:tecnicoSelecionado.id,tecnico_nome:tecnicoSelecionado.nome,os_ids:r.os,tempo_est:r.tempo_est,bairro_ref:r.bairro_ref})}).then(function(d){
+    btn.textContent='✅ Confirmar';btn.disabled=false;fecharModal();
+    if(d.ok){alert('✅ '+d.msg);gerarRotas()}else{alert('Erro: '+(d.detail||JSON.stringify(d)))}
+  }).catch(function(e){btn.textContent='✅ Confirmar';btn.disabled=false;alert('Erro de rede: '+e.message)});
+}
+</script>
+</body>
+</html>
