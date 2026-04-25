@@ -9,9 +9,10 @@ log = logging.getLogger(__name__)
 
 DB_PATH        = "/opt/automacoes/cliquedf/tecnico/hub_tecnico.db"
 JORNADA_INICIO = 8
-TEMPO_RETIRADA = 30
+TEMPO_RETIRADA = 10
 DESLOCAMENTO   = 15
 RAIO_MAX_KM    = 8.0
+MAX_OS_ROTA    = 8
 ID_ASSUNTOS_RETIRADA = {22, 39, 89, 111}
 GARAGENS = {
     1: {'nome': 'Neópolis',        'lat': -10.321895, 'lon': -36.579450},
@@ -60,38 +61,43 @@ def carregar_os_retirada(data: str, db) -> list:
     return [r for r in rows if coord_valida(r.get('lat'), r.get('lon'))]
 
 def clusterizar(lista_os: list) -> dict:
-    por_cidade = {}
-    for os in lista_os:
-        cidade = (os.get('cidade') or 'SEM_CIDADE').strip().upper()
-        por_cidade.setdefault(cidade, []).append(os)
+    """
+    Agrupa apenas por proximidade geografica (complete-linkage, raio RAIO_MAX_KM).
+    Nao agrupa por cidade — evita que cidades distintas mas proximas fiquem separadas
+    e que OS distantes da mesma cidade fiquem juntas.
+    """
+    nao_agrupados = [o for o in lista_os if o.get('lat') and o.get('lon')]
+    sem_coord     = [o for o in lista_os if not o.get('lat') or not o.get('lon')]
+    sub_clusters  = []
+
+    while nao_agrupados:
+        semente = nao_agrupados.pop(0)
+        grupo   = [semente]
+        ainda_nao = []
+        for os in nao_agrupados:
+            todas_proximas = all(
+                haversine(os['lat'], os['lon'], g['lat'], g['lon']) <= RAIO_MAX_KM
+                for g in grupo
+            )
+            if todas_proximas:
+                grupo.append(os)
+            else:
+                ainda_nao.append(os)
+        sub_clusters.append(grupo)
+        nao_agrupados = ainda_nao
+
+    # OS sem coordenadas ficam em cluster proprio
+    if sem_coord:
+        sub_clusters.append(sem_coord)
+
     clusters = {}
-    for cidade, os_cidade in por_cidade.items():
-        if len(os_cidade) == 1:
-            bairro = (os_cidade[0].get('bairro') or 'SEM_BAIRRO').strip().upper()
-            clusters[f"{cidade} — {bairro}"] = os_cidade
-            continue
-        nao_agrupados = os_cidade[:]
-        sub_clusters = []
-        while nao_agrupados:
-            semente = nao_agrupados.pop(0)
-            grupo = [semente]
-            ainda_nao = []
-            for os in nao_agrupados:
-                proximo = any(
-                    haversine(os['lat'], os['lon'], g['lat'], g['lon']) <= RAIO_MAX_KM
-                    for g in grupo if g.get('lat') and os.get('lat')
-                )
-                if proximo:
-                    grupo.append(os)
-                else:
-                    ainda_nao.append(os)
-            sub_clusters.append(grupo)
-            nao_agrupados = ainda_nao
-        for idx, grupo in enumerate(sub_clusters):
-            bairros = [o.get('bairro') or 'SEM_BAIRRO' for o in grupo]
-            bairro_ref = max(set(bairros), key=bairros.count).strip().upper()
-            sufixo = f" {idx+1}" if len(sub_clusters) > 1 else ""
-            clusters[f"{cidade} — {bairro_ref}{sufixo}"] = grupo
+    for idx, grupo in enumerate(sub_clusters):
+        cidades = [o.get('cidade') or 'SEM_CIDADE' for o in grupo]
+        bairros = [o.get('bairro') or 'SEM_BAIRRO' for o in grupo]
+        cidade_ref = max(set(cidades), key=cidades.count).strip().upper()
+        bairro_ref = max(set(bairros), key=bairros.count).strip().upper()
+        sufixo = f" {idx+1}" if len(sub_clusters) > 1 else ""
+        clusters[f"{cidade_ref} — {bairro_ref}{sufixo}"] = grupo
     return clusters
 
 def sequenciar(lista_os: list, lat_ini: float, lon_ini: float) -> list:
@@ -119,6 +125,96 @@ def calcular_horarios_e_distancias(os_list: list, data: str, garagem: dict) -> l
         hora_atual += timedelta(minutes=TEMPO_RETIRADA + DESLOCAMENTO)
     return os_list
 
+def max_dist_cluster(os1, os2):
+    """Distancia maxima entre qualquer par de OS dos dois grupos."""
+    md = 0
+    for a in os1:
+        for b in os2:
+            if a.get('lat') and b.get('lat'):
+                d = haversine(a['lat'], a['lon'], b['lat'], b['lon'])
+                if d > md: md = d
+    return md
+
+def mesclar_retiradas(rotas: list, raio_km: float = RAIO_MAX_KM, data: str = None) -> list:
+    def min_dist(os1, os2):
+        md = float('inf')
+        for a in os1:
+            for b in os2:
+                if a.get('lat') and b.get('lat'):
+                    d = haversine(a['lat'], a['lon'], b['lat'], b['lon'])
+                    if d < md: md = d
+        return md if md != float('inf') else 999
+    modificou = True
+    while modificou:
+        modificou = False
+        novas = []
+        usadas = set()
+        for i, r1 in enumerate(rotas):
+            if i in usadas: continue
+            melhor_j, melhor_d = None, raio_km
+            for j, r2 in enumerate(rotas):
+                if j <= i or j in usadas: continue
+                if r1.get('garagem') != r2.get('garagem'): continue
+                # So mescla se distancia MAXIMA entre todos os pares <= raio
+                if max_dist_cluster(r1['os'], r2['os']) > raio_km: continue
+                d = min_dist(r1['os'], r2['os'])
+                if d < melhor_d: melhor_d = d; melhor_j = j
+            if melhor_j is not None and len(r1['os']) + len(rotas[melhor_j]['os']) <= MAX_OS_ROTA:
+                r2 = rotas[melhor_j]
+                g = next((g for g in GARAGENS.values() if g['nome'] == r1['garagem']), None)
+                os_m = sequenciar(r1['os'] + r2['os'], g['lat'] if g else r1['os'][0]['lat'], g['lon'] if g else r1['os'][0]['lon'])
+                bairros = [o.get('bairro') or 'SEM_BAIRRO' for o in os_m]
+                cidades = [o.get('cidade') or 'SEM_CIDADE' for o in os_m]
+                bairro_ref = max(set(bairros), key=bairros.count).strip().upper()
+                cidade_ref = max(set(cidades), key=cidades.count).strip().upper()
+                tempo = sum(o.get('tempo_min', TEMPO_RETIRADA) for o in os_m) + (len(os_m)-1)*DESLOCAMENTO
+                novas.append({
+                    'os': os_m, 'garagem': r1['garagem'],
+                    'bairro_ref': f"{cidade_ref} — {bairro_ref}",
+                    'total_os': len(os_m), 'tempo_est': tempo,
+                    'tempo_fmt': f"{tempo//60}h{tempo%60:02d}min",
+                    'distancia_km': r1.get('distancia_km', 0),
+                })
+                usadas.add(i); usadas.add(melhor_j); modificou = True
+            else:
+                novas.append(r1); usadas.add(i)
+        rotas = novas
+    # Recalcular horarios e distancias apos mescla
+    for r in rotas:
+        g = next((g for g in GARAGENS.values() if g['nome'] == r.get('garagem')), None)
+        if not g: continue
+        r['os'] = sequenciar(r['os'], g['lat'], g['lon'])
+        r['os'] = calcular_horarios_e_distancias(r['os'], data or date.today().isoformat(), g)
+        dist = haversine(g['lat'], g['lon'], r['os'][0]['lat'], r['os'][0]['lon'])
+        for i in range(len(r['os'])-1):
+            dist += haversine(r['os'][i]['lat'], r['os'][i]['lon'], r['os'][i+1]['lat'], r['os'][i+1]['lon'])
+        r['distancia_km'] = round(dist, 1)
+    return rotas
+
+
+def agrupar_por_endereco(lista_os: list) -> list:
+    """
+    Agrupa OS do mesmo cliente/endereco em uma unica parada.
+    Concatena os assuntos e soma os tempos.
+    """
+    grupos = {}
+    for os in lista_os:
+        chave = (round(os['lat'], 4), round(os['lon'], 4))
+        if chave not in grupos:
+            grupos[chave] = dict(os)
+            grupos[chave]['assuntos'] = [os['assunto_nome']]
+        else:
+            grupos[chave]['assuntos'].append(os['assunto_nome'])
+            grupos[chave]['tempo_min'] = grupos[chave].get('tempo_min', TEMPO_RETIRADA) + TEMPO_RETIRADA
+    result = []
+    for os in grupos.values():
+        assuntos = os.pop('assuntos', [os['assunto_nome']])
+        if len(assuntos) > 1:
+            os['assunto_nome'] = ' + '.join(dict.fromkeys(assuntos))
+        result.append(os)
+    return result
+
+
 def gerar_rotas_retirada(data: Optional[str] = None) -> list:
     if not data:
         data = date.today().isoformat()
@@ -127,27 +223,42 @@ def gerar_rotas_retirada(data: Optional[str] = None) -> list:
         os_list = carregar_os_retirada(data, db)
         if not os_list:
             return []
+        os_list = agrupar_por_endereco(os_list)
         clusters = clusterizar(os_list)
+        # Agrupar por garagem primeiro
+        por_garagem = {gid: [] for gid in GARAGENS}
+        for os in os_list:
+            gid = min(GARAGENS, key=lambda g: haversine(os['lat'], os['lon'], GARAGENS[g]['lat'], GARAGENS[g]['lon']))
+            por_garagem[gid].append(os)
         rotas_finais = []
         rota_num = 1
-        for chave, os_cluster in clusters.items():
-            lat_c = sum(o['lat'] for o in os_cluster) / len(os_cluster)
-            lon_c = sum(o['lon'] for o in os_cluster) / len(os_cluster)
-            garagem = min(GARAGENS.values(), key=lambda g: haversine(lat_c, lon_c, g['lat'], g['lon']))
-            os_seq = sequenciar(os_cluster, garagem['lat'], garagem['lon'])
-            os_seq = calcular_horarios_e_distancias(os_seq, data, garagem)
-            dist_total = haversine(garagem['lat'], garagem['lon'], os_seq[0]['lat'], os_seq[0]['lon'])
-            for i in range(len(os_seq) - 1):
-                dist_total += haversine(os_seq[i]['lat'], os_seq[i]['lon'], os_seq[i+1]['lat'], os_seq[i+1]['lon'])
-            tempo_total = len(os_seq) * TEMPO_RETIRADA + (len(os_seq) - 1) * DESLOCAMENTO
-            rotas_finais.append({
-                'rota_num': rota_num, 'bairro_ref': chave,
-                'total_os': len(os_seq), 'tempo_est': tempo_total,
-                'tempo_fmt': f"{tempo_total//60}h{tempo_total%60:02d}min",
-                'distancia_km': round(dist_total, 1),
-                'garagem': garagem['nome'], 'os': os_seq,
-            })
-            rota_num += 1
+        for gid, os_garagem in por_garagem.items():
+            if not os_garagem:
+                continue
+            garagem = GARAGENS[gid]
+            sub_clusters = clusterizar(os_garagem)
+            for chave, os_cluster in sub_clusters.items():
+                os_seq = sequenciar(os_cluster, garagem['lat'], garagem['lon'])
+                # Subdividir por MAX_OS_ROTA
+                fatias = [os_seq[i:i+MAX_OS_ROTA] for i in range(0, len(os_seq), MAX_OS_ROTA)]
+                for fatia in fatias:
+                    fatia = calcular_horarios_e_distancias(fatia, data, garagem)
+                    dist_total = haversine(garagem['lat'], garagem['lon'], fatia[0]['lat'], fatia[0]['lon'])
+                    for i in range(len(fatia) - 1):
+                        dist_total += haversine(fatia[i]['lat'], fatia[i]['lon'], fatia[i+1]['lat'], fatia[i+1]['lon'])
+                    tempo_total = sum(o.get('tempo_min', TEMPO_RETIRADA) for o in fatia) + (len(fatia) - 1) * DESLOCAMENTO
+                    rotas_finais.append({
+                        'rota_num': rota_num, 'bairro_ref': chave,
+                        'total_os': len(fatia), 'tempo_est': tempo_total,
+                        'tempo_fmt': f"{tempo_total//60}h{tempo_total%60:02d}min",
+                        'distancia_km': round(dist_total, 1),
+                        'garagem': garagem['nome'], 'os': fatia,
+                    })
+                    rota_num += 1
+        # Mesclar rotas pequenas da mesma garagem
+        rotas_finais = mesclar_retiradas(rotas_finais, data=data)
+        for idx, r in enumerate(rotas_finais, start=1):
+            r['rota_num'] = idx
         return rotas_finais
     finally:
         db.close()

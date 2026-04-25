@@ -229,13 +229,14 @@ def clusterizar_por_cidade_bairro(lista_os: list, raio_max_km: float = 8.0) -> d
             grupo = [semente]
             ainda_nao = []
             for os in nao_agrupados:
-                # Verifica se está próximo de qualquer OS já no grupo
-                proximo = any(
+                if not os.get('lat'): ainda_nao.append(os); continue
+                # Complete-linkage: TODAS as OS do grupo dentro do raio
+                todas_proximas = all(
                     haversine(os['lat'], os['lon'], g['lat'], g['lon']) <= raio_max_km
                     for g in grupo
-                    if g.get('lat') and os.get('lat')
+                    if g.get('lat')
                 )
-                if proximo:
+                if todas_proximas:
                     grupo.append(os)
                 else:
                     ainda_nao.append(os)

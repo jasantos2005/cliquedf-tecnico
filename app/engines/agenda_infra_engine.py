@@ -84,11 +84,12 @@ def clusterizar(lista_os: list) -> dict:
             grupo = [semente]
             ainda_nao = []
             for os in nao_agrupados:
-                proximo = any(
+                if not os.get('lat'): ainda_nao.append(os); continue
+                todas_proximas = all(
                     haversine(os['lat'], os['lon'], g['lat'], g['lon']) <= RAIO_MAX_KM
-                    for g in grupo if g.get('lat') and os.get('lat')
+                    for g in grupo if g.get('lat')
                 )
-                if proximo:
+                if todas_proximas:
                     grupo.append(os)
                 else:
                     ainda_nao.append(os)
