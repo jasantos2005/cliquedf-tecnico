@@ -535,8 +535,8 @@ def confirmar_rota(data: str, tecnico_id: int, tecnico_nome: str, os_ids: list, 
                 try:
                     from app.services.ixc_db import ixc_insert
                     ixc_insert(
-                        "UPDATE ixcprovedor.su_oss_chamado SET id_tecnico=%s, status='AG', data_reservada=%s WHERE id=%s",
-                        (ixc_func_id, hora_prevista, row["ixc_os_id"])
+                        "UPDATE ixcprovedor.su_oss_chamado SET id_tecnico=%s, status='AG', data_reservada=%s, data_agenda=%s WHERE id=%s",
+                        (ixc_func_id, hora_prevista[:10], hora_prevista, row["ixc_os_id"])
                     )
                     log.info(f"OS {row['ixc_os_id']} agendada no IXC para {hora_prevista} — técnico {ixc_func_id}")
                 except Exception as e:
