@@ -143,14 +143,20 @@ def carregar_os(data: str, db, incluir_excluidos: bool = False) -> list:
         FROM ht_os o
         WHERE
             o.status_ixc IN ('A', 'AG', 'RAG')
+            AND o.status_hub IN ('pendente', 'reagendada')
             AND o.lat IS NOT NULL AND o.lat != 0
             AND o.lon IS NOT NULL AND o.lon != 0
             AND (
                 DATE(o.data_agenda) = ?
                 OR (o.data_agenda IS NULL OR o.data_agenda = '' OR o.data_agenda = '0000-00-00 00:00:00')
             )
+            AND o.id NOT IN (
+                SELECT ro.os_id FROM ht_rotas_os ro
+                JOIN ht_rotas r ON r.id = ro.rota_id
+                WHERE r.data_rota = ? AND r.status = 'confirmada'
+            )
         ORDER BY o.sla_estourado DESC, o.horas_abertas DESC
-    """, (data,))
+    """, (data, data))
     rows = [dict(r) for r in cur.fetchall()]
     # Filtra coordenadas fora de Sergipe
     rows = [r for r in rows if coord_valida(r.get('lat'), r.get('lon'))]
@@ -514,7 +520,10 @@ def confirmar_rota(data: str, tecnico_id: int, tecnico_nome: str, os_ids: list, 
             """, (rota_id, os_item['id'], ordem, p))
 
             # Calcula horário estimado
-            hora_prevista = os_item.get('hora_prevista', f"{data} {JORNADA_INICIO:02d}:00")
+            hora_prevista = os_item.get('hora_prevista') or f"{data} {JORNADA_INICIO:02d}:00"
+            # Garantir formato completo datetime
+            if hora_prevista and len(hora_prevista) == 10:  # so data, sem hora
+                hora_prevista = f"{hora_prevista} {JORNADA_INICIO:02d}:00"
 
             cur.execute("""
                 UPDATE ht_os SET id_tecnico=?, ordem_execucao=?, status_hub='agendada' WHERE id=?

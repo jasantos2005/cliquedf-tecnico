@@ -58,6 +58,7 @@ def carregar_os_infra(data: str, db) -> list:
                o.data_agenda, o.horas_abertas, o.sla_estourado
         FROM ht_os o
         WHERE o.status_ixc IN ('A','AG','RAG')
+          AND o.status_hub IN ('pendente','reagendada')
           AND o.id_assunto IN ({ids})
           AND o.lat IS NOT NULL AND o.lat != 0
           AND o.lon IS NOT NULL AND o.lon != 0
@@ -177,7 +178,9 @@ def confirmar_rota_infra(data: str, tecnico_id: int, tecnico_nome: str,
         for ordem, os_item in enumerate(os_ids, start=1):
             cur.execute("INSERT INTO ht_rotas_os (rota_id, os_id, ordem, pontos) VALUES (?, ?, ?, 20)",
                         (rota_id, os_item['id'], ordem))
-            hora_prevista = os_item.get('hora_prevista', f"{data} {JORNADA_INICIO:02d}:00")
+            hora_prevista = os_item.get('hora_prevista') or f"{data} {JORNADA_INICIO:02d}:00"
+            if hora_prevista and len(hora_prevista) == 10:
+                hora_prevista = f"{hora_prevista} {JORNADA_INICIO:02d}:00"
             cur.execute("UPDATE ht_os SET id_tecnico=?, ordem_execucao=?, status_hub='agendada' WHERE id=?",
                         (tecnico_id, ordem, os_item['id']))
             row = db.execute("SELECT ixc_os_id FROM ht_os WHERE id=?", (os_item['id'],)).fetchone()
