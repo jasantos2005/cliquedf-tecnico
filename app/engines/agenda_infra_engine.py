@@ -188,8 +188,8 @@ def confirmar_rota_infra(data: str, tecnico_id: int, tecnico_nome: str,
                 try:
                     from app.services.ixc_db import ixc_insert
                     ixc_insert(
-                        "UPDATE ixcprovedor.su_oss_chamado SET id_tecnico=%s, status='AG', data_reservada=%s, data_agenda=%s WHERE id=%s",
-                        (ixc_func_id, hora_prevista[:10], hora_prevista, row["ixc_os_id"])
+                        "UPDATE ixcprovedor.su_oss_chamado SET id_tecnico=%s, status='AG', data_reservada=%s, data_agenda=%s, data_prazo_limite=%s WHERE id=%s",
+                        (ixc_func_id, hora_prevista[:10], hora_prevista, hora_prevista, row["ixc_os_id"])
                     )
                 except Exception as e:
                     log.warning(f"Erro ao agendar OS {row['ixc_os_id']} no IXC: {e}")
