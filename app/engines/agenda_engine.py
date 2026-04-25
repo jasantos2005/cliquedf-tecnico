@@ -401,6 +401,23 @@ def mesclar_rotas_proximas(rotas: list, capacidade: int = CAPACIDADE_PONTOS + TO
     return rotas
 
 
+def recalcular_horarios_rotas(rotas: list, data: str) -> list:
+    """Recalcula hora_prevista e dist_anterior_km de todas as rotas apos mesclagem."""
+    for r in rotas:
+        garagem_obj = next((g for g in GARAGENS.values() if g['nome'] == r.get('garagem')), None)
+        if not garagem_obj:
+            continue
+        r['os'] = sequenciar_por_proximidade(r['os'], garagem_obj['lat'], garagem_obj['lon'])
+        r['os'] = calcular_horarios(r['os'], data, garagem_obj)
+        # Recalcular distancia total
+        dist = haversine(garagem_obj['lat'], garagem_obj['lon'], r['os'][0]['lat'], r['os'][0]['lon'])
+        for i in range(len(r['os'])-1):
+            dist += haversine(r['os'][i]['lat'], r['os'][i]['lon'], r['os'][i+1]['lat'], r['os'][i+1]['lon'])
+        r['distancia_km'] = round(dist, 1)
+        r['tempo_fmt'] = f"{r['tempo_est']//60}h{r['tempo_est']%60:02d}min"
+    return rotas
+
+
 # ── Gerar rotas ───────────────────────────────────────────────────────────────
 def gerar_rotas(data: Optional[str] = None) -> list:
     if not data:
@@ -460,6 +477,7 @@ def gerar_rotas(data: Optional[str] = None) -> list:
             rotas_garagem = mesclar_rotas_proximas(rotas_garagem)
             rotas_finais = outras + rotas_garagem
 
+        rotas_finais = recalcular_horarios_rotas(rotas_finais, data)
         for idx, r in enumerate(rotas_finais, start=1):
             r['rota_num'] = idx
 
