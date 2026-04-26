@@ -349,3 +349,63 @@ def sync_estoque(usuario=Depends(requer_supervisor)):
         return {"ok": True, "msg": f"Sync concluído — {updated} itens atualizados"}
     finally:
         db.close()
+
+
+# ── Sync status requisições com IXC ──────────────────────────────────────────
+@router.post("/sync-status")
+def sync_status_requisicoes(usuario=Depends(requer_tecnico)):
+    db = get_db()
+    try:
+        reqs = db.execute(
+            "SELECT id, ixc_requisicao_id FROM ht_requisicoes WHERE ixc_requisicao_id > 0 AND status='pendente' AND id_tecnico=?",
+            (usuario["id"],)
+        ).fetchall()
+        if not reqs:
+            return {"ok": True, "msg": "Nada a sincronizar"}
+
+        ids = ",".join(str(r["ixc_requisicao_id"]) for r in reqs)
+        ixc_rows = ixc_select(f"SELECT id, status FROM ixcprovedor.requisicao_material WHERE id IN ({ids})")
+        ixc_map = {r["id"]: r["status"] for r in ixc_rows}
+
+        STATUS_MAP = {"C": "cancelada", "F": "aprovada", "A": "pendente", "P": "pendente"}
+        updated = 0
+        for r in reqs:
+            ixc_status = ixc_map.get(r["ixc_requisicao_id"])
+            if not ixc_status:
+                continue
+            local_status = STATUS_MAP.get(ixc_status, "pendente")
+            if local_status != "pendente":
+                db.execute(
+                    "UPDATE ht_requisicoes SET status=? WHERE id=?",
+                    (local_status, r["id"])
+                )
+                updated += 1
+
+        db.commit()
+        return {"ok": True, "msg": f"{updated} requisições sincronizadas"}
+    finally:
+        db.close()
+
+
+@router.put("/requisicao/{req_id}")
+def editar_requisicao(req_id: int, body: CriarRequisicaoBody, usuario=Depends(requer_tecnico)):
+    if not body.itens:
+        raise HTTPException(400, "Nenhum item informado")
+    db = get_db()
+    try:
+        req = db.execute(
+            "SELECT * FROM ht_requisicoes WHERE id=? AND id_tecnico=? AND status='pendente'",
+            (req_id, usuario["id"])
+        ).fetchone()
+        if not req:
+            raise HTTPException(404, "Requisicao nao encontrada ou nao pode ser editada")
+        db.execute("DELETE FROM ht_requisicao_itens WHERE id_requisicao=?", (req_id,))
+        for item in body.itens:
+            db.execute("""
+                INSERT INTO ht_requisicao_itens (id_requisicao, id_produto, qtd_solicitada, obs)
+                VALUES (?, ?, ?, ?)
+            """, (req_id, item.id_produto, item.qtd_solicitada, item.obs or ""))
+        db.commit()
+        return {"ok": True, "msg": "Requisicao atualizada"}
+    finally:
+        db.close()

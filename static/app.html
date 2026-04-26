@@ -925,16 +925,30 @@ function estoqueAba(aba) {
   if (aba === 'req') carregarMinhasRequisicoes();
 }
 
+// Sync automático a cada 2 minutos
+setInterval(async function() {
+  try {
+    await api('/api/estoque/sync-status', {method:'POST'});
+    // Se aba requisições estiver visível, recarrega
+    var painel = document.getElementById('painel-requisicoes');
+    if (painel && painel.style.display !== 'none') {
+      await carregarMinhasRequisicoes();
+    }
+  } catch(e) {}
+}, 2 * 60 * 1000);
+
 async function carregarMinhasRequisicoes() {
   try {
+    await api('/api/estoque/sync-status', {method:'POST'});
     const rows = await api('/api/estoque/minhas-requisicoes');
     const el = document.getElementById('lista-req');
     if (!rows.length) { el.innerHTML='<div class="empty">Nenhuma requisição</div>'; return; }
     const statusColor = {pendente:'var(--yellow)',aprovada:'var(--green)',rejeitada:'var(--red)'};
     el.innerHTML = rows.slice(0,20).map(r=>`
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+      <div onclick="${r.status==='pendente'?'abrirEditarRequisicao('+r.id+')':''}"
+        style="padding:10px 14px;border-bottom:1px solid var(--border);${r.status==='pendente'?'cursor:pointer;':''}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:.82rem;font-weight:700">Req #${r.id}</span>
+          <span style="font-size:.82rem;font-weight:700">Req #${r.id} ${r.status==='pendente'?'<span style="font-size:.7rem;color:var(--accent)">✏️ editar</span>':''}</span>
           <span style="font-size:.72rem;font-weight:700;color:${statusColor[r.status]||'var(--muted)'}">${r.status.toUpperCase()}</span>
         </div>
         <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">${r.criada_em||''}</div>
@@ -1264,5 +1278,90 @@ function toast(msg, tipo='ok') {
     </div>
   </div>
 </div>
+
+<!-- MODAL EDITAR REQUISICAO -->
+<!-- MODAL EDITAR REQUISICAO -->
+<div id="modal-editar-req" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:flex-start;justify-content:center;padding-top:20px">
+  <div style="background:var(--surface2);border-radius:14px;width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;margin:0 12px">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:800;font-size:.95rem">✏️ Editar Requisição <span id="edit-req-titulo" style="color:var(--muted);font-weight:400"></span></div>
+      <button onclick="document.getElementById('modal-editar-req').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 20px">
+      <div id="edit-req-itens-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px">
+      <button onclick="document.getElementById('modal-editar-req').style.display='none'" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-size:.88rem;cursor:pointer">Cancelar</button>
+      <button onclick="editReqEnviar()" style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-size:.88rem;font-weight:700;cursor:pointer">✅ Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var _editReqId = null;
+var _editReqItens = {};
+
+async function abrirEditarRequisicao(id) {
+  _editReqId = id;
+  _editReqItens = {};
+  document.getElementById('edit-req-titulo').textContent = '#' + id;
+  document.getElementById('edit-req-itens-lista').innerHTML = '<div class="loading">Carregando...</div>';
+  document.getElementById('modal-editar-req').style.display = 'flex';
+
+  try {
+    const rows = await api('/api/estoque/minhas-requisicoes');
+    const req = rows.find(r => r.id === id);
+    if (req && req.itens) {
+      req.itens.forEach(i => {
+        _editReqItens[i.id_produto] = {nome: i.produto_nome, unidade: i.unidade, qtd: i.qtd_solicitada};
+      });
+    }
+  } catch(e) {}
+
+  editReqRenderItens();
+}
+
+function editReqRenderItens() {
+  var el = document.getElementById('edit-req-itens-lista');
+  var itens = Object.entries(_editReqItens);
+  if (!itens.length) { el.innerHTML='<div style="color:var(--muted);text-align:center;padding:20px">Nenhum item</div>'; return; }
+  el.innerHTML = itens.map(function(e){
+    var id=e[0], v=e[1];
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px">'
+      +'<div style="font-size:.82rem;font-weight:600;margin-bottom:8px">'+v.nome+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<span style="font-size:.75rem;color:var(--muted);flex:1">Quantidade ('+v.unidade+')</span>'
+        +'<input type="number" min="0.01" step="any" value="'+v.qtd+'" onchange="editReqQtd('+id+', this.value)"'
+          +' style="width:80px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px;font-size:.9rem;outline:none">'
+        +'<button onclick="editReqRemover('+id+')" style="background:none;border:none;color:#f44;cursor:pointer;font-size:1.1rem;padding:4px">✕</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function editReqQtd(id, val) {
+  if (_editReqItens[id]) _editReqItens[id].qtd = parseFloat(val) || 0;
+}
+
+function editReqRemover(id) {
+  delete _editReqItens[id];
+  editReqRenderItens();
+}
+
+async function editReqEnviar() {
+  var itens = Object.entries(_editReqItens)
+    .filter(function(e){ return e[1].qtd > 0; })
+    .map(function(e){ return {id_produto:parseInt(e[0]), qtd_solicitada:e[1].qtd, obs:''}; });
+  if (!itens.length) { toast('Adicione ao menos um item','err'); return; }
+  try {
+    var r = await api('/api/estoque/requisicao/'+_editReqId, {method:'PUT', body:JSON.stringify({itens:itens, obs:''})});
+    if (r.ok) {
+      toast('Requisição atualizada!','ok');
+      document.getElementById('modal-editar-req').style.display='none';
+      carregarMinhasRequisicoes();
+    } else { toast(r.detail||'Erro','err'); }
+  } catch(e) { toast('Erro de rede','err'); }
+}
+</script>
 </body>
 </html>
