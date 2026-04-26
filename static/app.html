@@ -619,7 +619,7 @@ function iniciarExecucao(os) {
   renderStep();
 }
 
-const STEPS = ['checklist','fotos','solucao','finalizar'];
+const STEPS = ['checklist','fotos','solucao','materiais','finalizar'];
 
 function renderStep() {
   const steps = STEPS;
@@ -689,6 +689,40 @@ function renderStep() {
       <button class="btn btn-outline" style="margin-top:8px" onclick="voltarStep()">← Voltar</button>`;
     setTimeout(initCanvas, 100);
   } else if (execStep === 3) {
+    // Materiais
+    const meuEstoque = execData._estoque || [];
+    const itensAdicionados = execData.materiais || [];
+    const listaEstoque = meuEstoque.length ? meuEstoque.map(p => {
+      const adicionado = itensAdicionados.find(m => m.id_produto === p.id);
+      const qtdUsada = adicionado ? adicionado.quantidade : 0;
+      const isComodato = p.tipo === 'P';
+      const btnSerie = (isComodato && qtdUsada > 0) ? `<button onclick="matEditarSerie(${p.id})" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--accent2);cursor:pointer;font-size:.65rem">S/N</button>` : '';
+      const serie = adicionado && adicionado.numero_serie ? `<div style="font-size:.68rem;color:var(--accent2)">S/N: ${adicionado.numero_serie}</div>` : '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.produto_nome}</div>
+          <div style="font-size:.7rem;color:var(--muted)">${isComodato?'📦 Patrimônio':'🔧 Insumo'} · Disp: ${p.quantidade} ${p.unidade}</div>
+          ${serie}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <button onclick="matAlterarQtd(${p.id},-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer">−</button>
+          <span id="mat-qtd-${p.id}" style="min-width:20px;text-align:center;font-weight:700;color:${qtdUsada>0?'var(--accent2)':'var(--muted)'}">${qtdUsada}</span>
+          <button onclick="matAlterarQtd(${p.id},1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer">+</button>
+          ${btnSerie}
+        </div>
+      </div>`;
+    }).join('') : '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px">Estoque vazio</div>';
+    const totalMat = itensAdicionados.filter(m=>m.quantidade>0).length;
+    content = `
+      <div class="modal-title">📦 Materiais utilizados</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Informe o que foi instalado/usado nesta OS</div>
+      <div style="max-height:50vh;overflow-y:auto;margin-bottom:10px">${listaEstoque}</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Marcados: <b style="color:var(--accent2)">${totalMat}</b></div>
+      <div style="display:grid;gap:8px">
+        <button class="btn btn-primary" onclick="proximoStep()">Próximo →</button>
+        <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
+      </div>`;
+  } else if (execStep === 4) {
     // Finalizar
     const marcados = execData.checklist.filter(c=>c.marcado).length;
     content = `
@@ -698,6 +732,7 @@ function renderStep() {
         <div style="font-size:.85rem;margin-bottom:6px">📸 Fotos: ${execData.fotos.length}</div>
         <div style="font-size:.85rem;margin-bottom:6px">📝 Solução: ${execData.solucao?'✅':'❌ necessário'}</div>
         <div style="font-size:.85rem">✍️ Assinatura: ${execData.assinatura?'✅':'—'}</div>
+        <div style="font-size:.85rem">📦 Materiais: ${(execData.materiais||[]).filter(m=>m.quantidade>0).length} item(s)</div>
       </div>
       ${!execData.solucao?'<div style="color:var(--red);font-size:.82rem;margin-bottom:12px">⚠️ Preencha a solução antes de finalizar</div>':''}
       <div style="display:grid;gap:8px">
@@ -717,6 +752,9 @@ function toggleChkExec(i) {
 }
 
 function proximoStep() {
+  if (execStep === 2 && (!execData._estoque || !execData._estoque.length)) {
+    api('/api/estoque/meu').then(function(rows){ execData._estoque = rows; renderStep(); }).catch(function(){execData._estoque=[];});
+  }
   if (execStep === 0) {
     const chk = CHECKLISTS[osAtual.id_assunto] || CHECKLISTS[16];
     execData.checklist = chk.map((texto,i)=>({
@@ -788,6 +826,25 @@ function limparAssinatura() {
   if (c) canvasCtx.clearRect(0, 0, c.width, c.height);
 }
 
+function matAlterarQtd(idProduto, delta) {
+  if (!execData.materiais) execData.materiais = [];
+  const prod = (execData._estoque||[]).find(p=>p.id===idProduto);
+  if (!prod) return;
+  let item = execData.materiais.find(m=>m.id_produto===idProduto);
+  if (!item) {
+    item = {id_produto:idProduto, nome:prod.produto_nome, unidade:prod.unidade, tipo:prod.tipo, quantidade:0, numero_serie:''};
+    execData.materiais.push(item);
+  }
+  item.quantidade = Math.max(0, Math.min(item.quantidade+delta, prod.quantidade));
+  if (item.quantidade===0) execData.materiais = execData.materiais.filter(m=>m.id_produto!==idProduto);
+  renderStep();
+}
+function matEditarSerie(idProduto) {
+  const item = (execData.materiais||[]).find(m=>m.id_produto===idProduto);
+  if (!item) return;
+  const s = prompt('Número de série (S/N):', item.numero_serie||'');
+  if (s!==null) { item.numero_serie=s.trim(); renderStep(); }
+}
 function salvarAssinatura() {
   const c = document.getElementById('canvas-assinatura');
   if (c) execData.assinatura = c.toDataURL('image/png');
@@ -812,6 +869,8 @@ async function finalizarOS() {
       fecharModal();
       renderOS(); renderHome();
       toast('OS finalizada com sucesso! ✅','ok');
+      // Envia fotos para o IXC em background
+      api('/api/os/sync-fotos', {method:'POST'}).catch(()=>{});
     } else {
       toast(r.detail || 'Erro ao finalizar','err');
     }
