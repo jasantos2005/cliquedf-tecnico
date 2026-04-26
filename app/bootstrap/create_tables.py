@@ -11,6 +11,7 @@ def init():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT, login TEXT UNIQUE, senha_hash TEXT,
         nivel INTEGER DEFAULT 10, ixc_funcionario_id INTEGER,
+        ixc_almox_id INTEGER DEFAULT 0,
         telefone TEXT, ativo INTEGER DEFAULT 1,
         criado_em TEXT DEFAULT (datetime('now','-3 hours'))
     );
@@ -33,8 +34,10 @@ def init():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ixc_os_id INTEGER UNIQUE,
         checklist_json TEXT DEFAULT '[]',
+        fotos_json TEXT DEFAULT '[]',
         fotos_antes_json TEXT DEFAULT '[]',
         fotos_depois_json TEXT DEFAULT '[]',
+        fotos_enviadas_ixc INTEGER,
         assinatura_base64 TEXT, obs_tecnico TEXT,
         solucao_registrada TEXT, iniciada_em TEXT,
         finalizada_em TEXT, lat_chegada REAL, lon_chegada REAL,
@@ -68,6 +71,7 @@ def init():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT, codigo TEXT, tipo TEXT,
         unidade TEXT DEFAULT 'un',
+        ixc_produto_id INTEGER DEFAULT 0,
         vincula_contrato_ixc INTEGER DEFAULT 0,
         estoque_minimo REAL DEFAULT 0, ativo INTEGER DEFAULT 1
     );
@@ -79,7 +83,9 @@ def init():
     CREATE TABLE IF NOT EXISTS ht_estoque_tecnico (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         id_tecnico INTEGER, id_produto INTEGER,
-        quantidade REAL DEFAULT 0, ultima_atualizacao TEXT,
+        quantidade REAL DEFAULT 0,
+        ixc_almox_id INTEGER DEFAULT 0,
+        ultima_atualizacao TEXT,
         UNIQUE(id_tecnico, id_produto)
     );
     CREATE TABLE IF NOT EXISTS ht_requisicoes (
@@ -87,12 +93,16 @@ def init():
         id_tecnico INTEGER, status TEXT DEFAULT 'pendente',
         criada_em TEXT DEFAULT (datetime('now','-3 hours')),
         aprovada_em TEXT, entregue_em TEXT,
-        aprovado_por INTEGER, obs TEXT
+        aprovado_por INTEGER, obs TEXT,
+        id_almox_destino INTEGER DEFAULT 0,
+        ixc_requisicao_id INTEGER
     );
     CREATE TABLE IF NOT EXISTS ht_requisicao_itens (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         id_requisicao INTEGER, id_produto INTEGER,
-        qtd_solicitada REAL, qtd_aprovada REAL DEFAULT 0
+        qtd_solicitada REAL, qtd_aprovada REAL DEFAULT 0,
+        qtd_entregue REAL DEFAULT 0,
+        obs TEXT DEFAULT ''
     );
     CREATE TABLE IF NOT EXISTS ht_configuracoes (
         chave TEXT PRIMARY KEY, valor TEXT
@@ -114,22 +124,37 @@ def init():
         jornada_inicio TEXT,
         UNIQUE(id_tecnico, data)
     );
+    CREATE TABLE IF NOT EXISTS ht_veiculo_posse (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_veiculo INTEGER NOT NULL,
+        id_tecnico INTEGER NOT NULL,
+        assumido_em TEXT,
+        assumido_por INTEGER,
+        entregue_em TEXT,
+        entregue_por INTEGER
+    );
     CREATE TABLE IF NOT EXISTS ht_despesas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ixc_despesa_id INTEGER,
-        id_veiculo INTEGER,
-        id_condutor INTEGER,
-        id_tecnico INTEGER,
-        tipo TEXT,
-        descricao TEXT,
-        valor REAL,
-        data TEXT,
-        kilometragem REAL,
-        valor_litro REAL,
-        quantidade_litros REAL,
+        id_veiculo INTEGER, id_condutor INTEGER, id_tecnico INTEGER,
+        tipo TEXT, descricao TEXT, valor REAL, data TEXT,
+        kilometragem REAL, valor_litro REAL, quantidade_litros REAL,
         observacao TEXT,
         sincronizado_ixc INTEGER DEFAULT 0,
         criado_em TEXT DEFAULT (datetime('now','-3 hours'))
+    );
+    CREATE TABLE IF NOT EXISTS ht_km_os (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ixc_os_id INTEGER, id_tecnico INTEGER,
+        km_saida REAL DEFAULT 0, dt_saida TEXT,
+        km_chegada REAL DEFAULT 0, dt_chegada TEXT,
+        km_deslocamento REAL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS ht_km_diario (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_tecnico INTEGER, data TEXT,
+        km_inicial REAL DEFAULT 0, km_final REAL DEFAULT 0,
+        UNIQUE(id_tecnico, data)
     );
     """)
 
@@ -172,6 +197,94 @@ def init():
     conn.commit()
     conn.close()
     print("OK — Tabelas criadas | admin/admin123 | tecnicos/tecnico123")
+
+    migrate()
+
+
+def migrate():
+    """Adiciona colunas faltantes em BDs ja existentes (idempotente)."""
+    conn = sqlite3.connect(DB)
+    alteracoes = [
+        ("ht_usuarios",         "ixc_almox_id",      "INTEGER DEFAULT 0"),
+        ("ht_produtos",         "ixc_produto_id",     "INTEGER DEFAULT 0"),
+        ("ht_os_execucao",      "fotos_json",         "TEXT DEFAULT '[]'"),
+        ("ht_os_execucao",      "fotos_enviadas_ixc", "INTEGER"),
+        ("ht_estoque_tecnico",  "ixc_almox_id",       "INTEGER DEFAULT 0"),
+        ("ht_requisicoes",      "id_almox_destino",   "INTEGER DEFAULT 0"),
+        ("ht_requisicoes",      "ixc_requisicao_id",  "INTEGER"),
+        ("ht_requisicao_itens", "obs",                "TEXT DEFAULT ''"),
+        ("ht_requisicao_itens", "qtd_entregue",       "REAL DEFAULT 0"),
+    ]
+    for tabela, coluna, definicao in alteracoes:
+        try:
+            conn.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {definicao}")
+            conn.commit()
+            print(f"[MIGRATE] {tabela}.{coluna} adicionado")
+        except Exception:
+            pass  # coluna ja existe
+    conn.close()
+    _sync_ixc_ids()
+
+
+def _sync_ixc_ids():
+    """Popula ixc_almox_id nos tecnicos e ixc_produto_id nos produtos via IXC."""
+    try:
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
+        from app.services.ixc_db import ixc_select
+    except Exception as e:
+        print(f"[SYNC_IXC] Import falhou: {e}")
+        return
+
+    conn = sqlite3.connect(DB)
+
+    # Almox por tecnico: pega o mais frequente nas requisicoes de material
+    try:
+        rows = ixc_select("""
+            SELECT id_tecnico, id_almox, COUNT(*) as total
+            FROM requisicao_material
+            WHERE id_tecnico IN (13,17,32,35,46,47,50,55,56,60,27,64)
+            GROUP BY id_tecnico, id_almox
+            ORDER BY id_tecnico, total DESC
+        """)
+        vistos = set()
+        for r in rows:
+            tid = r['id_tecnico']
+            if tid not in vistos:
+                vistos.add(tid)
+                conn.execute(
+                    "UPDATE ht_usuarios SET ixc_almox_id=? WHERE ixc_funcionario_id=? AND (ixc_almox_id IS NULL OR ixc_almox_id=0)",
+                    (r['id_almox'], tid)
+                )
+        conn.commit()
+        print(f"[SYNC_IXC] {len(vistos)} tecnicos com ixc_almox_id atualizados")
+    except Exception as e:
+        print(f"[SYNC_IXC] Erro almox: {e}")
+
+    # ixc_produto_id: match por nome entre ht_produtos e estoque_produtos_almox_filial
+    try:
+        prods_ixc = ixc_select("""
+            SELECT DISTINCT id_produto, produto_descricao
+            FROM estoque_produtos_almox_filial
+            WHERE produto_ativo = 'S' AND produto_controla_estoque = 'S'
+            AND id_filial = 1
+        """)
+        atualizados = 0
+        for p in prods_ixc:
+            cur = conn.execute(
+                "UPDATE ht_produtos SET ixc_produto_id=? WHERE UPPER(TRIM(nome))=UPPER(TRIM(?)) AND (ixc_produto_id IS NULL OR ixc_produto_id=0)",
+                (p['id_produto'], p['produto_descricao'])
+            )
+            atualizados += cur.rowcount
+        conn.commit()
+        print(f"[SYNC_IXC] {atualizados} produtos com ixc_produto_id atualizados")
+    except Exception as e:
+        print(f"[SYNC_IXC] Erro produtos: {e}")
+
+    conn.close()
+
 
 if __name__ == "__main__":
     init()

@@ -174,47 +174,56 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
             WHERE id_tecnico=? AND id_produto=?
         """, (qtd_usar, brt(), usuario["id"], mat.get("id_produto")))
 
-        # Baixa no IXC via transf_almox (almox técnico → OS)
+        # Baixa no IXC via movimento_produtos (aparece na OS no IXC)
         try:
             tec_row = db.execute(
                 "SELECT ixc_funcionario_id, ixc_almox_id FROM ht_usuarios WHERE id=?", (usuario["id"],)
             ).fetchone()
             prod_row = db.execute(
-                "SELECT ixc_produto_id FROM ht_produtos WHERE id=?", (mat.get("id_produto"),)
+                "SELECT ixc_produto_id, nome, unidade FROM ht_produtos WHERE id=?", (mat.get("id_produto"),)
             ).fetchone()
             if tec_row and prod_row and tec_row["ixc_almox_id"] and prod_row["ixc_produto_id"]:
                 ixc_insert("""
-                    INSERT INTO ixcprovedor.transf_almox
-                    (`data`, obs, id_produto, qtde, id_filial, id_almox_saida,
-                     id_almox_entrada, id_filial_entrada, id_oss_chamado, status, operador)
-                    VALUES (%s, %s, %s, %s, 1, %s, 30, 1, %s, 'F', %s)
+                    INSERT INTO ixcprovedor.movimento_produtos
+                    (id_produto, valor_unitario, quantidade, valor_total,
+                     id_entrada, id_unidade, id_pedido_compra, id_pedido_compra_itens,
+                     pdesconto, vdesconto, bicms, picms, bipi, pipi, custo,
+                     tipo, id_saida, id_itens_pedido, qtde_saida, `data`, descricao,
+                     estoque, filial_id, fator_conversao, id_classificacao_tributaria,
+                     pesol, pesob, unidade_sigla, status, id_contrato, patrimonio,
+                     numero_serie, status_comodato, id_oss_mensagem, id_su_oss_kit_equipamento,
+                     garantia_oss, id_terceiro_oss, tipo_produto, id_oss_chamado,
+                     valor_outros, id_almox, id_transf_almox, id_transf_almox_item,
+                     status_produto, v_fust, v_funttel, p_fust, p_funttel,
+                     importando_dfe, ultima_situacao_patrimonio, id_tipo_documento,
+                     id_login, aliquota_fcp, gera_3020, bfcp,
+                     faturado_pedido_os, pedido_os_faturado, origem_movimento, forma_tributacao)
+                    VALUES (%s, 0, 0, 0,
+                            0, 1, 0, 0,
+                            0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+                            'S', 0, 0, %s, %s, %s,
+                            'S', 1, 1.000, 1,
+                            0.000, 0.000, %s, 'N', 0, 0,
+                            '', '', 0, 0,
+                            'N', 0, 'O', %s,
+                            0.00, %s, NULL, NULL,
+                            'N', 0.00000, 0.00, 0.00, 0.00,
+                            'N', 0, 1,
+                            %s, 0.00, 'N', 0,
+                            'N', 'N', 'I', 'P')
                 """, (
-                    brt(),
-                    f"Baixa OS #{ixc_os_id}",
                     prod_row["ixc_produto_id"],
                     qtd_usar,
-                    tec_row["ixc_almox_id"],
+                    brt()[:10],
+                    prod_row["nome"],
+                    mat.get("unidade", prod_row.get("unidade", "UND")).upper(),
                     ixc_os_id,
-                    tec_row["ixc_funcionario_id"]
+                    tec_row["ixc_almox_id"],
+                    tec_row["ixc_funcionario_id"],
                 ))
-                # Busca id da transf criada
-                transf = ixc_select(
-                    "SELECT id FROM transf_almox WHERE id_oss_chamado=%s AND id_produto=%s ORDER BY id DESC LIMIT 1" % (ixc_os_id, prod_row["ixc_produto_id"])
-                )
-                if transf:
-                    ixc_insert("""
-                        INSERT INTO ixcprovedor.transf_almox_item
-                        (id_produto, qtde, id_transf_almox, id_unidade, fator_conversao, unidade_sigla, id_requisicao_material_item, id_patrimonio)
-                        VALUES (%s, %s, %s, 1, 1, %s, 0, 0)
-                    """, (
-                        prod_row["ixc_produto_id"],
-                        qtd_usar,
-                        transf[0]["id"],
-                        mat.get("unidade", "UND")
-                    ))
         except Exception as e:
             import traceback
-            print(f"[WARN] Erro baixa IXC produto OS {ixc_os_id}: {e}")
+            print(f"[WARN] Erro baixa IXC movimento_produtos OS {ixc_os_id}: {e}")
             traceback.print_exc()
 
     # Atualiza status
@@ -438,19 +447,17 @@ def sync_fotos_ixc(usuario=Depends(requer_tecnico)):
             WHERE o.id_tecnico = ? AND e.fotos_enviadas_ixc IS NULL AND e.fotos_json != '[]'
         """, (usuario["id"],)).fetchall()
 
-        enviadas = 0
+        total_enviadas = 0
         for row in rows:
             fotos = json.loads(row["fotos_json"] or "[]")
-            for i, foto in enumerate(fotos):
-                if not foto.startswith("data:image"):
-                    continue
+            fotos_validas = [f for f in fotos if f.startswith("data:image")]
+            enviadas_os = 0
+            for i, foto in enumerate(fotos_validas):
                 header, b64data = foto.split(",", 1)
-                ext = "jpg"
-                nome = f"os_{row['ixc_os_id']}_{i+1}.{ext}"
+                nome = f"os_{row['ixc_os_id']}_{i+1}.jpg"
                 filepath = uploads_dir / nome
                 with open(filepath, "wb") as f:
                     f.write(base64.b64decode(b64data))
-                url_foto = f"{hub_url}/uploads/os/{nome}"
                 try:
                     resp = req.post(
                         f"{ixc_url}/webservice/v1/su_oss_chamado_arquivos",
@@ -464,14 +471,19 @@ def sync_fotos_ixc(usuario=Depends(requer_tecnico)):
                         timeout=30
                     )
                     if resp.ok and resp.json().get("type") == "success":
-                        enviadas += 1
+                        enviadas_os += 1
                     else:
-                        print(f"[WARN] IXC recusou foto: {resp.text[:100]}")
+                        print(f"[WARN] IXC recusou foto OS {row['ixc_os_id']}: {resp.text[:200]}")
                 except Exception as e:
-                    print(f"[WARN] Erro foto IXC API: {e}")
+                    print(f"[WARN] Erro foto IXC OS {row['ixc_os_id']}: {e}")
 
-            db.execute("UPDATE ht_os_execucao SET fotos_enviadas_ixc=1 WHERE ixc_os_id=?", (row["ixc_os_id"],))
+            if enviadas_os == len(fotos_validas) and enviadas_os > 0:
+                db.execute("UPDATE ht_os_execucao SET fotos_enviadas_ixc=1 WHERE ixc_os_id=?", (row["ixc_os_id"],))
+                total_enviadas += enviadas_os
+            else:
+                print(f"[WARN] OS {row['ixc_os_id']}: {enviadas_os}/{len(fotos_validas)} fotos enviadas, nao marcando como concluido")
+
         db.commit()
-        return {"ok": True, "msg": f"{enviadas} fotos enviadas"}
+        return {"ok": True, "msg": f"{total_enviadas} fotos enviadas"}
     finally:
         db.close()

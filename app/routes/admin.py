@@ -195,6 +195,8 @@ def encerrar_posse(id_veiculo: int, usuario=Depends(requer_supervisor)):
     db.close()
     return {"ok": True}
 
+
+
 @router.get("/frota/posses/{id_veiculo}/historico")
 def historico_posse(id_veiculo: int, usuario=Depends(requer_supervisor)):
     db = get_db()
