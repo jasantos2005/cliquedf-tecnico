@@ -268,7 +268,7 @@ const CHECKLISTS = {
   21: ['Cliente próximo do roteador','Lentidão em todos os dispositivos','Usando Wi-Fi (não cabo)','Teste de velocidade realizado','Franquia verificada no sistema','Muitos dispositivos conectados','Orientado a reiniciar roteador','Problema persiste — técnico necessário'],
   16: ['Barreira interna (fiação na residência)','Sem sinal na TV','Problema no app/streaming','Equipamento com defeito','Endereço confirmado para visita','Melhor horário confirmado','Descrição detalhada registrada'],
   248: ['Motivo do cancelamento identificado','Tempo de cliente verificado','Histórico de problemas verificado','Oferta de desconto apresentada','Oferta de upgrade apresentada','Cliente aceitou proposta','Cliente recusou — motivo registrado'],
-  227: ['Equipamentos verificados','Sinal testado','ONU configurada','Velocidade testada','Cliente orientado sobre uso','Assinatura coletada'],
+  227: ['Equipamentos verificados','Sinal testado','ONU configurada','Velocidade testada','Cliente orientado sobre uso'],
 };
 
 // ── AUTH ─────────────────────────────────────────────────────
@@ -619,7 +619,7 @@ function iniciarExecucao(os) {
   renderStep();
 }
 
-const STEPS = ['checklist','fotos','solucao','assinatura','finalizar'];
+const STEPS = ['checklist','fotos','solucao','finalizar'];
 
 function renderStep() {
   const steps = STEPS;
@@ -676,8 +676,8 @@ function renderStep() {
         <button class="btn btn-primary" onclick="salvarSolucao()">Próximo →</button>
         <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
       </div>`;
-  } else if (execStep === 4) {
-    // Assinatura
+  } else if (execStep === 99) {
+    // Assinatura (desativada)
     content = `
       <div class="modal-title">✍️ Assinatura do cliente</div>
       <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Solicite a assinatura do cliente</div>
@@ -688,7 +688,7 @@ function renderStep() {
       </div>
       <button class="btn btn-outline" style="margin-top:8px" onclick="voltarStep()">← Voltar</button>`;
     setTimeout(initCanvas, 100);
-  } else if (execStep === 5) {
+  } else if (execStep === 3) {
     // Finalizar
     const marcados = execData.checklist.filter(c=>c.marcado).length;
     content = `
