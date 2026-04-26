@@ -198,7 +198,9 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
                     tec_row["ixc_funcionario_id"]
                 ))
         except Exception as e:
+            import traceback
             print(f"[WARN] Erro baixa IXC produto OS {ixc_os_id}: {e}")
+            traceback.print_exc()
 
     # Atualiza status
     db.execute("UPDATE ht_os SET status_hub='finalizada' WHERE ixc_os_id=?", (ixc_os_id,))

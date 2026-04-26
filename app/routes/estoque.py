@@ -39,7 +39,7 @@ class AprovarRequisicaoBody(BaseModel):
 def meu_estoque(usuario=Depends(requer_tecnico)):
     db = get_db()
     rows = db.execute("""
-        SELECT e.id, e.quantidade, e.ultima_atualizacao,
+        SELECT p.id, e.quantidade, e.ultima_atualizacao,
                p.nome AS produto_nome, p.unidade, p.tipo, p.ixc_produto_id
         FROM ht_estoque_tecnico e
         JOIN ht_produtos p ON p.id = e.id_produto
