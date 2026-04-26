@@ -930,12 +930,15 @@ function reqBuscar() {
   var q = document.getElementById('req-busca').value.toLowerCase().trim();
   var sug = document.getElementById('req-sugestoes');
   if (!q) { sug.style.display='none'; return; }
-  var matches = _reqProds.filter(function(p){ return p.nome.toLowerCase().includes(q); }).slice(0,8);
+  var matches = _reqProds.filter(function(p){
+    return p.nome.toLowerCase().includes(q) || String(p.ixc_produto_id).includes(q);
+  }).slice(0,8);
   if (!matches.length) { sug.style.display='none'; return; }
   sug.innerHTML = matches.map(function(p){
     var saldo = p.saldo_principal != null ? p.saldo_principal : 0;
+    var cod = p.ixc_produto_id ? p.ixc_produto_id+' - ' : '';
     return '<div onclick="reqSelecionarProduto('+p.id+')" style="padding:9px 12px;border-radius:7px;cursor:pointer;font-size:.85rem;background:var(--surface);border:1px solid var(--border);margin-bottom:4px">'
-      +'<div style="font-weight:600">'+p.nome+'</div>'
+      +'<div style="font-weight:600">'+cod+p.nome+'</div>'
       +'<div style="font-size:.72rem;color:var(--muted)">Estoque: '+saldo+' '+p.unidade+'</div>'
     +'</div>';
   }).join('');

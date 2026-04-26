@@ -70,7 +70,7 @@ def estoque_principal(usuario=Depends(requer_supervisor)):
 def listar_produtos(usuario=Depends(requer_tecnico)):
     db = get_db()
     rows = db.execute("""
-        SELECT p.id, p.nome, p.unidade, p.tipo, e.quantidade AS saldo_principal
+        SELECT p.id, p.nome, p.unidade, p.tipo, p.ixc_produto_id, e.quantidade AS saldo_principal
         FROM ht_produtos p
         LEFT JOIN ht_estoque_principal e ON e.id_produto = p.id
         WHERE p.ativo = 1
