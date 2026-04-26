@@ -6,7 +6,7 @@ from app.services.ixc_db import ixc_select
 
 DB = os.path.join(os.path.dirname(__file__), "../../hub_tecnico.db")
 
-IXC_TECNICOS_IDS = [13,17,32,35,47,50,55,56,60,46]
+IXC_TECNICOS_IDS = [13,17,32,35,47,50,55,56,60,46,64]
 
 from app.services.geocoder import geocoder as _reverse_geo_os
 import re as _re
