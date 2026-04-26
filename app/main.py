@@ -37,8 +37,12 @@ app.include_router(agenda_router.router)
 app.include_router(retiradas_router.router)
 
 STATIC_DIR = BASE_DIR / "static"
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
+(UPLOADS_DIR / "os").mkdir(exist_ok=True)
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():

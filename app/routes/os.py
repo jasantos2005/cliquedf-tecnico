@@ -363,3 +363,62 @@ def reagendar_os(ixc_os_id: int, data: ReagendarInput, usuario=Depends(requer_te
         print(f"[WARN] IXC reagendar: {e}")
 
     return {"ok": True}
+
+
+@router.post("/sync-fotos")
+def sync_fotos_ixc(usuario=Depends(requer_tecnico)):
+    import base64, os, requests as req
+    from pathlib import Path
+    hub_url = os.getenv("HUB_URL", "https://tecnico.iatechhub.com.br")
+    ixc_url = os.getenv("IXC_API_URL", "https://sistema.cliquedf.com.br")
+    ixc_user = os.getenv("IXC_API_USER", "64")
+    ixc_token = os.getenv("IXC_API_TOKEN", "")
+    auth = base64.b64encode(f"{ixc_user}:{ixc_token}".encode()).decode()
+    uploads_dir = Path(__file__).resolve().parent.parent.parent / "uploads" / "os"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    db = get_db()
+    try:
+        rows = db.execute("""
+            SELECT e.ixc_os_id, e.fotos_json FROM ht_os_execucao e
+            JOIN ht_os o ON o.ixc_os_id = e.ixc_os_id
+            WHERE o.id_tecnico = ? AND e.fotos_enviadas_ixc IS NULL AND e.fotos_json != '[]'
+        """, (usuario["id"],)).fetchall()
+
+        enviadas = 0
+        for row in rows:
+            fotos = json.loads(row["fotos_json"] or "[]")
+            for i, foto in enumerate(fotos):
+                if not foto.startswith("data:image"):
+                    continue
+                header, b64data = foto.split(",", 1)
+                ext = "jpg"
+                nome = f"os_{row['ixc_os_id']}_{i+1}.{ext}"
+                filepath = uploads_dir / nome
+                with open(filepath, "wb") as f:
+                    f.write(base64.b64decode(b64data))
+                url_foto = f"{hub_url}/uploads/os/{nome}"
+                try:
+                    resp = req.post(
+                        f"{ixc_url}/webservice/v1/su_oss_chamado_arquivos",
+                        headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"},
+                        json={"id_oss_chamado": str(row["ixc_os_id"]),
+                              "descricao": f"Foto OS #{row['ixc_os_id']} - {i+1}",
+                              "classificacao_arquivo": "O",
+                              "tipo": "imagem",
+                              "local_arquivo": b64data,
+                              "nome_arquivo": nome},
+                        timeout=30
+                    )
+                    if resp.ok and resp.json().get("type") == "success":
+                        enviadas += 1
+                    else:
+                        print(f"[WARN] IXC recusou foto: {resp.text[:100]}")
+                except Exception as e:
+                    print(f"[WARN] Erro foto IXC API: {e}")
+
+            db.execute("UPDATE ht_os_execucao SET fotos_enviadas_ixc=1 WHERE ixc_os_id=?", (row["ixc_os_id"],))
+        db.commit()
+        return {"ok": True, "msg": f"{enviadas} fotos enviadas"}
+    finally:
+        db.close()
