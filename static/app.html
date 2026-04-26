@@ -507,19 +507,7 @@ function renderModalAgendada(os) {
     <button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>`;
 }
 
-function renderModalAgendada(os) {
-  document.getElementById('modal-os-content').innerHTML =
-    '<div class="modal-title">📅 OS Agendada — #'+os.ixc_os_id+'</div>' +
-    '<div style="margin-bottom:14px"><div style="font-weight:700">'+os.cliente_nome+'</div>' +
-    '<div style="font-size:.85rem;color:var(--muted)">📍 '+(os.endereco||'—')+'</div>' +
-    (os.telefone?'<div style="font-size:.85rem;margin-top:4px">📞 <a href="tel:'+os.telefone+'" style="color:var(--accent2)">'+os.telefone+'</a></div>':'') +
-    '</div>' +
-    '<div style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:8px;padding:12px;margin-bottom:16px;text-align:center">' +
-    '<div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">AGENDADO PARA</div>' +
-    '<div style="font-size:1.1rem;font-weight:800;color:#a855f7">'+((os.data_reservada||os.data_agenda||'—').substring(0,16))+'</div></div>' +
-    '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="iniciarDeslocamento('+os.ixc_os_id+')">🚗 Iniciar deslocamento</button>' +
-    '<button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>';
-}
+
 
 function renderModalDeslocamento(os) {
   document.getElementById('modal-os-content').innerHTML = `
@@ -615,7 +603,9 @@ async function confirmarExecucao(ixc_os_id) {
 // ── EXECUCAO PASSO A PASSO ───────────────────────────────────
 function iniciarExecucao(os) {
   execStep = 0;
-  execData = {checklist:[],fotos:[],assinatura:null,solucao:'',obs:'',materiais:[]};
+  execData = {checklist:[],fotos:[],assinatura:null,solucao:'',obs:'',materiais:[],_estoque:[]};
+  // Pré-carrega estoque do técnico
+  api('/api/estoque/meu').then(function(rows){ execData._estoque = rows; }).catch(function(){ execData._estoque = []; });
   renderStep();
 }
 
@@ -705,9 +695,11 @@ function renderStep() {
           ${serie}
         </div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-          <button onclick="matAlterarQtd(${p.id},-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer">−</button>
-          <span id="mat-qtd-${p.id}" style="min-width:20px;text-align:center;font-weight:700;color:${qtdUsada>0?'var(--accent2)':'var(--muted)'}">${qtdUsada}</span>
-          <button onclick="matAlterarQtd(${p.id},1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer">+</button>
+          <button onclick="matAlterarQtd(${p.id},-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;flex-shrink:0">−</button>
+          <input type="number" id="mat-qtd-${p.id}" value="${qtdUsada}" min="0" step="any"
+            oninput="matSetQtd(${p.id},this.value)"
+            style="width:60px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:${qtdUsada>0?'var(--accent2)':'var(--text)'};padding:4px 2px;font-size:.85rem;font-weight:700;outline:none">
+          <button onclick="matAlterarQtd(${p.id},1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer;flex-shrink:0">+</button>
           ${btnSerie}
         </div>
       </div>`;
@@ -752,14 +744,30 @@ function toggleChkExec(i) {
 }
 
 function proximoStep() {
-  if (execStep === 2 && (!execData._estoque || !execData._estoque.length)) {
-    api('/api/estoque/meu').then(function(rows){ execData._estoque = rows; renderStep(); }).catch(function(){execData._estoque=[];});
-  }
   if (execStep === 0) {
     const chk = CHECKLISTS[osAtual.id_assunto] || CHECKLISTS[16];
     execData.checklist = chk.map((texto,i)=>({
       texto, marcado: document.getElementById('ce-'+i)?.checked||false
     }));
+  }
+  // Carrega estoque ao entrar no step materiais
+  if (execStep === 2 && (!execData._estoque || !execData._estoque.length)) {
+    api('/api/estoque/meu').then(function(rows){ execData._estoque = rows; renderStep(); }).catch(function(){ execData._estoque = []; });
+  }
+  // Valida estoque antes de sair do step materiais
+  if (execStep === 3) {
+    const erros = [];
+    (execData.materiais||[]).forEach(function(m) {
+      if (m.quantidade <= 0) return;
+      const prod = (execData._estoque||[]).find(function(p){ return p.id === m.id_produto; });
+      if (prod && m.quantidade > prod.quantidade) {
+        erros.push(m.nome + ': solicitado ' + m.quantidade + ' ' + m.unidade + ', disponível ' + prod.quantidade);
+      }
+    });
+    if (erros.length) {
+      alert('⚠️ Estoque insuficiente:\n' + erros.join('\n'));
+      return;
+    }
   }
   execStep++;
   renderStep();
@@ -837,7 +845,29 @@ function matAlterarQtd(idProduto, delta) {
   }
   item.quantidade = Math.max(0, Math.min(item.quantidade+delta, prod.quantidade));
   if (item.quantidade===0) execData.materiais = execData.materiais.filter(m=>m.id_produto!==idProduto);
-  renderStep();
+  // Atualiza só o input sem re-render completo
+  const inp = document.getElementById('mat-qtd-'+idProduto);
+  if (inp) { inp.value = item ? item.quantidade : 0; inp.style.color = (item&&item.quantidade>0)?'var(--accent2)':'var(--text)'; }
+  else renderStep();
+}
+function matSetQtd(idProduto, valor) {
+  if (!execData.materiais) execData.materiais = [];
+  const prod = (execData._estoque||[]).find(p=>p.id===idProduto);
+  if (!prod) return;
+  const qtd = Math.max(0, parseFloat(valor)||0);
+  let item = execData.materiais.find(m=>m.id_produto===idProduto);
+  if (!item) {
+    item = {id_produto:idProduto, nome:prod.produto_nome, unidade:prod.unidade, tipo:prod.tipo, quantidade:0, numero_serie:''};
+    execData.materiais.push(item);
+  }
+  item.quantidade = qtd;
+  if (qtd===0) execData.materiais = execData.materiais.filter(m=>m.id_produto!==idProduto);
+  // Atualiza cor do input
+  const inp = document.getElementById('mat-qtd-'+idProduto);
+  if (inp) inp.style.color = qtd>0 ? 'var(--accent2)' : 'var(--text)';
+  // Atualiza contador
+  const total = (execData.materiais||[]).filter(m=>m.quantidade>0).length;
+  const el = document.querySelector('[style*="Marcados"]');
 }
 function matEditarSerie(idProduto) {
   const item = (execData.materiais||[]).find(m=>m.id_produto===idProduto);

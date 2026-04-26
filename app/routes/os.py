@@ -157,12 +157,48 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
               mat.get("id_produto"), mat.get("nome"),
               mat.get("quantidade"), mat.get("unidade","un"),
               mat.get("numero_serie",""), mat.get("tipo_uso","consumivel_os")))
-        # Baixa estoque do tecnico
+        qtd_usar = mat.get("quantidade", 0)
+        # Valida estoque suficiente
+        saldo = db.execute(
+            "SELECT quantidade FROM ht_estoque_tecnico WHERE id_tecnico=? AND id_produto=?",
+            (usuario["id"], mat.get("id_produto"))
+        ).fetchone()
+        if not saldo or saldo["quantidade"] < qtd_usar:
+            db.close()
+            raise HTTPException(400, f"Estoque insuficiente para {mat.get('nome','produto')}: disponível {saldo['quantidade'] if saldo else 0}, necessário {qtd_usar}")
+
+        # Baixa estoque local
         db.execute("""
             UPDATE ht_estoque_tecnico
             SET quantidade = quantidade - ?, ultima_atualizacao = ?
             WHERE id_tecnico=? AND id_produto=?
-        """, (mat.get("quantidade",0), brt(), usuario["id"], mat.get("id_produto")))
+        """, (qtd_usar, brt(), usuario["id"], mat.get("id_produto")))
+
+        # Baixa no IXC via transf_almox (almox técnico → OS)
+        try:
+            tec_row = db.execute(
+                "SELECT ixc_funcionario_id, ixc_almox_id FROM ht_usuarios WHERE id=?", (usuario["id"],)
+            ).fetchone()
+            prod_row = db.execute(
+                "SELECT ixc_produto_id FROM ht_produtos WHERE id=?", (mat.get("id_produto"),)
+            ).fetchone()
+            if tec_row and prod_row and tec_row["ixc_almox_id"] and prod_row["ixc_produto_id"]:
+                ixc_insert("""
+                    INSERT INTO ixcprovedor.transf_almox
+                    (`data`, obs, id_produto, qtde, id_filial, id_almox_saida,
+                     id_almox_entrada, id_filial_entrada, id_oss_chamado, status, operador)
+                    VALUES (%s, %s, %s, %s, 1, %s, 30, 1, %s, 'F', %s)
+                """, (
+                    brt(),
+                    f"Baixa OS #{ixc_os_id}",
+                    prod_row["ixc_produto_id"],
+                    qtd_usar,
+                    tec_row["ixc_almox_id"],
+                    ixc_os_id,
+                    tec_row["ixc_funcionario_id"]
+                ))
+        except Exception as e:
+            print(f"[WARN] Erro baixa IXC produto OS {ixc_os_id}: {e}")
 
     # Atualiza status
     db.execute("UPDATE ht_os SET status_hub='finalizada' WHERE ixc_os_id=?", (ixc_os_id,))
