@@ -902,7 +902,104 @@ async function carregarEstoque() {
   } catch(e) {}
 }
 
-function abrirRequisicao() { toast('Em breve: Requisição de materiais','ok'); }
+var _reqProds = [];
+var _reqProdSel = null;
+var _reqItens = {};
+
+function abrirRequisicao() {
+  _reqProdSel = null;
+  _reqItens = {};
+  document.getElementById('req-busca').value = '';
+  document.getElementById('req-qtd').value = '';
+  document.getElementById('req-obs').value = '';
+  document.getElementById('req-produto-sel').style.display = 'none';
+  document.getElementById('req-sugestoes').style.display = 'none';
+  document.getElementById('req-itens-lista').innerHTML = '';
+  document.getElementById('req-count').textContent = '0';
+  document.getElementById('modal-req').style.display = 'flex';
+  if (!_reqProds.length) {
+    api('/api/estoque/produtos').then(function(p){ _reqProds = p; }).catch(function(){});
+  }
+}
+
+function fecharRequisicao() {
+  document.getElementById('modal-req').style.display = 'none';
+}
+
+function reqBuscar() {
+  var q = document.getElementById('req-busca').value.toLowerCase().trim();
+  var sug = document.getElementById('req-sugestoes');
+  if (!q) { sug.style.display='none'; return; }
+  var matches = _reqProds.filter(function(p){ return p.nome.toLowerCase().includes(q); }).slice(0,8);
+  if (!matches.length) { sug.style.display='none'; return; }
+  sug.innerHTML = matches.map(function(p){
+    var saldo = p.saldo_principal != null ? p.saldo_principal : 0;
+    return '<div onclick="reqSelecionarProduto('+p.id+')" style="padding:9px 12px;border-radius:7px;cursor:pointer;font-size:.85rem;background:var(--surface);border:1px solid var(--border);margin-bottom:4px">'
+      +'<div style="font-weight:600">'+p.nome+'</div>'
+      +'<div style="font-size:.72rem;color:var(--muted)">Estoque: '+saldo+' '+p.unidade+'</div>'
+    +'</div>';
+  }).join('');
+  sug.style.display='flex';
+}
+
+function reqSelecionarProduto(id) {
+  var p = _reqProds.find(function(x){ return x.id===id; });
+  if (!p) return;
+  _reqProdSel = p;
+  document.getElementById('req-busca').value = p.nome;
+  document.getElementById('req-sugestoes').style.display = 'none';
+  var sel = document.getElementById('req-produto-sel');
+  sel.textContent = '✔ ' + p.nome;
+  sel.style.display = 'block';
+  document.getElementById('req-qtd').focus();
+}
+
+function reqAdicionarItem() {
+  if (!_reqProdSel) { toast('Selecione um produto','err'); return; }
+  var qtd = parseFloat(document.getElementById('req-qtd').value);
+  if (!qtd || qtd <= 0) { toast('Informe a quantidade','err'); return; }
+  var obs = document.getElementById('req-obs').value;
+  _reqItens[_reqProdSel.id] = {nome:_reqProdSel.nome, unidade:_reqProdSel.unidade, qtd:qtd, obs:obs};
+  _reqProdSel = null;
+  document.getElementById('req-busca').value = '';
+  document.getElementById('req-produto-sel').style.display='none';
+  document.getElementById('req-sugestoes').style.display='none';
+  document.getElementById('req-qtd').value = '';
+  document.getElementById('req-obs').value = '';
+  reqRenderItens();
+}
+
+function reqRenderItens() {
+  var el = document.getElementById('req-itens-lista');
+  var itens = Object.entries(_reqItens);
+  document.getElementById('req-count').textContent = itens.length;
+  if (!itens.length) { el.innerHTML=''; return; }
+  el.innerHTML = '<div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">Itens adicionados:</div>'
+    + itens.map(function(e){
+      var id=e[0], v=e[1];
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-size:.85rem;margin-bottom:4px">'
+        +'<div><span style="font-weight:600">'+v.nome+'</span> <span style="color:var(--muted)">x '+v.qtd+'</span></div>'
+        +'<button onclick="reqRemover('+id+')" style="background:none;border:none;color:#f44;cursor:pointer;font-size:1rem">✕</button>'
+      +'</div>';
+    }).join('');
+}
+
+function reqRemover(id) {
+  delete _reqItens[id];
+  reqRenderItens();
+}
+
+async function enviarRequisicaoNova() {
+  var itens = Object.entries(_reqItens).map(function(e){
+    return {id_produto:parseInt(e[0]), qtd_solicitada:e[1].qtd, obs:e[1].obs||''};
+  });
+  if (!itens.length) { toast('Adicione ao menos um item','err'); return; }
+  try {
+    var r = await api('/api/estoque/requisicao', {method:'POST', body:JSON.stringify({itens:itens, obs:''})});
+    if (r.ok) { toast('Requisicao enviada!','ok'); fecharRequisicao(); }
+    else { toast(r.detail||'Erro ao enviar','err'); }
+  } catch(e) { toast('Erro de rede','err'); }
+}
 
 // ── HELPERS ──────────────────────────────────────────────────
 function getPos() {
@@ -1068,5 +1165,40 @@ function toast(msg, tipo='ok') {
   setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 2500);
 }
 </script>
+
+<!-- MODAL REQUISICAO -->
+<div id="modal-req" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:flex-end;justify-content:center">
+  <div style="background:var(--surface2);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:92vh;display:flex;flex-direction:column">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:800;font-size:.95rem">📦 Nova Requisição</div>
+      <button onclick="fecharRequisicao()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+      <div>
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">Produto</div>
+        <input type="text" id="req-busca" placeholder="🔍 Buscar produto..." oninput="reqBuscar()"
+          style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.9rem;outline:none">
+        <div id="req-sugestoes" style="display:none;flex-direction:column;margin-top:6px"></div>
+        <div id="req-produto-sel" style="display:none;margin-top:6px;padding:8px 12px;background:var(--surface);border:1px solid var(--accent);border-radius:7px;font-size:.85rem;font-weight:600;color:var(--accent2)"></div>
+      </div>
+      <div>
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">Quantidade</div>
+        <input type="number" id="req-qtd" min="0" step="any" placeholder="0"
+          style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:1rem;outline:none">
+      </div>
+      <div>
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">Observação (opcional)</div>
+        <input type="text" id="req-obs" placeholder="..."
+          style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.88rem;outline:none">
+      </div>
+      <button onclick="reqAdicionarItem()" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-size:.88rem;font-weight:600;cursor:pointer">+ Adicionar item</button>
+      <div id="req-itens-lista"></div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border)">
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Itens: <span id="req-count" style="color:var(--accent2);font-weight:700">0</span></div>
+      <button class="btn btn-primary" onclick="enviarRequisicaoNova()">✅ Enviar Requisição</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

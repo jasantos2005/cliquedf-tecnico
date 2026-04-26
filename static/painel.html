@@ -249,6 +249,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span class="ni-label">Agenda</span>
       </div>
+      <div class="ni" id="ni-estoque" style="display:none" onclick="navTo('estoque')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        <span class="ni-label">Estoque</span>
+      </div>
       <div class="sb-group" id="grp-frota" style="display:none">FROTA</div>
       <div class="ni" id="ni-frota" style="display:none" onclick="navTo('frota')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -878,6 +882,137 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
 
 </div>
 
+<div class="secao" id="secao-estoque" style="padding:20px;overflow-y:auto;flex-direction:column">
+  <div style="font-size:1.1rem;font-weight:800;margin-bottom:18px">📦 Requisição de Estoque</div>
+
+  <!-- Busca produto -->
+  <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+    <div style="font-size:.78rem;color:var(--text3);margin-bottom:6px">Produto</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="estoque-busca-input" type="text" placeholder="Digite para buscar..." oninput="estoqueBuscar()"
+        style="flex:1;padding:9px 12px;background:var(--surf);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:.88rem;outline:none">
+      <button onclick="estoqueLimparProduto()" style="background:var(--surf);border:1px solid var(--border);color:var(--text2);border-radius:7px;padding:8px 12px;cursor:pointer;font-size:.82rem">✕</button>
+    </div>
+    <div id="estoque-sugestoes" style="display:none;flex-direction:column;gap:4px;margin-top:8px;max-height:200px;overflow-y:auto"></div>
+    <div id="estoque-produto-selecionado" style="display:none;margin-top:8px;background:var(--surf);border:1px solid var(--accent);border-radius:7px;padding:8px 12px;font-size:.85rem;font-weight:600;color:var(--accent)"></div>
+  </div>
+
+  <!-- Quantidade -->
+  <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+    <div style="font-size:.78rem;color:var(--text3);margin-bottom:6px">Quantidade</div>
+    <input id="estoque-qtd-input" type="number" min="0" step="any" placeholder="0"
+      style="width:100%;box-sizing:border-box;padding:9px 12px;background:var(--surf);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:1rem;outline:none">
+  </div>
+
+  <!-- Obs -->
+  <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px">
+    <div style="font-size:.78rem;color:var(--text3);margin-bottom:6px">Observação (opcional)</div>
+    <input id="estoque-obs-input" type="text" placeholder="..."
+      style="width:100%;box-sizing:border-box;padding:9px 12px;background:var(--surf);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:.88rem;outline:none">
+  </div>
+
+  <!-- Itens adicionados -->
+  <div id="estoque-itens-lista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+
+  <div style="display:flex;gap:8px">
+    <button onclick="estoqueAdicionarItem()" style="flex:1;background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:10px;font-size:.88rem;font-weight:600;cursor:pointer">+ Adicionar item</button>
+    <button onclick="estoqueEnviarRequisicao()" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:7px;padding:10px;font-size:.88rem;font-weight:700;cursor:pointer">✅ Enviar Requisição</button>
+  </div>
+</div>
+
+<script>
+var _estoqueProdutos = [];
+var _estoqueProdutoSel = null;
+var _estoqueItens = [];
+
+async function estoqueCarregar() {
+  if (_estoqueProdutos.length) return;
+  try {
+    _estoqueProdutos = await api('/api/estoque/produtos');
+  } catch(e) {}
+}
+
+function estoqueBuscar() {
+  var q = document.getElementById('estoque-busca-input').value.toLowerCase().trim();
+  var sug = document.getElementById('estoque-sugestoes');
+  if (!q) { sug.style.display='none'; return; }
+  var matches = _estoqueProdutos.filter(function(p){ return p.nome.toLowerCase().includes(q); }).slice(0,8);
+  if (!matches.length) { sug.style.display='none'; return; }
+  sug.innerHTML = matches.map(function(p){
+    var saldo = p.saldo_principal != null ? p.saldo_principal : 0;
+    return '<div onclick="estoqueSelecionarProduto('+p.id+')" style="padding:8px 10px;border-radius:6px;cursor:pointer;font-size:.85rem;background:var(--surf);border:1px solid var(--border)">' +
+      '<div style="font-weight:600">'+p.nome+'</div>' +
+      '<div style="font-size:.72rem;color:var(--text3)">Estoque: '+saldo+'</div>' +
+    '</div>';
+  }).join('');
+  sug.style.display='flex';
+}
+
+function estoqueSelecionarProduto(id) {
+  var p = _estoqueProdutos.find(function(x){ return x.id===id; });
+  if (!p) return;
+  _estoqueProdutoSel = p;
+  document.getElementById('estoque-busca-input').value = p.nome;
+  document.getElementById('estoque-sugestoes').style.display = 'none';
+  var sel = document.getElementById('estoque-produto-selecionado');
+  sel.textContent = '✔ ' + p.nome;
+  sel.style.display = 'block';
+  document.getElementById('estoque-qtd-input').focus();
+}
+
+function estoqueLimparProduto() {
+  _estoqueProdutoSel = null;
+  document.getElementById('estoque-busca-input').value = '';
+  document.getElementById('estoque-sugestoes').style.display = 'none';
+  document.getElementById('estoque-produto-selecionado').style.display = 'none';
+  document.getElementById('estoque-qtd-input').value = '';
+  document.getElementById('estoque-obs-input').value = '';
+}
+
+function estoqueAdicionarItem() {
+  if (!_estoqueProdutoSel) { alert('Selecione um produto'); return; }
+  var qtd = parseFloat(document.getElementById('estoque-qtd-input').value);
+  if (!qtd || qtd <= 0) { alert('Informe a quantidade'); return; }
+  var obs = document.getElementById('estoque-obs-input').value;
+  // evita duplicata
+  var exist = _estoqueItens.findIndex(function(i){ return i.id_produto===_estoqueProdutoSel.id; });
+  if (exist >= 0) { _estoqueItens[exist].qtd_solicitada = qtd; _estoqueItens[exist].obs = obs; }
+  else { _estoqueItens.push({id_produto:_estoqueProdutoSel.id, nome:_estoqueProdutoSel.nome, qtd_solicitada:qtd, obs:obs}); }
+  estoqueRenderItens();
+  estoqueLimparProduto();
+}
+
+function estoqueRemoverItem(idx) {
+  _estoqueItens.splice(idx,1);
+  estoqueRenderItens();
+}
+
+function estoqueRenderItens() {
+  var el = document.getElementById('estoque-itens-lista');
+  if (!_estoqueItens.length) { el.innerHTML=''; return; }
+  el.innerHTML = '<div style="font-size:.78rem;color:var(--text3);margin-bottom:4px">Itens adicionados:</div>' +
+    _estoqueItens.map(function(it,i){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.85rem">' +
+        '<div><span style="font-weight:600">'+it.nome+'</span> <span style="color:var(--text3)">× '+it.qtd_solicitada+'</span></div>' +
+        '<button onclick="estoqueRemoverItem('+i+')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.9rem">✕</button>' +
+      '</div>';
+    }).join('');
+}
+
+async function estoqueEnviarRequisicao() {
+  if (!_estoqueItens.length) { alert('Adicione ao menos um item'); return; }
+  try {
+    var r = await api('/api/estoque/requisicao', {method:'POST', body: JSON.stringify({itens:_estoqueItens, obs:''})});
+    alert('✅ Requisição #'+r.id_requisicao+' criada com sucesso!');
+    _estoqueItens = [];
+    estoqueRenderItens();
+    estoqueLimparProduto();
+  } catch(e) {
+    alert('Erro ao enviar: '+e);
+  }
+}
+</script>
+
 <div class="secao" id="secao-usuarios" style="padding:20px;overflow-y:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div style="font-size:1.1rem;font-weight:800">⚙️ Usuarios</div>
@@ -1063,7 +1198,7 @@ function iniciarApp(u) {
     document.getElementById('ni-despesas').style.display='flex';
   }
   if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex';
-    if (u.nivel >= 50) { document.getElementById('ni-agenda').style.display='flex'; } }
+    if (u.nivel >= 50) { document.getElementById('ni-agenda').style.display='flex'; document.getElementById('ni-estoque').style.display='flex'; } }
   if (u.nivel >= 50) { navTo('os'); } else if (u.nivel >= 40) { navTo('frota'); }
 }
 
@@ -1110,6 +1245,10 @@ function navTo(secao) {
     carregarRevisoes();
   } else if (secao==='agenda') {
     agendaIniciar();
+  } else if (secao==='estoque') {
+    document.getElementById('tb-stats-os').style.display = 'none';
+    document.getElementById('tb-titulo').textContent = 'Estoque';
+    estoqueCarregar();
   } else if (secao==='usuarios') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Usuarios';
