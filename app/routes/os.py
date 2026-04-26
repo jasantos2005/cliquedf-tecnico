@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from app.services.auth import requer_tecnico, requer_supervisor, get_db
-from app.services.ixc_db import ixc_insert
+from app.services.ixc_db import ixc_insert, ixc_select
 
 router = APIRouter(prefix="/api/os", tags=["os"])
 
@@ -197,6 +197,21 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
                     ixc_os_id,
                     tec_row["ixc_funcionario_id"]
                 ))
+                # Busca id da transf criada
+                transf = ixc_select(
+                    "SELECT id FROM transf_almox WHERE id_oss_chamado=%s AND id_produto=%s ORDER BY id DESC LIMIT 1" % (ixc_os_id, prod_row["ixc_produto_id"])
+                )
+                if transf:
+                    ixc_insert("""
+                        INSERT INTO ixcprovedor.transf_almox_item
+                        (id_produto, qtde, id_transf_almox, id_unidade, fator_conversao, unidade_sigla, id_requisicao_material_item, id_patrimonio)
+                        VALUES (%s, %s, %s, 1, 1, %s, 0, 0)
+                    """, (
+                        prod_row["ixc_produto_id"],
+                        qtd_usar,
+                        transf[0]["id"],
+                        mat.get("unidade", "UND")
+                    ))
         except Exception as e:
             import traceback
             print(f"[WARN] Erro baixa IXC produto OS {ixc_os_id}: {e}")
