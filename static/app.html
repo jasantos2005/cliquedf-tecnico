@@ -1019,7 +1019,7 @@ function renderStep() {
     content = `
       <div class="modal-title">📦 Materiais utilizados</div>
       <input id="mat-busca" type="text" placeholder="🔍 Buscar produto..." value="${_termoBusca}"
-        oninput="execData._termoBusca=this.value;renderStep()"
+        oninput="execData._termoBusca=this.value;var _pos=this.selectionStart;renderStep();var _el=document.getElementById('mat-busca');if(_el){_el.focus();_el.setSelectionRange(_pos,_pos);}"
         style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.88rem;box-sizing:border-box;margin-bottom:8px">
       <div style="max-height:50vh;overflow-y:auto;margin-bottom:10px">${listaEstoque}</div>
       <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Marcados: <b style="color:var(--accent2)">${totalMat}</b></div>
