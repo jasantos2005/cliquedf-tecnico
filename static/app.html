@@ -1326,19 +1326,79 @@ async function carregarMinhasRequisicoes() {
 }
 
 var _estoqueRows = [];
+
+// IDs hub dos produtos de instalação e seus mínimos
+const ESTOQUE_INSTALACAO = {
+  379: { min: 2 }, 378: { min: 2 }, 382: { min: 2 }, 384: { min: 2 },
+  385: { min: 2 }, 386: { min: 2 }, 387: { min: 2 }, 390: { min: 2 },
+  391: { min: 2 }, 392: { min: 2 }, 394: { min: 2 }, 397: { min: 2 }, 402: { min: 2 },
+  183: { min: 6 }, 184: { min: 6 },
+  137: { min: 2 }, 138: { min: 2 }, 139: { min: 2 }, 140: { min: 2 }, 142: { min: 2 },
+  199: { min: 2 }, 200: { min: 2 }, 204: { min: 2 }, 209: { min: 2 },
+  93:  { min: 1 }, 94:  { min: 1 }, 102: { min: 1 },
+  451: { min: 1 }, 452: { min: 1 }, 453: { min: 1 }, 454: { min: 1 },
+  455: { min: 1 }, 456: { min: 1 }, 463: { min: 1 }, 464: { min: 1 },
+  465: { min: 1 }, 466: { min: 1 }, 470: { min: 1 }, 471: { min: 1 },
+  472: { min: 1 }, 474: { min: 1 }, 475: { min: 1 }, 477: { min: 1 },
+  479: { min: 1 }, 480: { min: 1 }, 481: { min: 1 }, 482: { min: 1 },
+};
+
+function _corQuantidade(id, qtd) {
+  if (qtd <= 0) return '#ef4444';
+  const cfg = ESTOQUE_INSTALACAO[id];
+  if (cfg && qtd <= cfg.min) return '#f97316';
+  return 'var(--accent2)';
+}
+
+function _renderItemEstoque(r, termo) {
+  const cor = _corQuantidade(r.id, r.quantidade);
+  const nome = termo
+    ? r.produto_nome.replace(new RegExp('('+termo+')', 'gi'), '<mark style="background:rgba(249,115,22,.3);color:var(--text);border-radius:3px">$1</mark>')
+    : r.produto_nome;
+  const alertMin = ESTOQUE_INSTALACAO[r.id] && r.quantidade > 0 && r.quantidade <= ESTOQUE_INSTALACAO[r.id].min
+    ? '<span style="font-size:.65rem;background:rgba(249,115,22,.2);color:#f97316;border-radius:4px;padding:1px 5px;margin-left:6px">BAIXO</span>' : '';
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:2px">${r.ixc_produto_id ? r.ixc_produto_id+' ·' : ''} ${r.unidade||''}</div>
+      <div style="font-size:.88rem;font-weight:600">${nome}${alertMin}</div>
+    </div>
+    <div style="font-weight:800;font-size:1rem;color:${cor};margin-left:10px">${r.quantidade}</div>
+  </div>`;
+}
+
+function _grupoCabecalho(titulo, icone) {
+  return `<div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:12px 0 4px;margin-top:4px">${icone} ${titulo}</div>`;
+}
+
 function filtrarEstoque(termo) {
   const box = document.getElementById('lista-estoque');
-  const t = termo.toLowerCase().trim();
+  const t = (termo||'').toLowerCase().trim();
   const rows = t ? _estoqueRows.filter(r => r.produto_nome.toLowerCase().includes(t)) : _estoqueRows;
   if (!rows.length) { box.innerHTML='<div class="empty">Nenhum produto encontrado</div>'; return; }
-  box.innerHTML = rows.map(r=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:2px">${r.ixc_produto_id ? r.ixc_produto_id+' ·' : ''} ${r.unidade}</div>
-        <div style="font-size:.88rem;font-weight:600">${r.produto_nome}</div>
-      </div>
-      <div style="font-weight:800;font-size:1rem;color:${r.quantidade<=0?'var(--red)':'var(--accent2)'};margin-left:10px">${r.quantidade}</div>
-    </div>`).join('');
+
+  // Contar resultados
+  const counter = `<div style="font-size:.72rem;color:var(--muted);padding:4px 0 8px">${rows.length} de ${_estoqueRows.length} produtos</div>`;
+
+  if (t) {
+    // Sem agrupamento na busca
+    box.innerHTML = counter + rows.map(r => _renderItemEstoque(r, t)).join('');
+    return;
+  }
+
+  // Agrupar: instalação no topo, outros embaixo
+  const instalacao = rows.filter(r => ESTOQUE_INSTALACAO[r.id]);
+  const outros = rows.filter(r => !ESTOQUE_INSTALACAO[r.id]);
+
+  let html = counter;
+  if (instalacao.length) {
+    html += _grupoCabecalho('Materiais de Instalação', '📦');
+    html += instalacao.map(r => _renderItemEstoque(r, '')).join('');
+  }
+  if (outros.length) {
+    html += _grupoCabecalho('Ferramentas e Outros', '🔧');
+    html += outros.map(r => _renderItemEstoque(r, '')).join('');
+  }
+  box.innerHTML = html;
 }
 
 async function carregarEstoque() {
