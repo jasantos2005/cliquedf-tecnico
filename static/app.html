@@ -603,13 +603,13 @@ async function confirmarExecucao(ixc_os_id) {
 // ── EXECUCAO PASSO A PASSO ───────────────────────────────────
 function iniciarExecucao(os) {
   execStep = 0;
-  execData = {checklist:[],fotos:[],assinatura:null,solucao:'',obs:'',materiais:[],_estoque:[]};
+  execData = {checklist:[],fotos:[],assinatura:null,solucao:'',obs:'',materiais:[],_estoque:[],comodatos:[]};
   // Pré-carrega estoque do técnico
   api('/api/estoque/meu').then(function(rows){ execData._estoque = rows; }).catch(function(){ execData._estoque = []; });
   renderStep();
 }
 
-const STEPS = ['checklist','fotos','solucao','materiais','finalizar'];
+const STEPS = ['checklist','fotos','solucao','materiais','comodatos','finalizar'];
 
 function renderStep() {
   const steps = STEPS;
@@ -680,7 +680,7 @@ function renderStep() {
     setTimeout(initCanvas, 100);
   } else if (execStep === 3) {
     // Materiais
-    const meuEstoque = execData._estoque || [];
+    const meuEstoque = (execData._estoque || []).filter(p => p.tipo !== 'P');
     const itensAdicionados = execData.materiais || [];
     const listaEstoque = meuEstoque.length ? meuEstoque.map(p => {
       const adicionado = itensAdicionados.find(m => m.id_produto === p.id);
@@ -715,6 +715,33 @@ function renderStep() {
         <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
       </div>`;
   } else if (execStep === 4) {
+    // Comodatos
+    const comodatos = execData.comodatos || [];
+    const listaComodatos = comodatos.map((c,i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:.82rem;font-weight:600">${c.descricao}</div>
+          <div style="font-size:.7rem;color:var(--muted)">ID: ${c.id_patrimonio} · Serial: ${c.serial}</div>
+        </div>
+        <button onclick="comodatoRemover(${i})" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer">✕</button>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:16px">Nenhum comodato adicionado</div>';
+
+    content = `
+      <div class="modal-title">📦 Comodatos instalados</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Digite o ID do patrimônio impresso na etiqueta</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input type="number" id="inp-comodato-id" placeholder="ID patrimônio..."
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:.9rem;outline:none">
+        <button onclick="comodatoBuscar()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer">Buscar</button>
+      </div>
+      <div id="comodato-resultado" style="margin-bottom:12px"></div>
+      <div style="max-height:40vh;overflow-y:auto;margin-bottom:12px">${listaComodatos}</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Adicionados: <b style="color:var(--accent2)">${comodatos.length}</b></div>
+      <div style="display:grid;gap:8px">
+        <button class="btn btn-primary" onclick="proximoStep()">Próximo →</button>
+        <button class="btn btn-outline" onclick="voltarStep()">← Voltar</button>
+      </div>`;
+  } else if (execStep === 5) {
     // Finalizar
     const marcados = execData.checklist.filter(c=>c.marcado).length;
     content = `
@@ -725,6 +752,7 @@ function renderStep() {
         <div style="font-size:.85rem;margin-bottom:6px">📝 Solução: ${execData.solucao?'✅':'❌ necessário'}</div>
         <div style="font-size:.85rem">✍️ Assinatura: ${execData.assinatura?'✅':'—'}</div>
         <div style="font-size:.85rem">📦 Materiais: ${(execData.materiais||[]).filter(m=>m.quantidade>0).length} item(s)</div>
+        <div style="font-size:.85rem">🔌 Comodatos: ${(execData.comodatos||[]).length} item(s)</div>
       </div>
       ${!execData.solucao?'<div style="color:var(--red);font-size:.82rem;margin-bottom:12px">⚠️ Preencha a solução antes de finalizar</div>':''}
       <div style="display:grid;gap:8px">
@@ -869,6 +897,50 @@ function matSetQtd(idProduto, valor) {
   const total = (execData.materiais||[]).filter(m=>m.quantidade>0).length;
   const el = document.querySelector('[style*="Marcados"]');
 }
+// ── COMODATOS OS ─────────────────────────────────────────────
+async function comodatoBuscar() {
+  const idPat = document.getElementById('inp-comodato-id').value.trim();
+  if (!idPat) { toast('Digite o ID do patrimônio','err'); return; }
+  const el = document.getElementById('comodato-resultado');
+  el.innerHTML = '<div style="color:var(--muted);font-size:.82rem">Buscando...</div>';
+  try {
+    const r = await api('/api/estoque/patrimonio/' + idPat);
+    if (r.erro) {
+      el.innerHTML = '<div style="color:var(--red);font-size:.82rem;padding:10px;background:rgba(255,77,106,.1);border-radius:8px">⚠️ ' + r.erro + '</div>';
+      return;
+    }
+    el.innerHTML = `
+      <div style="background:var(--surface2);border:1px solid var(--accent);border-radius:8px;padding:10px">
+        <div style="font-size:.85rem;font-weight:700">${r.descricao}</div>
+        <div style="font-size:.72rem;color:var(--muted)">ID: ${r.id} · Serial: ${r.serial}</div>
+        <button onclick="comodatoAdicionar(${r.id},'${r.serial}',encodeURIComponent('${r.descricao}'))"
+          style="margin-top:8px;width:100%;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px;font-weight:700;cursor:pointer">
+          + Adicionar comodato
+        </button>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--red);font-size:.82rem">Erro: ' + e.message + '</div>';
+  }
+}
+
+function comodatoAdicionar(id, serial, descricaoEncoded) {
+  const descricao = decodeURIComponent(descricaoEncoded);
+  if (!execData.comodatos) execData.comodatos = [];
+  if (execData.comodatos.find(c => c.id_patrimonio === id)) {
+    toast('Patrimônio já adicionado','err'); return;
+  }
+  execData.comodatos.push({id_patrimonio: id, serial, descricao});
+  document.getElementById('inp-comodato-id').value = '';
+  document.getElementById('comodato-resultado').innerHTML = '';
+  toast('Comodato adicionado ✅','ok');
+  renderStep();
+}
+
+function comodatoRemover(idx) {
+  execData.comodatos.splice(idx, 1);
+  renderStep();
+}
+
 function matEditarSerie(idProduto) {
   const item = (execData.materiais||[]).find(m=>m.id_produto===idProduto);
   if (!item) return;

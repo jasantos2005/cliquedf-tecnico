@@ -37,6 +37,7 @@ class AprovarRequisicaoBody(BaseModel):
 # ── Estoque do técnico ────────────────────────────────────────────────────────
 @router.get("/meu")
 def meu_estoque(usuario=Depends(requer_tecnico)):
+    _sync_estoque_tecnico(usuario["id"], usuario["ixc_almox_id"])
     db = get_db()
     rows = db.execute("""
         SELECT p.id, e.quantidade, e.ultima_atualizacao,
@@ -48,6 +49,39 @@ def meu_estoque(usuario=Depends(requer_tecnico)):
     """, (usuario["id"],)).fetchall()
     db.close()
     return [dict(r) for r in rows]
+
+
+def _sync_estoque_tecnico(id_tecnico: int, ixc_almox_id: int):
+    """Sincroniza saldo do IXC para o tecnico antes de retornar o estoque."""
+    if not ixc_almox_id:
+        return
+    try:
+        from app.services.ixc_db import ixc_select
+        import sqlite3, os as _os
+        DB = _os.path.join(_os.path.dirname(__file__), "../../hub_tecnico.db")
+        conn = sqlite3.connect(DB)
+        prod_map = {
+            r[0]: r[1]
+            for r in conn.execute("SELECT ixc_produto_id, id FROM ht_produtos WHERE ixc_produto_id > 0").fetchall()
+        }
+        saldos = ixc_select(
+            "SELECT id_produto, saldo FROM estoque_produtos_almox_filial WHERE id_almox=%s AND produto_ativo='S'",
+            (ixc_almox_id,)
+        )
+        for s in saldos:
+            hub_id = prod_map.get(s["id_produto"])
+            if hub_id:
+                conn.execute("""
+                    INSERT INTO ht_estoque_tecnico (id_tecnico, id_produto, quantidade, ixc_almox_id, ultima_atualizacao)
+                    VALUES (?, ?, ?, ?, datetime('now','-3 hours'))
+                    ON CONFLICT(id_tecnico, id_produto) DO UPDATE SET
+                        quantidade=excluded.quantidade,
+                        ultima_atualizacao=excluded.ultima_atualizacao
+                """, (id_tecnico, hub_id, s["saldo"], ixc_almox_id))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[SYNC_MEU_ESTOQUE] {e}")
 
 
 # ── Estoque principal ─────────────────────────────────────────────────────────
@@ -407,5 +441,37 @@ def editar_requisicao(req_id: int, body: CriarRequisicaoBody, usuario=Depends(re
             """, (req_id, item.id_produto, item.qtd_solicitada, item.obs or ""))
         db.commit()
         return {"ok": True, "msg": "Requisicao atualizada"}
+    finally:
+        db.close()
+
+
+@router.get("/patrimonio/{id_patrimonio}")
+def buscar_patrimonio(id_patrimonio: int, usuario=Depends(requer_tecnico)):
+    """Busca patrimônio pelo ID e valida se está no almox do técnico."""
+    db = get_db()
+    try:
+        tec = db.execute(
+            "SELECT ixc_almox_id FROM ht_usuarios WHERE id=?", (usuario["id"],)
+        ).fetchone()
+        if not tec or not tec["ixc_almox_id"]:
+            raise HTTPException(400, "Técnico sem almoxarifado configurado")
+
+        r = ixc_select(f"""
+            SELECT id, serial, descricao, id_produto, id_almoxarifado, situacao
+            FROM patrimonio
+            WHERE id = {id_patrimonio} AND id_almoxarifado = {tec['ixc_almox_id']}
+        """)
+        if not r:
+            return {"erro": f"Patrimônio #{id_patrimonio} não encontrado no seu almoxarifado"}
+        p = r[0]
+        if p["situacao"] == 4:
+            return {"erro": f"Patrimônio #{id_patrimonio} já está em comodato com um cliente"}
+        return {
+            "id": p["id"],
+            "serial": p["serial"],
+            "descricao": p["descricao"],
+            "id_produto": p["id_produto"],
+            "situacao": p["situacao"],
+        }
     finally:
         db.close()

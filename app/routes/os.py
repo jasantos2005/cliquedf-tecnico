@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from app.services.auth import requer_tecnico, requer_supervisor, get_db
-from app.services.ixc_db import ixc_insert, ixc_select
+from app.services.ixc_db import ixc_insert, ixc_select, ixc_select_one
 
 router = APIRouter(prefix="/api/os", tags=["os"])
 
@@ -118,6 +118,7 @@ class FinalizarInput(BaseModel):
     solucao: str = ''
     obs: str = ''
     materiais: list = []
+    comodatos: list = []
     lat: Optional[float] = None
     lon: Optional[float] = None
 
@@ -174,59 +175,127 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
             WHERE id_tecnico=? AND id_produto=?
         """, (qtd_usar, brt(), usuario["id"], mat.get("id_produto")))
 
-        # Baixa no IXC via movimento_produtos (aparece na OS no IXC)
+        # Baixa no IXC: patrimônio → comodato, consumível → movimento_produtos
         try:
             tec_row = db.execute(
                 "SELECT ixc_funcionario_id, ixc_almox_id FROM ht_usuarios WHERE id=?", (usuario["id"],)
             ).fetchone()
             prod_row = db.execute(
-                "SELECT ixc_produto_id, nome, unidade FROM ht_produtos WHERE id=?", (mat.get("id_produto"),)
+                "SELECT ixc_produto_id, nome, unidade, tipo FROM ht_produtos WHERE id=?", (mat.get("id_produto"),)
             ).fetchone()
             if tec_row and prod_row and tec_row["ixc_almox_id"] and prod_row["ixc_produto_id"]:
-                ixc_insert("""
-                    INSERT INTO ixcprovedor.movimento_produtos
-                    (id_produto, valor_unitario, quantidade, valor_total,
-                     id_entrada, id_unidade, id_pedido_compra, id_pedido_compra_itens,
-                     pdesconto, vdesconto, bicms, picms, bipi, pipi, custo,
-                     tipo, id_saida, id_itens_pedido, qtde_saida, `data`, descricao,
-                     estoque, filial_id, fator_conversao, id_classificacao_tributaria,
-                     pesol, pesob, unidade_sigla, status, id_contrato, patrimonio,
-                     numero_serie, status_comodato, id_oss_mensagem, id_su_oss_kit_equipamento,
-                     garantia_oss, id_terceiro_oss, tipo_produto, id_oss_chamado,
-                     valor_outros, id_almox, id_transf_almox, id_transf_almox_item,
-                     status_produto, v_fust, v_funttel, p_fust, p_funttel,
-                     importando_dfe, ultima_situacao_patrimonio, id_tipo_documento,
-                     id_login, aliquota_fcp, gera_3020, bfcp,
-                     faturado_pedido_os, pedido_os_faturado, origem_movimento, forma_tributacao)
-                    VALUES (%s, 0, 0, 0,
-                            0, 1, 0, 0,
-                            0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-                            'S', 0, 0, %s, %s, %s,
-                            'S', 1, 1.000, 1,
-                            0.000, 0.000, %s, 'N', 0, 0,
-                            '', '', 0, 0,
-                            'N', 0, 'O', %s,
-                            0.00, %s, NULL, NULL,
-                            'N', 0.00000, 0.00, 0.00, 0.00,
-                            'N', 0, 1,
-                            %s, 0.00, 'N', 0,
-                            'N', 'N', 'I', 'P')
-                """, (
-                    prod_row["ixc_produto_id"],
-                    qtd_usar,
-                    brt()[:10],
-                    prod_row["nome"],
-                    mat.get("unidade", prod_row.get("unidade", "UND")).upper(),
-                    ixc_os_id,
-                    tec_row["ixc_almox_id"],
-                    tec_row["ixc_funcionario_id"],
-                ))
+                if prod_row["tipo"] == "P":
+                    # Patrimônio: registra comodato em patrimonio_movimentacao
+                    numero_serie = mat.get("numero_serie", "")
+                    if numero_serie:
+                        pat = ixc_select_one(
+                            "SELECT id FROM patrimonio WHERE id_produto=%s AND serial=%s LIMIT 1",
+                            (prod_row["ixc_produto_id"], numero_serie)
+                        )
+                    else:
+                        pat = ixc_select_one(
+                            "SELECT id FROM patrimonio WHERE id_produto=%s AND id_almoxarifado=%s AND situacao IN (1,7) ORDER BY id DESC LIMIT 1",
+                            (prod_row["ixc_produto_id"], tec_row["ixc_almox_id"])
+                        )
+                        if not pat:
+                            pat = ixc_select_one(
+                                "SELECT id FROM patrimonio WHERE id_produto=%s AND situacao IN (1,7) ORDER BY id DESC LIMIT 1",
+                                (prod_row["ixc_produto_id"],)
+                            )
+                    if pat:
+                        ixc_insert("""
+                            INSERT INTO ixcprovedor.patrimonio_movimentacao
+                            (data_movimentacao, motivo, filial_destino, observacao, responsavel,
+                             finalidade, id_patrimonio, setor_destino, cliente_destino, id_contrato,
+                             id_almoxarifado_origem, id_almoxarifado_destino, id_estrutura,
+                             tipo_movimento, id_movimento, indisponivel, id_pedido_os, obs)
+                            VALUES (%s, %s, 0, %s, 0, 4, %s, 2, %s, %s, 0, 0, 0, \'\', 0, \'N\', 0, NULL)
+                        """, (
+                            brt(),
+                            "Material fornecido em comodato da O.S",
+                            f"Ordem de servico n: {ixc_os_id}",
+                            pat["id"],
+                            os_row["ixc_cliente_id"],
+                            os_row["id_contrato_kit"],
+                        ))
+                        ixc_insert("UPDATE patrimonio SET situacao=4 WHERE id=%s", (pat["id"],))
+                    else:
+                        print(f"[WARN] Patrimônio nao encontrado produto {prod_row['ixc_produto_id']} OS {ixc_os_id}")
+                else:
+                    # Consumível: registra em movimento_produtos
+                    ixc_insert("""
+                        INSERT INTO ixcprovedor.movimento_produtos
+                        (id_produto, valor_unitario, quantidade, valor_total,
+                         id_entrada, id_unidade, id_pedido_compra, id_pedido_compra_itens,
+                         pdesconto, vdesconto, bicms, picms, bipi, pipi, custo,
+                         tipo, id_saida, id_itens_pedido, qtde_saida, `data`, descricao,
+                         estoque, filial_id, fator_conversao, id_classificacao_tributaria,
+                         pesol, pesob, unidade_sigla, status, id_contrato, patrimonio,
+                         numero_serie, status_comodato, id_oss_mensagem, id_su_oss_kit_equipamento,
+                         garantia_oss, id_terceiro_oss, tipo_produto, id_oss_chamado,
+                         valor_outros, id_almox, id_transf_almox, id_transf_almox_item,
+                         status_produto, v_fust, v_funttel, p_fust, p_funttel,
+                         importando_dfe, ultima_situacao_patrimonio, id_tipo_documento,
+                         id_login, aliquota_fcp, gera_3020, bfcp,
+                         faturado_pedido_os, pedido_os_faturado, origem_movimento, forma_tributacao)
+                        VALUES (%s, 0, 0, 0,
+                                0, 1, 0, 0,
+                                0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                \'S\', 0, 0, %s, %s, %s,
+                                \'S\', 1, 1.000, 1,
+                                0.000, 0.000, %s, \'N\', 0, 0,
+                                \'\', \'\', 0, 0,
+                                \'N\', 0, \'O\', %s,
+                                0.00, %s, NULL, NULL,
+                                \'N\', 0.00000, 0.00, 0.00, 0.00,
+                                \'N\', 0, 1,
+                                %s, 0.00, \'N\', 0,
+                                \'N\', \'N\', \'I\', \'P\')
+                    """, (
+                        prod_row["ixc_produto_id"],
+                        qtd_usar,
+                        brt()[:10],
+                        prod_row["nome"],
+                        (mat.get("unidade") or prod_row["unidade"] or "UND").upper(),
+                        ixc_os_id,
+                        tec_row["ixc_almox_id"],
+                        tec_row["ixc_funcionario_id"],
+                    ))
         except Exception as e:
             import traceback
-            print(f"[WARN] Erro baixa IXC movimento_produtos OS {ixc_os_id}: {e}")
+            print(f"[WARN] Erro baixa IXC OS {ixc_os_id}: {e}")
             traceback.print_exc()
 
     # Atualiza status
+    # Processa comodatos
+    for cod in data.comodatos:
+        id_patrimonio = cod.get("id_patrimonio")
+        if not id_patrimonio:
+            continue
+        try:
+            tec_row = db.execute(
+                "SELECT ixc_funcionario_id, ixc_almox_id FROM ht_usuarios WHERE id=?", (usuario["id"],)
+            ).fetchone()
+            if tec_row:
+                ixc_insert("""
+                    INSERT INTO ixcprovedor.patrimonio_movimentacao
+                    (data_movimentacao, motivo, filial_destino, observacao, responsavel,
+                     finalidade, id_patrimonio, setor_destino, cliente_destino, id_contrato,
+                     id_almoxarifado_origem, id_almoxarifado_destino, id_estrutura,
+                     tipo_movimento, id_movimento, indisponivel, id_pedido_os, obs)
+                    VALUES (%s, %s, 0, %s, 0, 4, %s, 2, %s, %s, 0, 0, 0, '', 0, 'N', 0, NULL)
+                """, (
+                    brt(),
+                    "Comodato registrado via OS",
+                    f"Ordem de servico n: {ixc_os_id}",
+                    id_patrimonio,
+                    os_row["ixc_cliente_id"],
+                    os_row["id_contrato_kit"],
+                ))
+                ixc_insert("UPDATE ixcprovedor.patrimonio SET situacao=4 WHERE id=%s", (id_patrimonio,))
+        except Exception as e:
+            print(f"[WARN] Erro comodato {id_patrimonio}: {e}")
+
     db.execute("UPDATE ht_os SET status_hub='finalizada' WHERE ixc_os_id=?", (ixc_os_id,))
     db.commit()
 

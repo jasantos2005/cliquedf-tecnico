@@ -214,3 +214,13 @@ def historico_posse(id_veiculo: int, usuario=Depends(requer_supervisor)):
     """, (id_veiculo,)).fetchall()
     db.close()
     return [dict(r) for r in rows]
+
+
+@router.post("/reiniciar")
+def reiniciar_servico(usuario=Depends(requer_admin)):
+    import threading, os as _os, time
+    def _kill():
+        time.sleep(1.5)
+        _os._exit(0)
+    threading.Thread(target=_kill, daemon=True).start()
+    return {"ok": True, "msg": "Reiniciando servico em 1.5s"}
