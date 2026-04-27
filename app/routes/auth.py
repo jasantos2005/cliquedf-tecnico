@@ -22,6 +22,7 @@ def login(data: LoginInput):
         "token": criar_token(u["id"], u["nivel"]),
         "usuario": {
             "id": u["id"], "nome": u["nome"],
+            "login": u["login"],
             "nivel": u["nivel"],
             "ixc_funcionario_id": u["ixc_funcionario_id"]
         }

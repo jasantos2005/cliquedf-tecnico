@@ -228,8 +228,9 @@ textarea:focus,select:focus{border-color:var(--accent)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Início
     </button>
-    <button class="nav-btn" id="nav-os" onclick="navTo('os')">
+    <button class="nav-btn" id="nav-os" onclick="navTo('os')" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span id="badge-os" style="display:none;position:absolute;top:4px;right:12px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.6rem;font-weight:900;align-items:center;justify-content:center"></span>
       OS
     </button>
     <button class="nav-btn" id="nav-estoque" onclick="navTo('estoque');carregarEstoque()">
@@ -370,7 +371,7 @@ async function carregarOS() {
     rows.sort((a,b)=>(a.data_reservada||a.data_agenda||a.data_abertura||'9999').localeCompare(b.data_reservada||b.data_agenda||b.data_abertura||'9999'));
     let ordem=1;
     rows.forEach(o=>{if(['pendente','agendada','reagendada'].includes(o.status_hub))o._ordem=ordem++;else o._ordem=0;});
-    osData=rows; renderOS(); renderHome();
+    osData=rows; _registrarOsAtuais(); renderOS(); renderHome();
   } catch(e) { console.log('Offline — usando cache'); }
 }
 
@@ -405,6 +406,26 @@ function renderHome() {
   document.getElementById('kpi-pendentes').textContent = pendentes;
   document.getElementById('kpi-finalizadas').textContent = finalizadas;
 
+  // Badge OS na nav
+  const diaHoje2 = dataFiltro('hoje');
+  const osAtivas = osData.filter(o=>!['finalizada'].includes(o.status_hub) && (o.data_reservada||'').substring(0,10)===diaHoje2).length;
+  const badge = document.getElementById('badge-os');
+  if (badge) { badge.textContent=osAtivas; badge.style.display=osAtivas>0?'inline-flex':'none'; }
+
+  // Tempo até proxima OS
+  const elTempo = document.getElementById('tempo-proxima');
+  if (elTempo) {
+    const prox = osData.find(o=>['agendada','reagendada'].includes(o.status_hub) && (o.data_reservada||'').substring(0,10)===diaHoje2);
+    if (prox && prox.data_agenda) {
+      const agora = new Date(new Date().getTime() - 3*60*60*1000);
+      const agenda = new Date(prox.data_agenda.replace(' ','T'));
+      const diff = Math.round((agenda - agora) / 60000);
+      if (diff > 0) elTempo.textContent = 'em ' + (diff >= 60 ? Math.floor(diff/60)+'h'+(diff%60>0?diff%60+'min':'') : diff+'min');
+      else if (diff > -30) elTempo.textContent = '⚠️ Atrasada';
+      else elTempo.textContent = '';
+    } else { elTempo.textContent = ''; }
+  }
+
   const diaHoje = dataFiltro('hoje');
   const proxima = osData.find(o=>o.status_hub==='deslocamento') ||
                   osData.find(o=>o.status_hub==='execucao') ||
@@ -413,7 +434,10 @@ function renderHome() {
   const box = document.getElementById('home-proxima');
   if (proxima) {
     box.innerHTML = `
-      <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase">Próxima OS</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase">Próxima OS</div>
+        <div id="tempo-proxima" style="font-size:.75rem;color:var(--accent2);font-weight:700"></div>
+      </div>
       <div class="os-card" onclick="abrirOS(${proxima.ixc_os_id})">
         <div class="os-card-top">
           <div class="os-num">OS #${proxima.ixc_os_id}</div>
@@ -1103,6 +1127,24 @@ function estoqueAba(aba) {
 }
 
 // Sync automático a cada 2 minutos
+// ── AUTO SYNC OS a cada 5 min ─────────────────────────────
+let _ultimasOsIds = new Set();
+function _registrarOsAtuais() {
+  _ultimasOsIds = new Set((osData||[]).map(o=>o.ixc_os_id));
+}
+setInterval(async function() {
+  if (modoOffline || !isOnline) return;
+  try {
+    await fetch('/api/os/sync-os', {method:'POST', headers:{Authorization:'Bearer '+token()}});
+    const idsAntes = new Set(_ultimasOsIds);
+    await carregarOS();
+    const novas = (osData||[]).filter(o => !idsAntes.has(o.ixc_os_id));
+    if (novas.length > 0) {
+      toast('📋 ' + novas.length + ' nova(s) OS recebida(s)!', 'ok');
+    }
+  } catch(e) {}
+}, 5 * 60 * 1000);
+
 setInterval(async function() {
   try {
     await api('/api/estoque/sync-status', {method:'POST'});
