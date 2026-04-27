@@ -546,6 +546,20 @@ def reagendar_os(ixc_os_id: int, data: ReagendarInput, usuario=Depends(requer_te
     return {"ok": True}
 
 
+
+@router.post("/sync-os")
+def sync_os_manual(usuario=Depends(requer_tecnico)):
+    import subprocess, sys
+    try:
+        resultado = subprocess.run(
+            [sys.executable, "-m", "app.bootstrap.cron_sync_os"],
+            capture_output=True, text=True, timeout=30,
+            cwd="/opt/automacoes/cliquedf/tecnico"
+        )
+        return {"ok": True, "msg": resultado.stdout.strip().split("\n")[-1]}
+    except Exception as e:
+        return {"ok": False, "msg": str(e)}
+
 @router.post("/sync-fotos")
 def sync_fotos_ixc(usuario=Depends(requer_tecnico)):
     import base64, os, requests as req

@@ -212,7 +212,7 @@ textarea:focus,select:focus{border-color:var(--accent)}
         <div style="font-size:.8rem;color:var(--muted)" id="perfil-login">—</div>
       </div>
     </div>
-    <button class="btn btn-outline" style="margin-bottom:10px" onclick="location.reload()">Sincronizar dados</button>
+    <button class="btn btn-outline" style="margin-bottom:10px" id="btn-sync" onclick="sincronizarAgora()">🔄 Sincronizar dados</button>
     <div style="margin-top:12px">
       <button id="btn-modo-offline" onclick="toggleModoOffline()"
         style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:700">
@@ -1332,6 +1332,24 @@ async function confirmarReagendar() {
       toast('OS reagendada com sucesso','ok');
     }
   } catch(e) { toast('Erro ao reagendar','err'); }
+}
+
+async function sincronizarAgora() {
+  const btn = document.getElementById('btn-sync');
+  btn.disabled = true;
+  btn.textContent = '⏳ Sincronizando...';
+  try {
+    const r = await fetch('/api/os/sync-os', {method:'POST', headers:{Authorization:'Bearer '+token}});
+    const d = await r.json();
+    await sincronizarFila();
+    await carregarOS();
+    toast(d.ok ? '✅ ' + d.msg : '⚠️ ' + d.msg, d.ok ? 'ok' : 'erro');
+  } catch(e) {
+    toast('Erro ao sincronizar', 'erro');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄 Sincronizar dados';
+  }
 }
 
 async function sincronizarFila() {
