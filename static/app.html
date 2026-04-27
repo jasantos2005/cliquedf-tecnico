@@ -721,7 +721,93 @@ function renderModalDeslocamento(os) {
       <div style="font-size:.85rem;color:var(--muted)">📍 ${os.endereco||'—'}</div>
     </div>
     <button class="btn btn-green" style="margin-bottom:8px" onclick="iniciarExecucaoBtn(${os.ixc_os_id})">🔧 Cheguei — Iniciar execução</button>
+    <button class="btn btn-outline" style="margin-bottom:8px;border-color:#f97316;color:#f97316" onclick="abrirClienteAusente(${os.ixc_os_id})">👤 Cliente ausente</button>
     <button class="btn btn-outline" onclick="fecharModal()">Fechar</button>`;
+}
+
+async function abrirClienteAusente(ixc_os_id) {
+  const os = osData.find(o => o.ixc_os_id === ixc_os_id);
+  const hoje = dataFiltro('hoje');
+  document.getElementById('modal-os-content').innerHTML = `
+    <div class="modal-title">👤 Cliente ausente — OS #${ixc_os_id}</div>
+    <div style="margin-bottom:14px;font-size:.85rem;color:var(--muted)">Registre o KM e escolha o que fazer com a OS.</div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:.8rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">KM CHEGADA (obrigatório)</label>
+      <input id="ca-km" type="number" placeholder="Ex: 45231"
+        style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.95rem;box-sizing:border-box">
+    </div>
+    <div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:8px">O QUE FAZER?</div>
+    <div id="ca-opcoes" style="display:grid;gap:8px">
+      <button class="btn btn-outline" onclick="mostrarReagendar(${ixc_os_id})"
+        style="text-align:left;padding:12px">
+        📅 Reagendar para mim mesmo
+        <div style="font-size:.75rem;color:var(--muted);font-weight:400;margin-top:2px">Escolher nova data e horário</div>
+      </button>
+      <button class="btn btn-outline" onclick="confirmarEncaminhar(${ixc_os_id})"
+        style="text-align:left;padding:12px;border-color:#f97316;color:#f97316">
+        📋 Encaminhar para agendamento
+        <div style="font-size:.75rem;color:#f97316;font-weight:400;margin-top:2px">Edla e Rudinedja decidem o próximo passo</div>
+      </button>
+    </div>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="fecharModal()">Cancelar</button>`;
+}
+
+function mostrarReagendar(ixc_os_id) {
+  const kmEl = document.getElementById('ca-km');
+  if (!kmEl || !kmEl.value) { toast('Informe o KM chegada', 'erro'); return; }
+  const amanha = new Date(new Date().getTime() - 3*60*60*1000);
+  amanha.setDate(amanha.getDate()+1);
+  const amanhaStr = amanha.toISOString().substring(0,10);
+  document.getElementById('ca-opcoes').innerHTML = `
+    <div style="background:var(--surface2);border-radius:10px;padding:14px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:10px">📅 REAGENDAR PARA</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div>
+          <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:4px">DATA</label>
+          <input id="ca-data" type="date" value="${amanhaStr}"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.88rem;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:4px">HORÁRIO</label>
+          <input id="ca-hora" type="time" value="08:00"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.88rem;box-sizing:border-box">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="confirmarReagendar(${ixc_os_id})">✅ Confirmar reagendamento</button>
+    </div>`;
+}
+
+async function confirmarReagendar(ixc_os_id) {
+  const km = document.getElementById('ca-km')?.value;
+  const data = document.getElementById('ca-data')?.value;
+  const hora = document.getElementById('ca-hora')?.value;
+  if (!km) { toast('Informe o KM chegada', 'erro'); return; }
+  if (!data) { toast('Informe a data', 'erro'); return; }
+  try {
+    await api('/api/os/'+ixc_os_id+'/cliente-ausente', {
+      method:'POST',
+      body: JSON.stringify({km_chegada: km, acao: 'reagendar', data_reagenda: data, hora_reagenda: hora})
+    });
+    const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
+    if (os) os.status_hub = 'reagendada';
+    fecharModal(); renderOS(); renderHome();
+    toast('📅 OS reagendada com sucesso!', 'ok');
+  } catch(e) { toast('Erro ao reagendar', 'erro'); }
+}
+
+async function confirmarEncaminhar(ixc_os_id) {
+  const km = document.getElementById('ca-km')?.value;
+  if (!km) { toast('Informe o KM chegada', 'erro'); return; }
+  try {
+    await api('/api/os/'+ixc_os_id+'/cliente-ausente', {
+      method:'POST',
+      body: JSON.stringify({km_chegada: km, acao: 'encaminhar'})
+    });
+    const os = osData.find(o=>o.ixc_os_id===ixc_os_id);
+    if (os) os.status_hub = 'pendente';
+    fecharModal(); renderOS(); renderHome();
+    toast('📋 OS encaminhada para agendamento!', 'ok');
+  } catch(e) { toast('Erro ao encaminhar', 'erro'); }
 }
 
 function renderModalFinalizada(os) {
@@ -884,34 +970,57 @@ function renderStep() {
     setTimeout(initCanvas, 100);
   } else if (execStep === 3) {
     // Materiais
+    const IDS_INSTALACAO = [377, 378, 379, 382, 384, 385, 386, 387, 390, 391, 392, 394, 397, 402, 183, 184, 137, 138, 139, 140, 142, 199, 200, 204, 209, 93, 94, 102, 451, 452, 453, 454, 455, 456, 463, 464, 465, 466, 470, 471, 472, 474, 475, 477, 479, 480, 481, 482];
     const meuEstoque = (execData._estoque || []).filter(p => p.tipo !== 'P');
     const itensAdicionados = execData.materiais || [];
-    const listaEstoque = meuEstoque.length ? meuEstoque.map(p => {
+    const _termoBusca = execData._termoBusca || '';
+
+    function _renderItemMat(p) {
       const adicionado = itensAdicionados.find(m => m.id_produto === p.id);
       const qtdUsada = adicionado ? adicionado.quantidade : 0;
       const isComodato = p.tipo === 'P';
-      const btnSerie = (isComodato && qtdUsada > 0) ? `<button onclick="matEditarSerie(${p.id})" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--accent2);cursor:pointer;font-size:.65rem">S/N</button>` : '';
-      const serie = adicionado && adicionado.numero_serie ? `<div style="font-size:.68rem;color:var(--accent2)">S/N: ${adicionado.numero_serie}</div>` : '';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.produto_nome}</div>
-          <div style="font-size:.7rem;color:var(--muted)">${isComodato?'📦 Patrimônio':'🔧 Insumo'} · Disp: ${p.quantidade} ${p.unidade}</div>
-          ${serie}
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-          <button onclick="matAlterarQtd(${p.id},-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;flex-shrink:0">−</button>
-          <input type="number" id="mat-qtd-${p.id}" value="${qtdUsada}" min="0" step="any"
-            oninput="matSetQtd(${p.id},this.value)"
-            style="width:60px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:${qtdUsada>0?'var(--accent2)':'var(--text)'};padding:4px 2px;font-size:.85rem;font-weight:700;outline:none">
-          <button onclick="matAlterarQtd(${p.id},1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer;flex-shrink:0">+</button>
-          ${btnSerie}
-        </div>
-      </div>`;
-    }).join('') : '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px">Estoque vazio</div>';
+      const btnSerie = (isComodato && qtdUsada > 0) ? '<button onclick="matEditarSerie('+p.id+')" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--accent2);cursor:pointer;font-size:.65rem">S/N</button>' : '';
+      const serie = adicionado && adicionado.numero_serie ? '<div style="font-size:.68rem;color:var(--accent2)">S/N: '+adicionado.numero_serie+'</div>' : '';
+      const destaque = _termoBusca ? p.produto_nome.replace(new RegExp('('+_termoBusca+')', 'gi'), '<mark style="background:rgba(249,115,22,.3);color:var(--text);border-radius:2px">$1</mark>') : p.produto_nome;
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:.82rem;font-weight:600">' + destaque + '</div>' +
+          '<div style="font-size:.7rem;color:var(--muted)">' + (isComodato?'📦 Patrimônio':'🔧 Insumo') + ' · Disp: ' + p.quantidade + ' ' + (p.unidade||'') + '</div>' +
+          serie +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">' +
+          '<button onclick="matAlterarQtd('+p.id+',-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;flex-shrink:0">−</button>' +
+          '<input type="number" id="mat-qtd-'+p.id+'" value="'+qtdUsada+'" min="0" step="any" oninput="matSetQtd('+p.id+',this.value)" style="width:60px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:'+(qtdUsada>0?'var(--accent2)':'var(--text)')+';padding:4px 2px;font-size:.85rem;font-weight:700;outline:none">' +
+          '<button onclick="matAlterarQtd('+p.id+',1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer;flex-shrink:0">+</button>' +
+          btnSerie +
+        '</div></div>';
+    }
+
+    function _grupoCab(txt) {
+      return '<div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;padding:10px 0 4px;letter-spacing:.05em">' + txt + '</div>';
+    }
+
+    let listaEstoque = '';
+    if (!meuEstoque.length) {
+      listaEstoque = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px">Estoque vazio</div>';
+    } else if (_termoBusca) {
+      const filtrado = meuEstoque.filter(p => p.produto_nome.toLowerCase().includes(_termoBusca.toLowerCase()));
+      listaEstoque = filtrado.length
+        ? '<div style="font-size:.72rem;color:var(--muted);padding:4px 0 6px">' + filtrado.length + ' produto(s) encontrado(s)</div>' + filtrado.map(_renderItemMat).join('')
+        : '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px">Nenhum produto encontrado</div>';
+    } else {
+      const instalacao = meuEstoque.filter(p => IDS_INSTALACAO.includes(p.id));
+      const outros = meuEstoque.filter(p => !IDS_INSTALACAO.includes(p.id));
+      if (instalacao.length) listaEstoque += _grupoCab('📦 Materiais de Instalação') + instalacao.map(_renderItemMat).join('');
+      if (outros.length) listaEstoque += _grupoCab('🔧 Ferramentas e Outros') + outros.map(_renderItemMat).join('');
+    }
+
     const totalMat = itensAdicionados.filter(m=>m.quantidade>0).length;
     content = `
       <div class="modal-title">📦 Materiais utilizados</div>
-      <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Informe o que foi instalado/usado nesta OS</div>
+      <input id="mat-busca" type="text" placeholder="🔍 Buscar produto..." value="${_termoBusca}"
+        oninput="execData._termoBusca=this.value;renderStep()"
+        style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.88rem;box-sizing:border-box;margin-bottom:8px">
       <div style="max-height:50vh;overflow-y:auto;margin-bottom:10px">${listaEstoque}</div>
       <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Marcados: <b style="color:var(--accent2)">${totalMat}</b></div>
       <div style="display:grid;gap:8px">
@@ -1086,7 +1195,14 @@ function matSetQtd(idProduto, valor) {
   if (!execData.materiais) execData.materiais = [];
   const prod = (execData._estoque||[]).find(p=>p.id===idProduto);
   if (!prod) return;
-  const qtd = Math.max(0, parseFloat(valor)||0);
+  let qtd = Math.max(0, parseFloat(valor)||0);
+  // Validar limite de estoque
+  if (qtd > prod.quantidade) {
+    qtd = prod.quantidade;
+    const inp = document.getElementById('mat-qtd-'+idProduto);
+    if (inp) inp.value = qtd;
+    toast('⚠️ Quantidade máxima disponível: ' + prod.quantidade + ' ' + (prod.unidade||''), 'erro');
+  }
   let item = execData.materiais.find(m=>m.id_produto===idProduto);
   if (!item) {
     item = {id_produto:idProduto, nome:prod.produto_nome, unidade:prod.unidade, tipo:prod.tipo, quantidade:0, numero_serie:''};

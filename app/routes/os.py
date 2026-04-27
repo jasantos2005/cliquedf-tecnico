@@ -615,6 +615,102 @@ def reagendar_os(ixc_os_id: int, data: ReagendarInput, usuario=Depends(requer_te
 
 
 
+
+@router.post("/{ixc_os_id}/cliente-ausente")
+def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico)):
+    """Tecnico chegou mas cliente nao estava. Registra KM e define acao."""
+    from app.services.ixc_db import ixc_insert
+    import os as _os
+    DB = _os.path.join(_os.path.dirname(__file__), "../../hub_tecnico.db")
+    import sqlite3
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+
+    km_chegada = data.get("km_chegada")
+    acao = data.get("acao")  # "reagendar" ou "encaminhar"
+    data_reagenda = data.get("data_reagenda")
+    hora_reagenda = data.get("hora_reagenda", "08:00")
+
+    try:
+        # Registrar KM chegada
+        if km_chegada:
+            ultimo = conn.execute(
+                "SELECT km_saida FROM ht_km_os WHERE ixc_os_id=? ORDER BY id DESC LIMIT 1",
+                (ixc_os_id,)
+            ).fetchone()
+            km_saida = ultimo["km_saida"] if ultimo else 0
+            km_desloc = float(km_chegada) - float(km_saida) if km_saida else 0
+            conn.execute("""
+                INSERT INTO ht_km_os (ixc_os_id, id_tecnico, km_chegada, km_deslocamento, registrado_em)
+                VALUES (?,?,?,?,datetime('now','-3 hours'))
+                ON CONFLICT(ixc_os_id) DO UPDATE SET
+                    km_chegada=excluded.km_chegada,
+                    km_deslocamento=excluded.km_deslocamento
+            """, (ixc_os_id, usuario["id"], km_chegada, km_desloc))
+
+        os_row = conn.execute("SELECT * FROM ht_os WHERE ixc_os_id=?", (ixc_os_id,)).fetchone()
+        cliente_nome = os_row["cliente_nome"] if os_row else f"OS #{ixc_os_id}"
+
+        if acao == "reagendar":
+            # Reagendar para o mesmo tecnico
+            data_res = data_reagenda or brt().strftime("%Y-%m-%d")
+            conn.execute("""
+                UPDATE ht_os SET status_hub='reagendada', data_reservada=?,
+                motivo_reagendamento='Cliente ausente'
+                WHERE ixc_os_id=?
+            """, (data_res, ixc_os_id))
+            try:
+                ixc_insert(
+                    "UPDATE ixcprovedor.su_oss_chamado SET status='RAG', data_reservada=%s WHERE id=%s",
+                    (data_res, ixc_os_id)
+                )
+            except Exception as e:
+                print(f"[WARN] IXC reagendar: {e}")
+
+        elif acao == "encaminhar":
+            # Devolver para fila — status A, remove tecnico
+            conn.execute("""
+                UPDATE ht_os SET status_hub='pendente', id_tecnico=NULL, ixc_tecnico_id=NULL,
+                motivo_reagendamento='Cliente ausente — encaminhado para agendamento'
+                WHERE ixc_os_id=?
+            """, (ixc_os_id,))
+            try:
+                ixc_insert(
+                    "UPDATE ixcprovedor.su_oss_chamado SET status='A', id_tecnico=0 WHERE id=%s",
+                    (ixc_os_id,)
+                )
+            except Exception as e:
+                print(f"[WARN] IXC encaminhar: {e}")
+
+            # Notificar Edla e Rudinedja
+            for uid in [1178, 198093]:
+                criar_notificacao(uid, "os_cliente_ausente",
+                    f"👤 Cliente ausente — OS #{ixc_os_id}",
+                    f"{cliente_nome} não estava. OS devolvida para agendamento.")
+
+            # Telegram grupo técnicos
+            import urllib.request, json as _json
+            BOT = "8246203939:AAEFRu8dQiGk0qrIfbb9-qyHYO1wkczbj7Q"
+            CHAT = "-5176265124"
+            msg = f"👤 *Cliente ausente*\nOS #{ixc_os_id} — {cliente_nome}\nTécnico: {usuario['nome']}\nOS devolvida para agendamento."
+            try:
+                req = urllib.request.Request(
+                    f"https://api.telegram.org/bot{BOT}/sendMessage",
+                    data=_json.dumps({"chat_id": CHAT, "text": msg, "parse_mode": "Markdown"}).encode(),
+                    headers={"Content-Type": "application/json"}
+                )
+                urllib.request.urlopen(req, timeout=5)
+            except Exception as e:
+                print(f"[WARN] Telegram: {e}")
+
+        conn.commit()
+        conn.close()
+        return {"ok": True, "acao": acao}
+
+    except Exception as e:
+        conn.close()
+        raise HTTPException(500, str(e))
+
 @router.post("/sync-os")
 def sync_os_manual(usuario=Depends(requer_tecnico)):
     import subprocess, sys
