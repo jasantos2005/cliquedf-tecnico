@@ -264,8 +264,22 @@ let filtroDia = 'hoje';
 let modoOffline = localStorage.getItem('modo_offline')==='1';
 
 const CHECKLISTS = {
-  20: ['Rádio/ONU offline no sistema','Cliente bloqueado por inadimplência','Queda de energia recente','Roteador ligado (verificar luzes)','Orientado a reiniciar roteador (2min)','Outros dispositivos sem acesso','Cabo conectado corretamente','Problema persiste — técnico necessário'],
-  21: ['Cliente próximo do roteador','Lentidão em todos os dispositivos','Usando Wi-Fi (não cabo)','Teste de velocidade realizado','Franquia verificada no sistema','Muitos dispositivos conectados','Orientado a reiniciar roteador','Problema persiste — técnico necessário'],
+  227: ['Atendido por', 'Modelo do roteador', 'Porta utilizada na CTO', 'Fibra identificada', 'Habilitou acesso remoto', 'Mudou senha padrão', 'Ativou IPv6', 'Foto telhado/passagem do cabo', 'Foto CTO com fibra nomeada', 'Foto arrumação PTO/ONU/Roteador', 'Print teste de velocidade', 'Foto leitura potenciômetro na CTO', 'Foto leitura potenciômetro casa do cliente', 'Foto APR', 'Foto MAC ONU'],
+  19: ['Atendido por', 'Modelo do roteador', 'Porta utilizada na CTO', 'Fibra identificada', 'Habilitou acesso remoto', 'Mudou senha padrão', 'Ativou IPv6', 'Foto telhado/passagem do cabo', 'Foto CTO com fibra nomeada', 'Foto arrumação PTO/ONU/Roteador', 'Print teste de velocidade', 'Foto leitura potenciômetro na CTO', 'Foto leitura potenciômetro casa do cliente', 'Foto APR', 'Foto MAC ONU'],
+  92: ['Atendido por', 'Modelo do roteador', 'Porta utilizada na CTO', 'Fibra identificada', 'Habilitou acesso remoto', 'Mudou senha padrão', 'Ativou IPv6', 'Foto telhado/passagem do cabo', 'Foto CTO com fibra nomeada', 'Foto arrumação PTO/ONU/Roteador', 'Print teste de velocidade', 'Foto leitura potenciômetro na CTO', 'Foto leitura potenciômetro casa do cliente', 'Foto APR', 'Foto MAC ONU'],
+  43: ['Valor pago', 'Descrição do atendimento', 'Produto: Roteador', 'Produto: Cabos', 'Produto: Roku TV', 'Produto: Material'],
+  105: ['Atendido por', 'Problema relatado pelo cliente', 'Modelo da TV', 'Verificações realizadas', 'Diagnóstico', 'Solução aplicada', 'Foto potência', 'App funcionando'],
+  20: ['Potência medida', 'Diagnóstico', 'Solução aplicada', 'Sinal WiFi atende toda residência', 'Recomendável instalar repetidor', 'Por quem foi recebido', 'Problema relatado pelo cliente', 'Modelo do roteador', 'Roteador atualizado', 'Quantidade de dispositivos conectados', 'Canal WiFi verificado', 'Cabo de rede em boas condições', 'Temperatura ONU', 'Justificativa de possível atraso'],
+  21: ['Potência medida', 'Diagnóstico', 'Solução aplicada', 'Sinal WiFi atende toda residência', 'Recomendável instalar repetidor', 'Por quem foi recebido', 'Problema relatado pelo cliente', 'Modelo do roteador', 'Roteador atualizado', 'Quantidade de dispositivos conectados', 'Canal WiFi verificado', 'Cabo de rede em boas condições', 'Temperatura ONU', 'Justificativa de possível atraso'],
+  44: ['Por quem foi recebido', 'Problema relatado pelo cliente', 'Modelo do roteador', 'Verificações realizadas', 'Diagnóstico', 'Solução aplicada', 'Justificativa de possível atraso'],
+  22: ['Equipamentos recolhidos: ONU', 'Equipamentos recolhidos: PTO', 'Equipamentos recolhidos: Roteador', 'Foto ONU', 'Foto PTO', 'Foto Roteador', 'Observações'],
+  29: ['Equipamentos recolhidos: ONU', 'Equipamentos recolhidos: PTO', 'Equipamentos recolhidos: Roteador', 'Foto ONU', 'Foto PTO', 'Foto Roteador', 'Observações'],
+  111: ['Equipamentos recolhidos: ONU', 'Equipamentos recolhidos: PTO', 'Equipamentos recolhidos: Roteador', 'Foto ONU', 'Foto PTO', 'Foto Roteador', 'Observações'],
+  89: ['Fibra retirada', 'Metragem retirada'],
+  91: ['Metragem vendida', 'Valor cobrado'],
+  48: ['Modelo do roteador instalado', 'MAC do roteador'],
+  239: ['Equipamento instalado', 'Modelo do equipamento', 'Foto equipamentos', 'Foto MAC', 'Foto da potência', 'Equipamento retirado', 'Modelo do equipamento retirado', 'Solução aplicada'],
+  30: ['Equipamento instalado', 'Modelo do equipamento', 'Foto equipamentos', 'Foto MAC', 'Foto da potência', 'Equipamento retirado', 'Modelo do equipamento retirado', 'Solução aplicada'],
   16: ['Barreira interna (fiação na residência)','Sem sinal na TV','Problema no app/streaming','Equipamento com defeito','Endereço confirmado para visita','Melhor horário confirmado','Descrição detalhada registrada'],
   248: ['Motivo do cancelamento identificado','Tempo de cliente verificado','Histórico de problemas verificado','Oferta de desconto apresentada','Oferta de upgrade apresentada','Cliente aceitou proposta','Cliente recusou — motivo registrado'],
   227: ['Equipamentos verificados','Sinal testado','ONU configurada','Velocidade testada','Cliente orientado sobre uso'],
@@ -391,9 +405,11 @@ function renderHome() {
   document.getElementById('kpi-pendentes').textContent = pendentes;
   document.getElementById('kpi-finalizadas').textContent = finalizadas;
 
+  const diaHoje = dataFiltro('hoje');
   const proxima = osData.find(o=>o.status_hub==='deslocamento') ||
                   osData.find(o=>o.status_hub==='execucao') ||
-                  osData.find(o=>o.status_hub==='pendente');
+                  osData.find(o=>o.status_hub==='pendente') ||
+                  osData.find(o=>['agendada','reagendada'].includes(o.status_hub) && (o.data_reservada||'').substring(0,10)===diaHoje);
   const box = document.getElementById('home-proxima');
   if (proxima) {
     box.innerHTML = `
@@ -422,7 +438,7 @@ function setFiltroDia(dia) {
 }
 
 function dataFiltro(dia) {
-  const d = new Date();
+  const d = new Date(new Date().getTime() - 3*60*60*1000);
   if (dia === 'ontem') d.setDate(d.getDate()-1);
   if (dia === 'amanha') d.setDate(d.getDate()+1);
   return d.toISOString().substring(0,10);
