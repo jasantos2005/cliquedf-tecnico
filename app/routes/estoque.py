@@ -66,7 +66,7 @@ def _sync_estoque_tecnico(id_tecnico: int, ixc_almox_id: int):
             for r in conn.execute("SELECT ixc_produto_id, id FROM ht_produtos WHERE ixc_produto_id > 0").fetchall()
         }
         saldos = ixc_select(
-            "SELECT id_produto, saldo FROM estoque_produtos_almox_filial WHERE id_almox=%s AND produto_ativo='S'",
+            "SELECT id_produto, SUM(saldo) as saldo FROM estoque_produtos_almox_filial WHERE id_almox=%s AND produto_ativo='S' GROUP BY id_produto",
             (ixc_almox_id,)
         )
         for s in saldos:
@@ -78,7 +78,7 @@ def _sync_estoque_tecnico(id_tecnico: int, ixc_almox_id: int):
                     ON CONFLICT(id_tecnico, id_produto) DO UPDATE SET
                         quantidade=excluded.quantidade,
                         ultima_atualizacao=excluded.ultima_atualizacao
-                """, (id_tecnico, hub_id, s["saldo"], ixc_almox_id))
+                """, (id_tecnico, hub_id, float(s["saldo"]), ixc_almox_id))
         conn.commit()
         conn.close()
     except Exception as e:
@@ -354,8 +354,9 @@ def sync_estoque(usuario=Depends(requer_supervisor)):
         updated = 0
         for tec in tecnicos:
             saldos = ixc_select(f"""
-                SELECT id_produto, saldo FROM estoque_produtos_almox_filial
+                SELECT id_produto, SUM(saldo) as saldo FROM estoque_produtos_almox_filial
                 WHERE id_almox = {tec['ixc_almox_id']} AND produto_ativo = 'S'
+                GROUP BY id_produto
             """)
             for s in saldos:
                 local_id = prod_map.get(s["id_produto"])
