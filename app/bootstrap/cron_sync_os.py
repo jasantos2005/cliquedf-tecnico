@@ -232,3 +232,43 @@ def run():
 
 if __name__ == "__main__":
     run()
+
+def verificar_estoque_baixo():
+    MINIMOS = {
+        183: ("Conector SC-APC", 6), 184: ("Conector SC-APC usado", 6),
+        137: ("Caixa PTO", 2), 138: ("Caixa PTO", 2), 139: ("Caixa PTO", 2),
+        140: ("Caixa PTO", 2), 142: ("Caixa PTO", 2),
+        391: ("ONU/ONT", 2), 392: ("ONU/ONT", 2), 394: ("ONU/ONT", 2),
+        379: ("ONU/ONT", 2), 481: ("Roteador", 1), 452: ("Roteador", 1),
+    }
+    try:
+        import sqlite3 as _sq
+        conn = _sq.connect(DB)
+        conn.row_factory = _sq.Row
+        tecnicos = conn.execute("SELECT id FROM ht_usuarios WHERE ativo=1 AND nivel=10").fetchall()
+        for tec in tecnicos:
+            for prod_id, (nome, minimo) in MINIMOS.items():
+                row = conn.execute(
+                    "SELECT quantidade FROM ht_estoque_tecnico WHERE id_tecnico=? AND id_produto=?",
+                    (tec["id"], prod_id)
+                ).fetchone()
+                if row and 0 < float(row["quantidade"]) <= minimo:
+                    ja = conn.execute("""
+                        SELECT id FROM ht_notificacoes
+                        WHERE id_tecnico=? AND tipo='estoque_baixo'
+                        AND titulo LIKE ? AND DATE(criada_em)=DATE('now','-3 hours')
+                    """, (tec["id"], f"%{nome}%")).fetchone()
+                    if not ja:
+                        conn.execute(
+                            "INSERT INTO ht_notificacoes (id_tecnico, tipo, titulo, corpo) VALUES (?,?,?,?)",
+                            (tec["id"], "estoque_baixo",
+                             f"⚠️ Estoque baixo: {nome}",
+                             f"Você tem apenas {row['quantidade']} unidade(s). Faça uma requisição.")
+                        )
+        conn.commit()
+        conn.close()
+        print("[ESTOQUE_BAIXO] verificado")
+    except Exception as e:
+        print(f"[ESTOQUE_BAIXO] {e}")
+
+verificar_estoque_baixo()

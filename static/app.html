@@ -165,8 +165,11 @@ textarea:focus,select:focus{border-color:var(--accent)}
     <div style="display:flex;gap:6px;margin-bottom:12px">
       <button id="aba-meu-estoque" onclick="estoqueAba('meu')"
         style="flex:1;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:.85rem;cursor:pointer">📦 Meu Estoque</button>
-      <button id="aba-requisicoes" onclick="estoqueAba('req')"
-        style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-weight:600;font-size:.85rem;cursor:pointer">📋 Requisições</button>
+      <button id="aba-requisicoes" onclick="estoqueAba('req');limparBadgeReq()"
+        style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-weight:600;font-size:.85rem;cursor:pointer;position:relative">
+        📋 Requisições
+        <span id="badge-req" style="display:none;position:absolute;top:4px;right:8px;background:#22c55e;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.6rem;font-weight:900;align-items:center;justify-content:center"></span>
+      </button>
     </div>
 
     <!-- Resumo do dia -->
@@ -230,6 +233,15 @@ textarea:focus,select:focus{border-color:var(--accent)}
       </button>
     </div>
     <button class="btn btn-red" onclick="logout()">Sair</button>
+
+    <!-- Notificações -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🔔 Notificações</span>
+        <button onclick="marcarTodasLidas()" style="font-size:.72rem;color:var(--accent2);background:none;border:none;cursor:pointer;font-weight:700">Marcar todas como lidas</button>
+      </div>
+      <div id="lista-notificacoes" class="card-body"><div class="loading">Carregando...</div></div>
+    </div>
   </div>
 
   <!-- BOTTOM NAV -->
@@ -251,8 +263,9 @@ textarea:focus,select:focus{border-color:var(--accent)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Histórico
     </button>
-    <button class="nav-btn" id="nav-perfil" onclick="navTo('perfil')">
+    <button class="nav-btn" id="nav-perfil" onclick="navTo('perfil');carregarNotificacoes()" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span id="badge-notif" style="display:none;position:absolute;top:4px;right:12px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.6rem;font-weight:900;align-items:center;justify-content:center"></span>
       Perfil
     </button>
   </div>
@@ -489,6 +502,7 @@ function iniciarApp() {
   document.getElementById('perfil-login').textContent = 'Login: ' + (usuario.login || '—');
   atualizarOnline();
   carregarEstoqueCache().then(() => { carregarOS(); });
+  verificarBadgeNotif();
   iniciarGPS();
   // Atualizar botao offline
   const btnOff = document.getElementById('btn-modo-offline');
@@ -1292,6 +1306,13 @@ setInterval(async function() {
     if (novas.length > 0) {
       toast('📋 ' + novas.length + ' nova(s) OS recebida(s)!', 'ok');
     }
+    // Verificar requisições aprovadas no background
+    try {
+      const reqs = await api('/api/estoque/minhas-requisicoes');
+      verificarReqAprovadas(reqs);
+    } catch(e) {}
+    // Atualizar badge notificações
+    verificarBadgeNotif();
   } catch(e) {}
 }, 5 * 60 * 1000);
 
@@ -1306,10 +1327,41 @@ setInterval(async function() {
   } catch(e) {}
 }, 2 * 60 * 1000);
 
+var _reqStatusAnterior = {};
+
+function limparBadgeReq() {
+  const b = document.getElementById('badge-req');
+  if (b) b.style.display = 'none';
+  // Marcar como visto no localStorage
+  const aprovadas = Object.keys(_reqStatusAnterior).filter(id => _reqStatusAnterior[id]==='aprovada');
+  localStorage.setItem('req_vistas', JSON.stringify(aprovadas));
+}
+
+function verificarReqAprovadas(rows) {
+  const vistas = JSON.parse(localStorage.getItem('req_vistas')||'[]');
+  const novasAprovadas = rows.filter(r =>
+    r.status === 'aprovada' && !vistas.includes(String(r.id))
+  );
+  const badge = document.getElementById('badge-req');
+  if (novasAprovadas.length > 0) {
+    if (badge) { badge.textContent = novasAprovadas.length; badge.style.display = 'inline-flex'; }
+    // Toast apenas se mudou desde ultima verificação
+    const ids = novasAprovadas.map(r=>String(r.id));
+    const anterior = Object.keys(_reqStatusAnterior).filter(id => _reqStatusAnterior[id]==='pendente');
+    const mudou = ids.some(id => anterior.includes(id));
+    if (mudou) toast('✅ Requisição aprovada! Retire os materiais no almoxarifado.', 'ok');
+  } else {
+    if (badge) badge.style.display = 'none';
+  }
+  // Atualizar mapa de status
+  rows.forEach(r => { _reqStatusAnterior[String(r.id)] = r.status; });
+}
+
 async function carregarMinhasRequisicoes() {
   try {
     await api('/api/estoque/sync-status', {method:'POST'});
     const rows = await api('/api/estoque/minhas-requisicoes');
+    verificarReqAprovadas(rows);
     const el = document.getElementById('lista-req');
     if (!rows.length) { el.innerHTML='<div class="empty">Nenhuma requisição</div>'; return; }
     const statusColor = {pendente:'var(--yellow)',aprovada:'var(--green)',rejeitada:'var(--red)'};
@@ -1653,6 +1705,67 @@ async function confirmarReagendar() {
   } catch(e) { toast('Erro ao reagendar','err'); }
 }
 
+// ── NOTIFICAÇÕES ─────────────────────────────────────────────
+const ICONE_NOTIF = {
+  os_atribuida: '📋', requisicao_aprovada: '✅', requisicao_reprovada: '❌',
+  estoque_baixo: '⚠️', os_reagendada: '📅'
+};
+
+async function carregarNotificacoes() {
+  try {
+    const rows = await api('/api/os/notificacoes');
+    const box = document.getElementById('lista-notificacoes');
+    if (!box) return;
+    const naoLidas = rows.filter(r => !r.lida).length;
+    // Atualizar badge
+    const badge = document.getElementById('badge-notif');
+    if (badge) { badge.textContent = naoLidas; badge.style.display = naoLidas > 0 ? 'inline-flex' : 'none'; }
+    if (!rows.length) { box.innerHTML = '<div class="empty">Nenhuma notificação</div>'; return; }
+    box.innerHTML = rows.map(r => `
+      <div onclick="lerNotificacao(${r.id}, this)"
+        style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;opacity:${r.lida?'0.5':'1'}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="flex:1">
+            <div style="font-size:.88rem;font-weight:${r.lida?'500':'800'}">${ICONE_NOTIF[r.tipo]||'🔔'} ${r.titulo}</div>
+            ${r.corpo ? `<div style="font-size:.78rem;color:var(--muted);margin-top:3px">${r.corpo}</div>` : ''}
+            <div style="font-size:.7rem;color:var(--muted);margin-top:4px">${r.criada_em}</div>
+          </div>
+          ${!r.lida ? '<div style="width:8px;height:8px;border-radius:50%;background:#ef4444;margin-top:4px;flex-shrink:0"></div>' : ''}
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function lerNotificacao(id, el) {
+  try {
+    await api('/api/os/notificacoes/'+id+'/ler', {method:'POST'});
+    el.style.opacity = '0.5';
+    el.querySelector('div > div:last-child')?.remove();
+    // Atualizar badge
+    const badge = document.getElementById('badge-notif');
+    if (badge) {
+      const n = parseInt(badge.textContent||'0') - 1;
+      badge.textContent = n; badge.style.display = n > 0 ? 'inline-flex' : 'none';
+    }
+  } catch(e) {}
+}
+
+async function marcarTodasLidas() {
+  try {
+    await api('/api/os/notificacoes/ler-todas', {method:'POST'});
+    await carregarNotificacoes();
+    toast('✅ Todas marcadas como lidas', 'ok');
+  } catch(e) {}
+}
+
+async function verificarBadgeNotif() {
+  try {
+    const r = await api('/api/os/notificacoes/nao-lidas');
+    const badge = document.getElementById('badge-notif');
+    if (badge) { badge.textContent = r.total; badge.style.display = r.total > 0 ? 'inline-flex' : 'none'; }
+  } catch(e) {}
+}
+
 async function sincronizarAgora() {
   const btn = document.getElementById('btn-sync');
   btn.disabled = true;
@@ -1824,6 +1937,7 @@ async function abrirEditarRequisicao(id) {
 
   try {
     const rows = await api('/api/estoque/minhas-requisicoes');
+    verificarReqAprovadas(rows);
     const req = rows.find(r => r.id === id);
     if (req && req.itens) {
       req.itens.forEach(i => {

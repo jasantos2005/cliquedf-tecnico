@@ -74,6 +74,65 @@ def historico_os(inicio: Optional[str] = None, fim: Optional[str] = None, usuari
     db.close()
     return [dict(r) for r in rows]
 
+# ── Notificações ─────────────────────────────────────────────────────────────
+
+def criar_notificacao(id_tecnico: int, tipo: str, titulo: str, corpo: str = ""):
+    """Utilitário para inserir notificação — usar em outros módulos."""
+    try:
+        db = get_db()
+        db.execute(
+            "INSERT INTO ht_notificacoes (id_tecnico, tipo, titulo, corpo) VALUES (?,?,?,?)",
+            (id_tecnico, tipo, titulo, corpo)
+        )
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"[NOTIF] Erro ao criar notificacao: {e}")
+
+@router.get("/notificacoes")
+def listar_notificacoes(usuario=Depends(requer_tecnico)):
+    db = get_db()
+    rows = db.execute("""
+        SELECT id, tipo, titulo, corpo, lida, criada_em
+        FROM ht_notificacoes
+        WHERE id_tecnico = ?
+        ORDER BY criada_em DESC LIMIT 50
+    """, (usuario["id"],)).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+@router.get("/notificacoes/nao-lidas")
+def contar_nao_lidas(usuario=Depends(requer_tecnico)):
+    db = get_db()
+    count = db.execute(
+        "SELECT COUNT(*) FROM ht_notificacoes WHERE id_tecnico=? AND lida=0",
+        (usuario["id"],)
+    ).fetchone()[0]
+    db.close()
+    return {"total": count}
+
+@router.post("/notificacoes/{notif_id}/ler")
+def marcar_lida(notif_id: int, usuario=Depends(requer_tecnico)):
+    db = get_db()
+    db.execute(
+        "UPDATE ht_notificacoes SET lida=1 WHERE id=? AND id_tecnico=?",
+        (notif_id, usuario["id"])
+    )
+    db.commit()
+    db.close()
+    return {"ok": True}
+
+@router.post("/notificacoes/ler-todas")
+def marcar_todas_lidas(usuario=Depends(requer_tecnico)):
+    db = get_db()
+    db.execute(
+        "UPDATE ht_notificacoes SET lida=1 WHERE id_tecnico=? AND lida=0",
+        (usuario["id"],)
+    )
+    db.commit()
+    db.close()
+    return {"ok": True}
+
 @router.get("/{ixc_os_id}")
 def detalhe_os(ixc_os_id: int, usuario=Depends(requer_tecnico)):
     db = get_db()
@@ -405,6 +464,15 @@ def atribuir_os(ixc_os_id: int, data: dict, usuario=Depends(requer_supervisor)):
     except Exception as e:
         print(f"[WARN] Erro ao atribuir no IXC OS {ixc_os_id}: {e}")
 
+    # Notificar tecnico
+    try:
+        tec = db.execute("SELECT id FROM ht_usuarios WHERE ixc_funcionario_id=?", (ixc_func_id,)).fetchone()
+        if tec:
+            criar_notificacao(tec["id"], "os_atribuida",
+                f"📋 Nova OS atribuída — #{ixc_os_id}",
+                f"OS agendada para {data.get('data_reservada', 'hoje')}.")
+    except Exception as e:
+        print(f"[WARN] Notif atribuir: {e}")
     return {"ok": True}
 
 # ── KM + DESLOCAMENTO ────────────────────────────────────────
@@ -620,3 +688,4 @@ def sync_fotos_ixc(usuario=Depends(requer_tecnico)):
         return {"ok": True, "msg": f"{total_enviadas} fotos enviadas"}
     finally:
         db.close()
+

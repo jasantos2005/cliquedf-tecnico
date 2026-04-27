@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-from app.services.auth import requer_tecnico, requer_supervisor, get_db
+from app.services.auth import requer_tecnico, requer_supervisor
+from app.routes.os import criar_notificacao, get_db
 from app.services.ixc_db import ixc_select, ixc_insert
 
 router = APIRouter(prefix="/api/estoque", tags=["estoque"])
@@ -325,6 +326,12 @@ def aprovar_requisicao(body: AprovarRequisicaoBody, usuario=Depends(requer_super
         """, (usuario["id"], body.id_requisicao))
 
         db.commit()
+        # Notificar tecnico
+        req = db.execute("SELECT id_tecnico FROM ht_requisicoes WHERE id=?", (body.id_requisicao,)).fetchone()
+        if req:
+            criar_notificacao(req["id_tecnico"], "requisicao_aprovada",
+                "✅ Requisição aprovada!",
+                f"{total_aprovado} item(s) aprovado(s). Retire os materiais no almoxarifado.")
         return {"ok": True, "msg": f"{total_aprovado} itens aprovados e transferidos"}
     finally:
         db.close()
