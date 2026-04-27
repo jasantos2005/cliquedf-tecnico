@@ -331,7 +331,7 @@ async function carregarEstoqueCache() {
   try {
     const rows = await api('/api/estoque/meu');
     estoqueAtual = {};
-    (rows||[]).forEach(item => { estoqueAtual[item.id_produto] = item.quantidade; });
+    (rows||[]).forEach(item => { estoqueAtual[item.id || item.id_produto] = item.quantidade; });
   } catch(e) {}
 }
 
@@ -479,7 +479,7 @@ function iniciarApp() {
   document.getElementById('perfil-nome').textContent = usuario.nome;
   document.getElementById('perfil-login').textContent = 'Login: ' + (usuario.login || '—');
   atualizarOnline();
-  carregarOS();
+  carregarEstoqueCache().then(() => { carregarOS(); });
   iniciarGPS();
   // Atualizar botao offline
   const btnOff = document.getElementById('btn-modo-offline');
