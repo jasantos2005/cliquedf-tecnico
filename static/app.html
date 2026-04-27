@@ -141,6 +141,7 @@ textarea:focus,select:focus{border-color:var(--accent)}
       <div class="kpi"><div class="kpi-num" id="kpi-pendentes">0</div><div class="kpi-label">Pendentes</div></div>
       <div class="kpi"><div class="kpi-num" id="kpi-finalizadas" style="color:var(--green)">0</div><div class="kpi-label">Finalizadas hoje</div></div>
     </div>
+    <div id="alerta-estoque-home" style="display:none"></div>
     <div id="home-proxima"></div>
     <div style="margin-top:16px">
       <button class="btn btn-outline" onclick="navTo('os')">Ver todas as OS →</button>
@@ -286,6 +287,146 @@ const CHECKLISTS = {
   227: ['Equipamentos verificados','Sinal testado','ONU configurada','Velocidade testada','Cliente orientado sobre uso'],
 };
 
+
+// ── MOTOR DE ESTOQUE INTELIGENTE ─────────────────────────────
+const PADRAO_OS = {
+  // Instalação fibra (227, 19, 92)
+  instalacao: {
+    assuntos: [227, 19, 92],
+    itens: [
+      { nome: 'ONU/ONT', ids_produto: [377,378,379,382,384,385,386,387,390,391,392,394,397,402], qtd: 1 },
+      { nome: 'Conector SC-APC', ids_produto: [183,184], qtd: 2 },
+      { nome: 'Cabo óptico drop (1 rolo)', ids_produto: [93,94,102], qtd: 0.15 },
+      { nome: 'Caixa PTO', ids_produto: [137,138,139,140,142], qtd: 1 },
+      { nome: 'Cordão óptico', ids_produto: [199,200,204,209], qtd: 0.5 },
+    ]
+  },
+  // Venda equipamento (43)
+  venda_equip: {
+    assuntos: [43],
+    itens: [
+      { nome: 'Roteador', ids_produto: [451,452,453,454,455,456,463,464,465,466,470,471,472,474,475,477,479,480,481,482], qtd: 1 },
+    ]
+  },
+  // Venda cabos (91)
+  venda_cabo: {
+    assuntos: [91],
+    itens: [
+      { nome: 'Cabo UTP (metros)', ids_produto: [110], qtd: 0.33 },
+    ]
+  },
+  // Instalar comodato (30, 239)
+  comodato: {
+    assuntos: [30, 239],
+    itens: [
+      { nome: 'ONU/ONT', ids_produto: [377,378,379,382,384,385,386,387,390,391,392,394,397,402], qtd: 1 },
+      { nome: 'Roteador', ids_produto: [451,452,453,454,455,456,463,464,465,466,470,471,472,474,475,477,479,480,481,482], qtd: 1 },
+    ]
+  }
+};
+
+let estoqueAtual = {};
+
+async function carregarEstoqueCache() {
+  try {
+    const rows = await api('/api/estoque/meu');
+    estoqueAtual = {};
+    (rows||[]).forEach(item => { estoqueAtual[item.id_produto] = item.quantidade; });
+  } catch(e) {}
+}
+
+function analisarEstoqueParaOS() {
+  const diaHoje = dataFiltro('hoje');
+  const osHoje = (osData||[]).filter(o =>
+    !['finalizada'].includes(o.status_hub) &&
+    (o.data_reservada||'').substring(0,10) === diaHoje
+  );
+
+  // Contar OS por tipo
+  const contagem = {};
+  Object.entries(PADRAO_OS).forEach(([tipo, cfg]) => {
+    contagem[tipo] = osHoje.filter(o => cfg.assuntos.includes(o.id_assunto)).length;
+  });
+
+  // Calcular necessidade vs estoque
+  const faltando = [];
+  Object.entries(PADRAO_OS).forEach(([tipo, cfg]) => {
+    const qtdOS = contagem[tipo];
+    if (qtdOS === 0) return;
+    cfg.itens.forEach(item => {
+      const necessario = item.qtd * qtdOS;
+      const disponivel = item.ids_produto.reduce((acc, id) => acc + (estoqueAtual[id] || 0), 0);
+      if (disponivel < necessario) {
+        faltando.push({
+          nome: item.nome,
+          necessario: necessario,
+          disponivel: disponivel,
+          falta: necessario - disponivel,
+          ids_produto: item.ids_produto,
+          tipo: tipo,
+          qtdOS: qtdOS
+        });
+      }
+    });
+  });
+
+  return faltando;
+}
+
+function renderAlertaEstoque() {
+  const faltando = analisarEstoqueParaOS();
+  const el = document.getElementById('alerta-estoque-home');
+  if (!el) return;
+  if (faltando.length === 0) { el.style.display='none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);border-radius:10px;padding:14px;margin-bottom:14px;cursor:pointer" onclick="abrirModalEstoqueInsuficiente()">
+      <div style="font-weight:800;color:#ef4444;margin-bottom:6px">⚠️ Estoque insuficiente para hoje</div>
+      <div style="font-size:.82rem;color:var(--muted)">${faltando.length} item(s) abaixo do necessário para as OS do dia</div>
+      <div style="font-size:.78rem;color:var(--accent2);margin-top:6px;font-weight:600">Toque para ver e requisitar →</div>
+    </div>`;
+}
+
+function abrirModalEstoqueInsuficiente() {
+  const faltando = analisarEstoqueParaOS();
+  const modal = document.getElementById('modal-os');
+  const content = document.getElementById('modal-os-content');
+  modal.style.display = 'flex';
+  const linhas = faltando.map(f => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:700;font-size:.9rem">${f.nome}</div>
+        <div style="font-size:.75rem;color:var(--muted)">Necessário: ${f.necessario} · Disponível: ${f.disponivel}</div>
+      </div>
+      <div style="color:#ef4444;font-weight:900;font-size:1rem">-${f.falta}</div>
+    </div>`).join('');
+  content.innerHTML = `
+    <div class="modal-title">⚠️ Estoque insuficiente</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Itens necessários para as OS de hoje que estão em falta:</div>
+    ${linhas}
+    <button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="requisitarFaltantes()">📋 Criar requisição dos itens em falta</button>
+    <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="fecharModal()">Fechar</button>`;
+}
+
+async function requisitarFaltantes() {
+  const faltando = analisarEstoqueParaOS();
+  if (!faltando.length) return;
+  try {
+    const itens = faltando.map(item => {
+      const idProduto = item.ids_produto.find(id => estoqueAtual[id] !== undefined) || item.ids_produto[0];
+      return { id_produto: idProduto, qtd_solicitada: item.falta, obs: 'Sugerido pelo app' };
+    }).filter(i => i.id_produto);
+    await api('/api/estoque/requisicao', {
+      method: 'POST',
+      body: JSON.stringify({ itens: itens, obs: 'Requisição automática — OS do dia ' + dataFiltro('hoje') })
+    });
+    fecharModal();
+    toast('✅ Requisição criada com sucesso!', 'ok');
+  } catch(e) {
+    toast('Erro ao criar requisição: ' + (e.message||e), 'erro');
+  }
+}
+
 // ── AUTH ─────────────────────────────────────────────────────
 function token() { return localStorage.getItem('ht_token') || ''; }
 
@@ -371,7 +512,7 @@ async function carregarOS() {
     rows.sort((a,b)=>(a.data_reservada||a.data_agenda||a.data_abertura||'9999').localeCompare(b.data_reservada||b.data_agenda||b.data_abertura||'9999'));
     let ordem=1;
     rows.forEach(o=>{if(['pendente','agendada','reagendada'].includes(o.status_hub))o._ordem=ordem++;else o._ordem=0;});
-    osData=rows; _registrarOsAtuais(); renderOS(); renderHome();
+    osData=rows; _registrarOsAtuais(); renderOS(); renderHome(); renderAlertaEstoque();
   } catch(e) { console.log('Offline — usando cache'); }
 }
 
