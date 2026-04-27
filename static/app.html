@@ -169,6 +169,11 @@ textarea:focus,select:focus{border-color:var(--accent)}
         style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-weight:600;font-size:.85rem;cursor:pointer">📋 Requisições</button>
     </div>
 
+    <!-- Resumo do dia -->
+    <div id="card-resumo-dia" style="display:none;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-weight:800;font-size:.85rem;margin-bottom:10px">📋 Checklist de saída — hoje</div>
+      <div id="resumo-dia-itens"></div>
+    </div>
     <!-- Meu Estoque -->
     <div id="painel-meu-estoque">
       <div class="card">
@@ -1370,6 +1375,62 @@ function _grupoCabecalho(titulo, icone) {
   return `<div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:12px 0 4px;margin-top:4px">${icone} ${titulo}</div>`;
 }
 
+function renderResumoDia() {
+  const diaHoje = dataFiltro('hoje');
+  const osHoje = (osData||[]).filter(o =>
+    !['finalizada'].includes(o.status_hub) &&
+    (o.data_reservada||'').substring(0,10) === diaHoje
+  );
+
+  // Contar por tipo
+  const contagem = {};
+  Object.entries(PADRAO_OS).forEach(([tipo, cfg]) => {
+    contagem[tipo] = osHoje.filter(o => cfg.assuntos.includes(o.id_assunto)).length;
+  });
+
+  const totalOS = Object.values(contagem).reduce((a,b)=>a+b, 0);
+  const card = document.getElementById('card-resumo-dia');
+  const box = document.getElementById('resumo-dia-itens');
+  if (!card || !box) return;
+
+  if (totalOS === 0) { card.style.display='none'; return; }
+
+  // Montar lista do que levar
+  const levar = [];
+  Object.entries(PADRAO_OS).forEach(([tipo, cfg]) => {
+    const qtdOS = contagem[tipo];
+    if (qtdOS === 0) return;
+    cfg.itens.forEach(item => {
+      const necessario = item.qtd * qtdOS;
+      const disponivel = item.ids_produto.reduce((acc, id) => acc + (estoqueAtual[id]||0), 0);
+      const ok = disponivel >= necessario;
+      levar.push({ nome: item.nome, necessario, disponivel, ok });
+    });
+  });
+
+  // Deduplicar por nome somando
+  const mapa = {};
+  levar.forEach(i => {
+    if (!mapa[i.nome]) mapa[i.nome] = { necessario: 0, disponivel: i.disponivel, ok: true };
+    mapa[i.nome].necessario += i.necessario;
+    mapa[i.nome].ok = mapa[i.nome].necessario <= i.disponivel;
+  });
+
+  const tiposOS = Object.entries(contagem).filter(([,v])=>v>0)
+    .map(([t,v]) => v + ' ' + ({instalacao:'instalação',venda_equip:'venda equip.',venda_cabo:'venda cabo',comodato:'comodato'}[t]||t))
+    .join(', ');
+
+  box.innerHTML = `
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">${totalOS} OS hoje — ${tiposOS}</div>
+    ${Object.entries(mapa).map(([nome, d]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="font-size:.83rem;font-weight:600">${d.ok?'✅':'❌'} ${nome}</div>
+        <div style="font-size:.8rem;color:${d.ok?'var(--accent2)':'#ef4444'};font-weight:700">${d.necessario} ${d.ok?'✓':'— faltam '+(d.necessario-d.disponivel)}</div>
+      </div>`).join('')}`;
+
+  card.style.display = 'block';
+}
+
 function filtrarEstoque(termo) {
   const box = document.getElementById('lista-estoque');
   const t = (termo||'').toLowerCase().trim();
@@ -1402,6 +1463,7 @@ function filtrarEstoque(termo) {
 }
 
 async function carregarEstoque() {
+  renderResumoDia();
   try {
     const rows = await api('/api/estoque/meu');
     _estoqueRows = rows;
