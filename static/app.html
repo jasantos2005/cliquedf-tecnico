@@ -173,6 +173,10 @@ textarea:focus,select:focus{border-color:var(--accent)}
     <div id="painel-meu-estoque">
       <div class="card">
         <div class="card-head">📦 Meu Estoque</div>
+        <div style="padding:10px 0 4px">
+          <input id="busca-estoque" type="text" placeholder="🔍 Buscar produto..." oninput="filtrarEstoque(this.value)"
+            style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.88rem;box-sizing:border-box">
+        </div>
         <div class="card-body" id="lista-estoque"><div class="loading">Carregando...</div></div>
       </div>
       <button class="btn btn-primary" style="margin-top:8px" onclick="abrirRequisicao()">+ Fazer Requisição</button>
@@ -1321,19 +1325,29 @@ async function carregarMinhasRequisicoes() {
   } catch(e) { document.getElementById('lista-req').innerHTML='<div class="empty">Erro ao carregar</div>'; }
 }
 
+var _estoqueRows = [];
+function filtrarEstoque(termo) {
+  const box = document.getElementById('lista-estoque');
+  const t = termo.toLowerCase().trim();
+  const rows = t ? _estoqueRows.filter(r => r.produto_nome.toLowerCase().includes(t)) : _estoqueRows;
+  if (!rows.length) { box.innerHTML='<div class="empty">Nenhum produto encontrado</div>'; return; }
+  box.innerHTML = rows.map(r=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:2px">${r.ixc_produto_id ? r.ixc_produto_id+' ·' : ''} ${r.unidade}</div>
+        <div style="font-size:.88rem;font-weight:600">${r.produto_nome}</div>
+      </div>
+      <div style="font-weight:800;font-size:1rem;color:${r.quantidade<=0?'var(--red)':'var(--accent2)'};margin-left:10px">${r.quantidade}</div>
+    </div>`).join('');
+}
+
 async function carregarEstoque() {
   try {
     const rows = await api('/api/estoque/meu');
+    _estoqueRows = rows;
     const box = document.getElementById('lista-estoque');
     if (!rows.length) { box.innerHTML='<div class="empty">Estoque vazio</div>'; return; }
-    box.innerHTML = rows.map(r=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.72rem;color:var(--muted);margin-bottom:2px">${r.ixc_produto_id ? r.ixc_produto_id+' ·' : ''} ${r.unidade}</div>
-          <div style="font-size:.88rem;font-weight:600">${r.produto_nome}</div>
-        </div>
-        <div style="font-weight:800;font-size:1rem;color:${r.quantidade<=0?'var(--red)':'var(--accent2)'};margin-left:10px">${r.quantidade}</div>
-      </div>`).join('');
+    filtrarEstoque(document.getElementById('busca-estoque')?.value||'');
   } catch(e) { document.getElementById('lista-estoque').innerHTML='<div class="empty">Erro ao carregar</div>'; }
 }
 
