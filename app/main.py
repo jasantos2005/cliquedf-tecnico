@@ -84,6 +84,16 @@ async def health():
     return {"status": "ok", "operacao": os.getenv("OPERACAO"), "versao": "1.0.0"}
 
 
+@app.get("/sw.js")
+def service_worker():
+    from fastapi.responses import FileResponse
+    return FileResponse("static/sw.js", media_type="application/javascript")
+
+@app.get("/manifest.json")
+def manifest():
+    from fastapi.responses import FileResponse
+    return FileResponse("static/manifest.json", media_type="application/manifest+json")
+
 @app.get("/tv")
 def tv_page():
     from fastapi.responses import FileResponse
