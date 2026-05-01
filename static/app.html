@@ -16,7 +16,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;margin:0 auto}
 /* LOGIN */
-#login-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 20px}
+#login-page{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 20px}
 .login-logo{font-size:2rem;font-weight:900;margin-bottom:8px}
 .login-logo span{color:var(--accent2)}
 .login-sub{font-size:.85rem;color:var(--muted);margin-bottom:32px}
@@ -509,6 +509,7 @@ window.addEventListener('load', () => {
   const t = localStorage.getItem('ht_token');
   const u = localStorage.getItem('ht_usuario');
   if (t && u) { usuario = JSON.parse(u); iniciarApp(); }
+  else { document.getElementById('login-page').style.display = 'flex'; }
 
   window.addEventListener('online',  () => { isOnline=true;  atualizarOnline(); if(!modoOffline){sincronizarFila();carregarOS();} });
   window.addEventListener('offline', () => { isOnline=false; atualizarOnline(); });
