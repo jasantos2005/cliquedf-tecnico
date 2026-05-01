@@ -9,7 +9,7 @@
 <style>
 :root{--bg:#0d0f14;--surface:#151920;--surface2:#1c2230;--border:#252d3d;--accent:#e8521a;--accent2:#ff6b35;--text:#e8eaf0;--muted:#6b7590;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--r:12px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;margin:0 auto}
 /* LOGIN */
 #login-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 20px}
 .login-logo{font-size:2rem;font-weight:900;margin-bottom:8px}
@@ -36,7 +36,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .online-dot.online{background:var(--green)}
 .online-dot.offline{background:var(--red)}
 /* BOTTOM NAV */
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;width:100%;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100}
 .nav-btn{flex:1;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:.65rem;font-weight:600;transition:color .15s}
 .nav-btn.active{color:var(--accent2)}
 .nav-btn svg{width:22px;height:22px}
@@ -96,6 +96,22 @@ textarea:focus,select:focus{border-color:var(--accent)}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:.85rem;font-weight:600;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .toast.ok{border-color:var(--green);color:var(--green)}
 .toast.err{border-color:var(--red);color:var(--red)}
+
+/* RESPONSIVO — telas maiores */
+@media(min-width:600px){
+  body{max-width:640px;margin:0 auto}
+  .bottom-nav{max-width:640px;left:50%;right:auto;transform:translateX(-50%)}
+  .toast{max-width:400px}
+  .kpi-row{grid-template-columns:1fr 1fr 1fr 1fr}
+  .foto-grid{grid-template-columns:1fr 1fr 1fr}
+  .page{padding:20px 28px}
+  .topbar{max-width:640px;left:50%;right:auto;transform:translateX(-50%);width:100%}
+}
+@media(min-width:900px){
+  body{max-width:780px}
+  .bottom-nav{max-width:780px}
+  .topbar{max-width:780px}
+}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end}
 .modal{background:var(--surface);border-radius:var(--r) var(--r) 0 0;padding:24px 20px;width:100%;max-height:90vh;overflow-y:auto}
 .modal-title{font-size:1rem;font-weight:800;margin-bottom:16px}
@@ -656,16 +672,32 @@ async function abrirOS(ixc_os_id) {
     const proxima = osData.find(o => o._ordem === 1);
     document.getElementById('modal-os').style.display = 'flex';
     document.getElementById('modal-os-content').innerHTML =
-      '<div class="modal-title">🔒 Fora de ordem</div>' +
+      '<div class="modal-title">⚠️ OS fora de ordem</div>' +
       '<div style="background:rgba(245,158,11,.1);border:1px solid var(--yellow);border-radius:10px;padding:14px;margin-bottom:16px;font-size:.88rem">' +
-      'Esta é a <strong>'+os._ordem+'ª OS</strong> da fila.<br>A próxima é a OS <strong>#'+(proxima?.ixc_os_id||'—')+'</strong>.</div>' +
-      (proxima?'<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="abrirOS('+proxima.ixc_os_id+')">Ver OS #'+proxima.ixc_os_id+'</button>':'') +
+      'Esta é a <strong>'+os._ordem+'ª OS</strong> da fila.<br>' +
+      (proxima?'A OS <strong>#'+proxima.ixc_os_id+'</strong> ainda está pendente.':'') +
+      '<br><br>Você pode atendê-la mesmo assim. O supervisor será notificado.</div>' +
+      '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="abrirOSForçado('+os.ixc_os_id+')">✅ Atender esta OS mesmo assim</button>' +
+      (proxima?'<button class="btn btn-outline" style="width:100%;margin-bottom:8px" onclick="abrirOS('+proxima.ixc_os_id+')">Ver OS #'+proxima.ixc_os_id+' (1ª da fila)</button>':'') +
       '<button class="btn btn-outline" style="width:100%" onclick="fecharModal()">Fechar</button>';
     return;
   }
   const modal = document.getElementById('modal-os');
   modal.style.display = 'flex';
 
+  if (os.status_hub === 'pendente') renderModalDetalhes(os);
+  else if (os.status_hub === 'agendada' || os.status_hub === 'reagendada') renderModalAgendada(os);
+  else if (os.status_hub === 'deslocamento') renderModalDeslocamento(os);
+  else if (os.status_hub === 'execucao') iniciarExecucao(os);
+  else renderModalFinalizada(os);
+}
+
+function abrirOSForçado(os_id) {
+  fecharModal();
+  const os = osData.find(o => o.ixc_os_id === os_id);
+  if (!os) return;
+  const modal = document.getElementById('modal-os');
+  modal.style.display = 'flex';
   if (os.status_hub === 'pendente') renderModalDetalhes(os);
   else if (os.status_hub === 'agendada' || os.status_hub === 'reagendada') renderModalAgendada(os);
   else if (os.status_hub === 'deslocamento') renderModalDeslocamento(os);
@@ -1989,7 +2021,7 @@ function toast(msg, tipo='ok') {
 
 <!-- MODAL REQUISICAO -->
 <div id="modal-req" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:flex-end;justify-content:center">
-  <div style="background:var(--surface2);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:92vh;display:flex;flex-direction:column">
+  <div style="background:var(--surface2);border-radius:18px 18px 0 0;width:100%;max-height:92vh;display:flex;flex-direction:column">
     <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
       <div style="font-weight:800;font-size:.95rem">📦 Nova Requisição</div>
       <button onclick="fecharRequisicao()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer">✕</button>
@@ -2025,7 +2057,7 @@ function toast(msg, tipo='ok') {
 <!-- MODAL EDITAR REQUISICAO -->
 <!-- MODAL EDITAR REQUISICAO -->
 <div id="modal-editar-req" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:flex-start;justify-content:center;padding-top:20px">
-  <div style="background:var(--surface2);border-radius:14px;width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;margin:0 12px">
+  <div style="background:var(--surface2);border-radius:14px;width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;margin:0 auto">
     <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
       <div style="font-weight:800;font-size:.95rem">✏️ Editar Requisição <span id="edit-req-titulo" style="color:var(--muted);font-weight:400"></span></div>
       <button onclick="document.getElementById('modal-editar-req').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer">✕</button>
