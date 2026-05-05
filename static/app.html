@@ -1943,18 +1943,46 @@ async function verificarBadgeNotif() {
 async function sincronizarAgora() {
   const btn = document.getElementById('btn-sync');
   btn.disabled = true;
-  btn.textContent = '⏳ Sincronizando...';
+  btn.innerHTML = '⏳ Sincronizando...';
   try {
+    // 1. Limpa cache do Service Worker
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+
+    // 2. Sincroniza fila offline pendente
+    await sincronizarFila();
+
+    // 3. Sync OS no servidor
     const r = await fetch('/api/os/sync-os', {method:'POST', headers:{Authorization:'Bearer '+token()}});
     const d = await r.json();
-    await sincronizarFila();
+
+    // 4. Recarrega OS
     await carregarOS();
-    toast(d.ok ? '✅ ' + d.msg : '⚠️ ' + d.msg, d.ok ? 'ok' : 'erro');
+
+    // 5. Recarrega estoque
+    await carregarEstoqueCache();
+
+    // 6. Recarrega notificacoes
+    try {
+      const nr = await api('/api/os/notificacoes/nao-lidas');
+      const badge = document.getElementById('badge-notif');
+      if (badge) badge.textContent = nr.total > 0 ? nr.total : '';
+    } catch(e) {}
+
+    // 7. Recarrega veiculo atual
+    try {
+      const v = await api('/api/os/veiculo-atual');
+      window._veiculoAtual = v;
+    } catch(e) {}
+
+    toast('✅ Tudo sincronizado!', 'ok');
   } catch(e) {
-    toast('Erro ao sincronizar', 'erro');
+    toast('Erro ao sincronizar: ' + e.message, 'erro');
   } finally {
     btn.disabled = false;
-    btn.textContent = '🔄 Sincronizar dados';
+    btn.innerHTML = '🔄 Sincronizar dados';
   }
 }
 
