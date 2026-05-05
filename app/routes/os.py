@@ -95,17 +95,38 @@ def historico_os(inicio: Optional[str] = None, fim: Optional[str] = None, usuari
         fim = inicio
     rows = db.execute("""
         SELECT o.*, e.solucao_registrada, e.finalizada_em,
-               e.fotos_depois_json, k.km_deslocamento
+               e.fotos_depois_json, k.km_deslocamento, k.km_saida, k.km_chegada,
+               v.placa AS veiculo_placa
         FROM ht_os o
         LEFT JOIN ht_os_execucao e ON e.ixc_os_id = o.ixc_os_id
         LEFT JOIN ht_km_os k ON k.ixc_os_id = o.ixc_os_id AND k.id_tecnico = o.id_tecnico
+        LEFT JOIN ht_veiculos v ON v.id = k.veiculo_id
         WHERE o.id_tecnico = ?
           AND o.status_hub = 'finalizada'
           AND DATE(e.finalizada_em) BETWEEN ? AND ?
         ORDER BY e.finalizada_em DESC
     """, (usuario["id"], inicio, fim)).fetchall()
+
+    # KM total rodado no periodo via ht_km_os
+    km_row = db.execute("""
+        SELECT COALESCE(SUM(km_deslocamento), 0) as km_total,
+               COUNT(DISTINCT veiculo_id) as veiculos_usados
+        FROM ht_km_os
+        WHERE id_tecnico = ?
+          AND DATE(criado_em) BETWEEN ? AND ?
+          AND km_deslocamento IS NOT NULL AND km_deslocamento > 0
+    """, (usuario["id"], inicio, fim)).fetchone()
+
     db.close()
-    return [dict(r) for r in rows]
+    resultado = [dict(r) for r in rows]
+    return {
+        "os": resultado,
+        "resumo": {
+            "total_os": len(resultado),
+            "km_total": round(float(km_row["km_total"] or 0), 1),
+            "veiculos_usados": km_row["veiculos_usados"] or 0
+        }
+    }
 
 # ── Notificações ─────────────────────────────────────────────────────────────
 
