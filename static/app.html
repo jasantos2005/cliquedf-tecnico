@@ -111,6 +111,8 @@ textarea:focus,select:focus{border-color:var(--accent)}
   .foto-grid{grid-template-columns:1fr 1fr 1fr}
   .page{padding:20px 28px}
   .topbar{max-width:640px;left:50%;right:auto;transform:translateX(-50%);width:100%}
+  #app-page{max-width:640px;margin:0 auto}
+  .bottom-nav{max-width:640px;left:50%;right:auto;transform:translateX(-50%);width:100%}
 }
 @media(min-width:900px){
   body{max-width:780px}
@@ -165,6 +167,7 @@ textarea:focus,select:focus{border-color:var(--accent)}
     <div id="alerta-estoque-home" style="display:none"></div>
     <div id="home-proxima"></div>
     <div style="margin-top:16px">
+      <button class="btn btn-outline" style="width:100%;margin-top:8px;border-color:#f59e0b;color:#f59e0b" onclick="navTo('vistoria');carregarVistoria()">🔍 Checklist do Veículo</button>
       <button class="btn btn-outline" onclick="navTo('os')">Ver todas as OS →</button>
     </div>
   </div>
@@ -2228,6 +2231,161 @@ async function carregarHistoricoAvulsoHoje() {
     }).join('');
   } catch(e) {}
 }
+
+// ═══════════════ VISTORIA ═══════════════════════════════════
+var _itensVistoria = [];
+var _anomaliasSelecionadas = {};
+
+async function carregarVistoria() {
+  try {
+    // Verifica se ja fez hoje
+    var feita = await api('/api/vistoria/hoje');
+    if (feita) {
+      document.getElementById('vistoria-feita').style.display = 'block';
+      document.getElementById('vistoria-form').style.display = 'none';
+      var info = 'Veículo: ' + (feita.placa||'?') + ' · KM: ' + (feita.km_atual||0).toLocaleString('pt-BR');
+      info += feita.tem_anomalia ? ' · ⚠️ ' + feita.anomalias.length + ' anomalia(s)' : ' · ✅ Sem anomalias';
+      document.getElementById('vistoria-feita-info').textContent = info;
+      if (feita.anomalias && feita.anomalias.length) {
+        document.getElementById('vistoria-anomalias-lista').innerHTML =
+          feita.anomalias.map(function(a) {
+            var cor = a.urgente ? '#ef4444' : '#f59e0b';
+            return '<div style="font-size:.78rem;color:'+cor+';padding:3px 0">• '+a.descricao+(a.obs?' — '+a.obs:'')+'</div>';
+          }).join('');
+      }
+      return;
+    }
+    document.getElementById('vistoria-feita').style.display = 'none';
+    document.getElementById('vistoria-form').style.display = 'block';
+    _anomaliasSelecionadas = {};
+
+    // Busca veiculo atual
+    try {
+      var v = await api('/api/os/veiculo-atual');
+      if (v && v.placa) {
+        document.getElementById('vistoria-veiculo-info').textContent = '🚗 ' + v.placa + ' · ' + (v.modelo||'');
+        if (v.ultimo_km) document.getElementById('inp-vistoria-km').value = v.ultimo_km;
+      }
+    } catch(e) {}
+
+    // Carrega itens
+    if (!_itensVistoria.length) {
+      _itensVistoria = await api('/api/vistoria/itens');
+    }
+    renderItensVistoria();
+  } catch(e) { console.error('Erro vistoria:', e); }
+}
+
+function renderItensVistoria() {
+  var lista = document.getElementById('lista-checklist-itens');
+  if (!lista) return;
+  // Categorias
+  var cats = {
+    ok:'✅ Status Geral', seguranca:'🔴 Segurança', manutencao:'🔧 Manutenção',
+    fluidos:'💧 Fluidos', pneus:'⚫ Pneus', iluminacao:'💡 Iluminação',
+    documentacao:'📄 Documentação', combustivel:'⛽ Combustível',
+    limpeza:'🧹 Limpeza', estrutura:'🚗 Estrutura', conforto:'❄️ Conforto',
+    moto:'🏍️ Moto', outros:'📝 Outros'
+  };
+  var grupos = {};
+  _itensVistoria.forEach(function(item) {
+    if (!grupos[item.categoria]) grupos[item.categoria] = [];
+    grupos[item.categoria].push(item);
+  });
+  var html = '';
+  Object.keys(grupos).forEach(function(cat) {
+    html += '<div style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin:10px 0 4px">'+(cats[cat]||cat)+'</div>';
+    grupos[cat].forEach(function(item) {
+      var urgente = item.urgente ? ' style="border-color:#ef444444"' : '';
+      html += '<div class="checklist-item" id="ci-'+item.id+'"'+urgente+' style="background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;border:1px solid transparent" onclick="toggleAnomaliaItem('+item.id+')">';
+      html += '<div id="ci-check-'+item.id+'" style="width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem"></div>';
+      html += '<div style="flex:1;font-size:.83rem">'+item.descricao+(item.urgente?'<span style="color:#ef4444;font-size:.7rem;margin-left:4px">●</span>':'')+'</div>';
+      html += '</div>';
+    });
+  });
+  lista.innerHTML = html;
+}
+
+function toggleAnomaliaItem(itemId) {
+  // Item 7 = sem anomalias — exclusivo
+  if (itemId === 7) {
+    _anomaliasSelecionadas = {};
+    Object.keys(_anomaliasSelecionadas).forEach(function(k){ desmarcarItem(k); });
+    if (!_anomaliasSelecionadas[7]) {
+      _anomaliasSelecionadas[7] = {id_item:7, obs:null};
+      var el = document.getElementById('ci-'+7);
+      var ch = document.getElementById('ci-check-'+7);
+      if (el) el.style.background = 'rgba(34,197,94,.15)';
+      if (ch) { ch.style.background='#22c55e'; ch.style.borderColor='#22c55e'; ch.textContent='✓'; }
+    } else {
+      delete _anomaliasSelecionadas[7];
+      desmarcarItem(7);
+    }
+    document.getElementById('vistoria-obs-geral').style.display = 'none';
+    return;
+  }
+  // Desmarca item 7 se existir
+  if (_anomaliasSelecionadas[7]) {
+    delete _anomaliasSelecionadas[7];
+    desmarcarItem(7);
+  }
+  if (_anomaliasSelecionadas[itemId]) {
+    delete _anomaliasSelecionadas[itemId];
+    desmarcarItem(itemId);
+  } else {
+    _anomaliasSelecionadas[itemId] = {id_item: itemId, obs: null};
+    var el = document.getElementById('ci-'+itemId);
+    var ch = document.getElementById('ci-check-'+itemId);
+    var item = _itensVistoria.find(function(i){ return i.id === itemId; });
+    var cor = item && item.urgente ? '#ef4444' : '#f59e0b';
+    if (el) el.style.background = 'rgba(245,158,11,.15)';
+    if (ch) { ch.style.background=cor; ch.style.borderColor=cor; ch.textContent='!'; }
+  }
+  var qtd = Object.keys(_anomaliasSelecionadas).length;
+  document.getElementById('vistoria-obs-geral').style.display = qtd > 0 ? 'block' : 'none';
+}
+
+function desmarcarItem(itemId) {
+  var el = document.getElementById('ci-'+itemId);
+  var ch = document.getElementById('ci-check-'+itemId);
+  if (el) el.style.background = 'var(--surface2)';
+  if (ch) { ch.style.background=''; ch.style.borderColor='var(--border)'; ch.textContent=''; }
+}
+
+async function enviarVistoria() {
+  var km = parseFloat(document.getElementById('inp-vistoria-km').value) || 0;
+  var obs = document.getElementById('inp-vistoria-obs').value || '';
+  var ids = Object.keys(_anomaliasSelecionadas).map(Number);
+  var semAnomalia = ids.includes(7);
+
+  if (ids.length === 0) { toast('Marque ao menos um item ou "Sem anomalias"','err'); return; }
+
+  var anomalias = semAnomalia ? [] : ids.map(function(id) {
+    return {id_item: id, obs: obs || null};
+  });
+
+  try {
+    var r = await api('/api/vistoria/registrar', {
+      method: 'POST',
+      body: JSON.stringify({
+        km_atual: km,
+        sem_anomalias: semAnomalia,
+        anomalias: anomalias,
+        obs_geral: obs || null
+      })
+    });
+    if (r.ok) {
+      if (r.urgentes > 0) {
+        toast('⚠️ Vistoria enviada! ' + r.urgentes + ' item(s) urgente(s) notificado(s)!', 'ok');
+      } else {
+        toast('✅ Vistoria registrada com sucesso!', 'ok');
+      }
+      carregarVistoria();
+    } else {
+      toast(r.detail || 'Erro ao registrar', 'err');
+    }
+  } catch(e) { toast('Erro: '+e.message, 'err'); }
+}
 </script>
 
 <!-- MODAL REQUISICAO -->
@@ -2521,5 +2679,29 @@ function instalarPWA() {
 }
 
 </script>
+
+  <!-- PAGE VISTORIA -->
+  <div id="page-vistoria" class="page" style="padding:16px 16px 90px 16px;overflow-y:auto">
+    <div id="vistoria-feita" style="display:none;background:rgba(34,197,94,.1);border:1px solid #22c55e;border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="font-weight:800;font-size:1rem;margin-bottom:6px">✅ Vistoria realizada hoje</div>
+      <div id="vistoria-feita-info" style="font-size:.82rem;color:var(--muted)"></div>
+      <div id="vistoria-anomalias-lista" style="margin-top:10px"></div>
+    </div>
+    <div id="vistoria-form">
+      <div style="font-size:1.1rem;font-weight:800;margin-bottom:4px">🔍 Checklist do Veículo</div>
+      <div id="vistoria-veiculo-info" style="font-size:.8rem;color:var(--muted);margin-bottom:14px"></div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase">KM Atual</label>
+        <input type="number" id="inp-vistoria-km" class="km-input" placeholder="Ex: 45200" style="margin-top:6px">
+      </div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Marque os itens com anomalia:</div>
+      <div id="lista-checklist-itens" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+      <div id="vistoria-obs-geral" style="display:none;margin-bottom:12px">
+        <label style="font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase">Observações</label>
+        <textarea id="inp-vistoria-obs" rows="2" placeholder="Descreva os defeitos encontrados..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px;margin-top:6px;font-size:.85rem;box-sizing:border-box"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="enviarVistoria()">✅ Confirmar Vistoria</button>
+    </div>
+  </div>
 </body>
 </html>
