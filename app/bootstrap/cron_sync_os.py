@@ -80,7 +80,7 @@ def run():
              AND o.id_tecnico IN ({ids_str})
              AND o.data_fechamento >= DATE_SUB(NOW(), INTERVAL 72 HOUR))
         )
-        AND o.id_assunto IN (15,16,17,18,19,20,21,22,39,49,53,89,110,111,226,227)
+        AND o.id_assunto IN (15,16,17,18,19,20,21,22,39,49,53,89,110,111,226,227,240)
     """)
 
     db = get_db()
