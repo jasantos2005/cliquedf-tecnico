@@ -187,6 +187,35 @@ def marcar_todas_lidas(usuario=Depends(requer_tecnico)):
     db.close()
     return {"ok": True}
 
+@router.get("/detalhes-ixc/{ixc_os_id}")
+def detalhes_ixc(ixc_os_id: int, usuario=Depends(requer_tecnico)):
+    """Busca mensagem completa da OS no IXC."""
+    try:
+        from app.services.ixc_db import ixc_select_one
+        os_ixc = ixc_select_one("""
+            SELECT s.id, s.mensagem, s.mensagem_resposta, s.data_abertura,
+                   s.data_agenda, s.data_reservada, s.melhor_horario_agenda,
+                   cl.razao, cl.fone_1, cl.fone_2, cl.celular,
+                   s.endereco, s.complemento, s.referencia, s.bairro
+            FROM ixcprovedor.su_oss_chamado s
+            JOIN ixcprovedor.cliente cl ON cl.id = s.id_cliente
+            WHERE s.id = %s
+        """, (ixc_os_id,))
+        if not os_ixc:
+            return {"mensagem": None}
+        return {
+            "mensagem": os_ixc.get("mensagem") or "",
+            "fone_1": os_ixc.get("fone_1") or "",
+            "fone_2": os_ixc.get("fone_2") or "",
+            "celular": os_ixc.get("celular") or "",
+            "complemento": os_ixc.get("complemento") or "",
+            "referencia": os_ixc.get("referencia") or "",
+            "melhor_horario": os_ixc.get("melhor_horario_agenda") or ""
+        }
+    except Exception as e:
+        print(f"[WARN] detalhes IXC OS {ixc_os_id}: {e}")
+        return {"mensagem": None}
+
 @router.get("/veiculo-atual")
 def get_veiculo_atual(usuario=Depends(requer_tecnico)):
     """Retorna o veículo atribuído ao técnico logado e o último KM registrado."""
