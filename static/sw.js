@@ -1,4 +1,4 @@
-const CACHE = 'cliquedf-tec-v1';
+const CACHE = 'cliquedf-tec-v2';
 const ASSETS = [
   '/',
   '/app',

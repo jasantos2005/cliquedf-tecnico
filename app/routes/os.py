@@ -12,6 +12,39 @@ def brt():
     from datetime import timezone, timedelta
     return (datetime.now(timezone.utc) - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
 
+# ── HELPERS: KM por Veículo ──────────────────────────────────
+
+def _get_veiculo_atual(tecnico_id: int, db):
+    """Retorna o veiculo atualmente atribuido ao tecnico."""
+    row = db.execute("""
+        SELECT p.id_veiculo, v.placa, v.marca_modelo
+        FROM ht_veiculo_posse p
+        JOIN ht_veiculos v ON v.id = p.id_veiculo
+        WHERE p.id_tecnico = ?
+          AND p.entregue_em IS NULL
+        ORDER BY p.id DESC
+        LIMIT 1
+    """, (tecnico_id,)).fetchone()
+    if row:
+        return {"veiculo_id": row["id_veiculo"], "placa": row["placa"],
+                "modelo": row["marca_modelo"], "marca": row["marca_modelo"]}
+    return None
+
+def _get_ultimo_km_veiculo(veiculo_id: int, db) -> float:
+    """Retorna o maior KM já registrado para um veículo."""
+    row = db.execute("""
+        SELECT MAX(km) as km FROM (
+            SELECT km_chegada AS km FROM ht_km_os
+            WHERE veiculo_id = ? AND km_chegada IS NOT NULL
+            UNION ALL
+            SELECT km_saida AS km FROM ht_km_os
+            WHERE veiculo_id = ? AND km_saida IS NOT NULL
+        )
+    """, (veiculo_id, veiculo_id)).fetchone()
+    return row["km"] if row and row["km"] else 0
+
+# ─────────────────────────────────────────────────────────────
+
 @router.get("/minhas")
 def minhas_os(usuario=Depends(requer_tecnico)):
     db = get_db()
@@ -133,6 +166,20 @@ def marcar_todas_lidas(usuario=Depends(requer_tecnico)):
     db.close()
     return {"ok": True}
 
+@router.get("/veiculo-atual")
+def get_veiculo_atual(usuario=Depends(requer_tecnico)):
+    """Retorna o veículo atribuído ao técnico logado e o último KM registrado."""
+    db = get_db()
+    try:
+        veiculo = _get_veiculo_atual(usuario["id"], db)
+        if not veiculo:
+            return {"placa": None, "modelo": None, "marca": None,
+                    "veiculo_id": None, "ultimo_km": 0}
+        ultimo = _get_ultimo_km_veiculo(veiculo["veiculo_id"], db)
+        return {**veiculo, "ultimo_km": ultimo}
+    finally:
+        db.close()
+
 @router.get("/{ixc_os_id}")
 def detalhe_os(ixc_os_id: int, usuario=Depends(requer_tecnico)):
     db = get_db()
@@ -218,7 +265,6 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
               mat.get("quantidade"), mat.get("unidade","un"),
               mat.get("numero_serie",""), mat.get("tipo_uso","consumivel_os")))
         qtd_usar = mat.get("quantidade", 0)
-        # Valida estoque suficiente
         saldo = db.execute(
             "SELECT quantidade FROM ht_estoque_tecnico WHERE id_tecnico=? AND id_produto=?",
             (usuario["id"], mat.get("id_produto"))
@@ -227,14 +273,12 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
             db.close()
             raise HTTPException(400, f"Estoque insuficiente para {mat.get('nome','produto')}: disponível {saldo['quantidade'] if saldo else 0}, necessário {qtd_usar}")
 
-        # Baixa estoque local
         db.execute("""
             UPDATE ht_estoque_tecnico
             SET quantidade = quantidade - ?, ultima_atualizacao = ?
             WHERE id_tecnico=? AND id_produto=?
         """, (qtd_usar, brt(), usuario["id"], mat.get("id_produto")))
 
-        # Baixa no IXC: patrimônio → comodato, consumível → movimento_produtos
         try:
             tec_row = db.execute(
                 "SELECT ixc_funcionario_id, ixc_almox_id FROM ht_usuarios WHERE id=?", (usuario["id"],)
@@ -244,7 +288,6 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
             ).fetchone()
             if tec_row and prod_row and tec_row["ixc_almox_id"] and prod_row["ixc_produto_id"]:
                 if prod_row["tipo"] == "P":
-                    # Patrimônio: registra comodato em patrimonio_movimentacao
                     numero_serie = mat.get("numero_serie", "")
                     if numero_serie:
                         pat = ixc_select_one(
@@ -281,7 +324,6 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
                     else:
                         print(f"[WARN] Patrimônio nao encontrado produto {prod_row['ixc_produto_id']} OS {ixc_os_id}")
                 else:
-                    # Consumível: registra em movimento_produtos
                     ixc_insert("""
                         INSERT INTO ixcprovedor.movimento_produtos
                         (id_produto, valor_unitario, quantidade, valor_total,
@@ -325,8 +367,6 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
             print(f"[WARN] Erro baixa IXC OS {ixc_os_id}: {e}")
             traceback.print_exc()
 
-    # Atualiza status
-    # Processa comodatos
     for cod in data.comodatos:
         id_patrimonio = cod.get("id_patrimonio")
         if not id_patrimonio:
@@ -335,7 +375,6 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
             tec_row = db.execute(
                 "SELECT ixc_funcionario_id, ixc_almox_id FROM ht_usuarios WHERE id=?", (usuario["id"],)
             ).fetchone()
-            # Busca produto do patrimônio
             pat_row = ixc_select_one(
                 "SELECT id, id_produto, serial, id_almoxarifado FROM ixcprovedor.patrimonio WHERE id=%s",
                 (id_patrimonio,)
@@ -347,7 +386,6 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
                 id_cliente = os_row["ixc_cliente_id"]
                 id_contrato = os_row["id_contrato_kit"]
 
-                # 1. Insere em movimento_produtos
                 ixc_insert("""
                     INSERT INTO ixcprovedor.movimento_produtos
                     (id_produto, quantidade, tipo, id_oss_chamado, id_contrato,
@@ -370,14 +408,12 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
                     brt(), f"Comodato OS #{ixc_os_id}",
                 ))
 
-                # Busca ID do movimento inserido
                 mov = ixc_select_one(
                     "SELECT id FROM ixcprovedor.movimento_produtos WHERE id_oss_chamado=%s AND id_produto=%s ORDER BY id DESC LIMIT 1",
                     (ixc_os_id, id_produto)
                 )
                 id_movimento = mov["id"] if mov else 0
 
-                # 2. Insere em movimento_comodatos
                 ixc_insert("""
                     INSERT INTO ixcprovedor.movimento_comodatos
                     (id_movimento_produtos, tipo, id_produto, id_cliente, id_contrato,
@@ -385,10 +421,8 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
                     VALUES (%s, 'S', %s, %s, %s, 1, %s, 'AG', 'N')
                 """, (id_movimento, id_produto, id_cliente, id_contrato, ixc_os_id))
 
-                # 3. Atualiza situação do patrimônio para comodato (4)
                 ixc_insert("UPDATE ixcprovedor.patrimonio SET situacao=4 WHERE id=%s", (id_patrimonio,))
 
-                # 4. Registra movimentação do patrimônio
                 ixc_insert("""
                     INSERT INTO ixcprovedor.patrimonio_movimentacao
                     (data_movimentacao, motivo, filial_destino, observacao, responsavel,
@@ -408,7 +442,6 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
     db.execute("UPDATE ht_os SET status_hub='finalizada' WHERE ixc_os_id=?", (ixc_os_id,))
     db.commit()
 
-    # Sincroniza com IXC
     try:
         corpo = f"=== CHECKLIST ===\n"
         for item in data.checklist:
@@ -433,11 +466,9 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
 @router.post("/{ixc_os_id}/atribuir")
 def atribuir_os(ixc_os_id: int, data: dict, usuario=Depends(requer_supervisor)):
     id_tecnico = data.get("id_tecnico")
-    data_reservada = data.get("data_reservada")  # formato: YYYY-MM-DD HH:MM
+    data_reservada = data.get("data_reservada")
 
-    # Atualiza SQLite
     db = get_db()
-    # Buscar ixc_funcionario_id do tecnico
     db2 = get_db()
     tec = db2.execute("SELECT ixc_funcionario_id FROM ht_usuarios WHERE id=?", (id_tecnico,)).fetchone()
     db2.close()
@@ -449,7 +480,6 @@ def atribuir_os(ixc_os_id: int, data: dict, usuario=Depends(requer_supervisor)):
     db.commit()
     db.close()
 
-    # Atualiza IXC
     try:
         if data_reservada:
             ixc_insert(
@@ -464,7 +494,6 @@ def atribuir_os(ixc_os_id: int, data: dict, usuario=Depends(requer_supervisor)):
     except Exception as e:
         print(f"[WARN] Erro ao atribuir no IXC OS {ixc_os_id}: {e}")
 
-    # Notificar tecnico
     try:
         tec = db.execute("SELECT id FROM ht_usuarios WHERE ixc_funcionario_id=?", (ixc_func_id,)).fetchone()
         if tec:
@@ -482,6 +511,8 @@ class KmInput(BaseModel):
     lat: Optional[float] = None
     lon: Optional[float] = None
 
+
+
 @router.post("/{ixc_os_id}/iniciar-deslocamento-km")
 def iniciar_deslocamento_km(ixc_os_id: int, data: KmInput, usuario=Depends(requer_tecnico)):
     db = get_db()
@@ -489,14 +520,24 @@ def iniciar_deslocamento_km(ixc_os_id: int, data: KmInput, usuario=Depends(reque
     agora = brt()
     hoje = agora[:10]
 
-    # Validar KM crescente
-    ultimo = db.execute("""
-        SELECT MAX(km_saida) as ultimo FROM ht_km_os WHERE id_tecnico=?
-    """, (id_tecnico,)).fetchone()
-    ultimo_km = ultimo["ultimo"] or 0
+    # ── Busca veículo atual do técnico ──
+    veiculo = _get_veiculo_atual(id_tecnico, db)
+    veiculo_id = veiculo["veiculo_id"] if veiculo else None
+
+    # ── Validar KM crescente por VEÍCULO (ou por técnico se sem veículo) ──
+    if veiculo_id:
+        ultimo_km = _get_ultimo_km_veiculo(veiculo_id, db)
+        ref = f"veículo {veiculo['placa']}"
+    else:
+        row = db.execute("""
+            SELECT MAX(km_saida) as ultimo FROM ht_km_os WHERE id_tecnico=?
+        """, (id_tecnico,)).fetchone()
+        ultimo_km = row["ultimo"] or 0
+        ref = "técnico"
+
     if data.km < ultimo_km:
         db.close()
-        raise HTTPException(400, f"KM inválido. Último KM registrado: {ultimo_km:.0f}")
+        raise HTTPException(400, f"KM inválido. Último KM registrado ({ref}): {ultimo_km:.0f}")
 
     # Verificar se ja tem OS ativa
     ativa = db.execute("""
@@ -508,11 +549,11 @@ def iniciar_deslocamento_km(ixc_os_id: int, data: KmInput, usuario=Depends(reque
         db.close()
         raise HTTPException(400, f"Você tem OS #{ativa['ixc_os_id']} em andamento. Finalize ou reagende primeiro.")
 
-    # Registrar KM saida
+    # Registrar KM saida com veiculo_id
     db.execute("""
-        INSERT INTO ht_km_os (ixc_os_id, id_tecnico, km_saida, dt_saida)
-        VALUES (?,?,?,?)
-    """, (ixc_os_id, id_tecnico, data.km, agora))
+        INSERT INTO ht_km_os (ixc_os_id, id_tecnico, veiculo_id, km_saida, dt_saida)
+        VALUES (?,?,?,?,?)
+    """, (ixc_os_id, id_tecnico, veiculo_id, data.km, agora))
 
     # KM diario
     db.execute("""
@@ -521,18 +562,17 @@ def iniciar_deslocamento_km(ixc_os_id: int, data: KmInput, usuario=Depends(reque
         ON CONFLICT(id_tecnico, data) DO NOTHING
     """, (id_tecnico, hoje, data.km))
 
-    # Atualizar OS
     db.execute("UPDATE ht_os SET status_hub='deslocamento' WHERE ixc_os_id=?", (ixc_os_id,))
     db.commit()
     db.close()
 
-    # IXC: status Assumida
     try:
         ixc_insert("UPDATE ixcprovedor.su_oss_chamado SET status=%s WHERE id=%s", ('AS', ixc_os_id))
     except Exception as e:
         print(f"[WARN] IXC status AS: {e}")
 
-    return {"ok": True}
+    return {"ok": True, "veiculo_id": veiculo_id,
+            "placa": veiculo["placa"] if veiculo else None}
 
 @router.post("/{ixc_os_id}/iniciar-execucao-km")
 def iniciar_execucao_km(ixc_os_id: int, data: KmInput, usuario=Depends(requer_tecnico)):
@@ -540,7 +580,6 @@ def iniciar_execucao_km(ixc_os_id: int, data: KmInput, usuario=Depends(requer_te
     id_tecnico = usuario["id"]
     agora = brt()
 
-    # Buscar KM saida
     km_os = db.execute(
         "SELECT km_saida FROM ht_km_os WHERE ixc_os_id=? AND id_tecnico=?",
         (ixc_os_id, id_tecnico)
@@ -553,13 +592,11 @@ def iniciar_execucao_km(ixc_os_id: int, data: KmInput, usuario=Depends(requer_te
 
     km_desloc = data.km - km_saida
 
-    # Atualizar KM
     db.execute("""
         UPDATE ht_km_os SET km_chegada=?, dt_chegada=?, km_deslocamento=?
         WHERE ixc_os_id=? AND id_tecnico=?
     """, (data.km, agora, km_desloc, ixc_os_id, id_tecnico))
 
-    # Atualizar OS
     db.execute("""
         INSERT OR IGNORE INTO ht_os_execucao (ixc_os_id, iniciada_em, lat_chegada, lon_chegada)
         VALUES (?,?,?,?)
@@ -568,7 +605,6 @@ def iniciar_execucao_km(ixc_os_id: int, data: KmInput, usuario=Depends(requer_te
     db.commit()
     db.close()
 
-    # IXC: status A (em execucao)
     try:
         ixc_insert("UPDATE ixcprovedor.su_oss_chamado SET status=%s WHERE id=%s", ('A', ixc_os_id))
     except Exception as e:
@@ -578,12 +614,25 @@ def iniciar_execucao_km(ixc_os_id: int, data: KmInput, usuario=Depends(requer_te
 
 @router.get("/{id_tecnico}/ultimo-km")
 def ultimo_km(id_tecnico: int, usuario=Depends(requer_tecnico)):
+    """Retorna último KM — prioriza veículo atual do técnico."""
     db = get_db()
-    r = db.execute(
-        "SELECT MAX(km_saida) as km FROM ht_km_os WHERE id_tecnico=?", (id_tecnico,)
-    ).fetchone()
-    db.close()
-    return {"ultimo_km": r["km"] or 0}
+    try:
+        veiculo = _get_veiculo_atual(id_tecnico, db)
+        if veiculo:
+            ultimo = _get_ultimo_km_veiculo(veiculo["veiculo_id"], db)
+            return {
+                "ultimo_km": ultimo,
+                "veiculo_id": veiculo["veiculo_id"],
+                "placa": veiculo["placa"],
+                "modelo": veiculo["modelo"]
+            }
+        # Fallback sem veículo
+        r = db.execute(
+            "SELECT MAX(km_saida) as km FROM ht_km_os WHERE id_tecnico=?", (id_tecnico,)
+        ).fetchone()
+        return {"ultimo_km": r["km"] or 0, "veiculo_id": None, "placa": None, "modelo": None}
+    finally:
+        db.close()
 
 class ReagendarInput(BaseModel):
     motivo: str
@@ -594,7 +643,6 @@ def reagendar_os(ixc_os_id: int, data: ReagendarInput, usuario=Depends(requer_te
         raise HTTPException(400, "Motivo obrigatório (mínimo 5 caracteres)")
 
     db = get_db()
-    # Remove tecnico e volta para base
     db.execute("""
         UPDATE ht_os SET status_hub='reagendada', id_tecnico=NULL,
         motivo_reagendamento=? WHERE ixc_os_id=?
@@ -602,7 +650,6 @@ def reagendar_os(ixc_os_id: int, data: ReagendarInput, usuario=Depends(requer_te
     db.commit()
     db.close()
 
-    # IXC: status RAG + limpa tecnico
     try:
         ixc_insert(
             "UPDATE ixcprovedor.su_oss_chamado SET status=%s, id_tecnico=0, mensagem_resposta=%s WHERE id=%s",
@@ -612,9 +659,6 @@ def reagendar_os(ixc_os_id: int, data: ReagendarInput, usuario=Depends(requer_te
         print(f"[WARN] IXC reagendar: {e}")
 
     return {"ok": True}
-
-
-
 
 @router.post("/{ixc_os_id}/cliente-ausente")
 def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico)):
@@ -627,12 +671,11 @@ def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico))
     conn.row_factory = sqlite3.Row
 
     km_chegada = data.get("km_chegada")
-    acao = data.get("acao")  # "reagendar" ou "encaminhar"
+    acao = data.get("acao")
     data_reagenda = data.get("data_reagenda")
     hora_reagenda = data.get("hora_reagenda", "08:00")
 
     try:
-        # Registrar KM chegada
         if km_chegada:
             ultimo = conn.execute(
                 "SELECT km_saida FROM ht_km_os WHERE ixc_os_id=? ORDER BY id DESC LIMIT 1",
@@ -641,7 +684,7 @@ def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico))
             km_saida = ultimo["km_saida"] if ultimo else 0
             km_desloc = float(km_chegada) - float(km_saida) if km_saida else 0
             conn.execute("""
-                INSERT INTO ht_km_os (ixc_os_id, id_tecnico, km_chegada, km_deslocamento, registrado_em)
+                INSERT INTO ht_km_os (ixc_os_id, id_tecnico, km_chegada, km_deslocamento, criado_em)
                 VALUES (?,?,?,?,datetime('now','-3 hours'))
                 ON CONFLICT(ixc_os_id) DO UPDATE SET
                     km_chegada=excluded.km_chegada,
@@ -652,8 +695,7 @@ def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico))
         cliente_nome = os_row["cliente_nome"] if os_row else f"OS #{ixc_os_id}"
 
         if acao == "reagendar":
-            # Reagendar para o mesmo tecnico
-            data_res = data_reagenda or brt().strftime("%Y-%m-%d")
+            data_res = data_reagenda or brt()[:10]
             conn.execute("""
                 UPDATE ht_os SET status_hub='reagendada', data_reservada=?,
                 motivo_reagendamento='Cliente ausente'
@@ -668,7 +710,6 @@ def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico))
                 print(f"[WARN] IXC reagendar: {e}")
 
         elif acao == "encaminhar":
-            # Devolver para fila — status A, remove tecnico
             conn.execute("""
                 UPDATE ht_os SET status_hub='pendente', id_tecnico=NULL, ixc_tecnico_id=NULL,
                 motivo_reagendamento='Cliente ausente — encaminhado para agendamento'
@@ -682,13 +723,11 @@ def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico))
             except Exception as e:
                 print(f"[WARN] IXC encaminhar: {e}")
 
-            # Notificar Edla e Rudinedja
             for uid in [1178, 198093]:
                 criar_notificacao(uid, "os_cliente_ausente",
                     f"👤 Cliente ausente — OS #{ixc_os_id}",
                     f"{cliente_nome} não estava. OS devolvida para agendamento.")
 
-            # Telegram grupo técnicos
             import urllib.request, json as _json
             BOT = "8246203939:AAEFRu8dQiGk0qrIfbb9-qyHYO1wkczbj7Q"
             CHAT = "-5176265124"
@@ -784,4 +823,3 @@ def sync_fotos_ixc(usuario=Depends(requer_tecnico)):
         return {"ok": True, "msg": f"{total_enviadas} fotos enviadas"}
     finally:
         db.close()
-
