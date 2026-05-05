@@ -278,6 +278,10 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,55,72,.5);font-size:.85rem}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span class="ni-label">Checklists</span>
       </div>
+      <div class="ni" id="ni-raiox" style="display:none" onclick="navTo('raiox')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span class="ni-label">Raio-X Frota</span>
+      </div>
       <div class="ni" id="ni-abastecimentos" style="display:none" onclick="navTo('abastecimentos')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V10l9-8 9 8v12H3z"/><path d="M9 22v-6h6v6"/><path d="M12 2v4m0 0a2 2 0 110 4 2 2 0 010-4z"/></svg>
         <span class="ni-label">Abastecimentos</span>
@@ -1026,7 +1030,48 @@ async function estoqueEnviarRequisicao() {
         </div>
       </div>
 
+    
+    <!-- RAIO-X FROTA -->
+    <div id="secao-raiox" class="secao" style="padding:20px;max-width:1400px;margin:0 auto;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h2 style="margin:0;font-size:1.3rem;font-weight:800">&#128269; Raio-X da Frota</h2>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:2px">Consumo, despesas e score de condutores</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input type="date" id="rx-inicio" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:.82rem">
+          <span style="color:var(--muted);font-size:.8rem">ate</span>
+          <input type="date" id="rx-fim" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:.82rem">
+          <button onclick="carregarRaioX()" style="background:var(--accent);border:none;color:#fff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600">Atualizar</button>
+        </div>
+      </div>
+      <div id="rx-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px"></div>
+      <div id="rx-veiculos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px"></div>
+      <div id="modal-raiox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;overflow-y:auto;padding:20px">
+        <div style="max-width:820px;margin:0 auto;background:var(--surface);border-radius:16px;padding:24px;position:relative">
+          <button onclick="fecharRaioX()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;color:var(--text);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.1rem">X</button>
+          <div id="modal-raiox-content"></div>
+        </div>
+      </div>
+
+
+<!-- MODAL HISTÓRICO VEÍCULO -->
+<div class="modal-bg" id="modal-historico">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">
+      <span>📋 Histórico — <span id="hist-veiculo-titulo"></span></span>
+      <button class="modal-close" onclick="fecharHistorico()">✕</button>
     </div>
+    <div id="hist-veiculo-body" style="max-height:400px;overflow-y:auto;padding-right:4px"></div>
+    <div style="margin-top:12px">
+      <button class="btn btn-o" style="width:100%" onclick="fecharHistorico()">Fechar</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+
+</div>
   </div>
 </div>
 </div>
@@ -1196,6 +1241,7 @@ function iniciarApp(u) {
     document.getElementById('ni-checklists').style.display='flex';
     document.getElementById('ni-abastecimentos').style.display='flex';
     document.getElementById('ni-despesas').style.display='flex';
+    document.getElementById('ni-raiox').style.display='flex';
   }
   if (u.nivel >= 99) { document.getElementById('grp-admin').style.display='block'; document.getElementById('ni-usuarios').style.display='flex';
     if (u.nivel >= 50) { document.getElementById('ni-agenda').style.display='flex'; document.getElementById('ni-estoque').style.display='flex'; } }
@@ -1216,6 +1262,11 @@ function navTo(secao) {
     if (!mapa) iniciarMapa();
     carregarDados();
     _intervaloDados = setInterval(carregarDados, 30000);
+  } else if (secao==='raiox') {
+    document.getElementById('tb-stats-os').style.display='none';
+    document.getElementById('tb-titulo').textContent = 'Raio-X da Frota';
+    iniciarDatasRaioX();
+    setTimeout(carregarRaioX, 100);
   } else if (secao==='frota') {
     document.getElementById('tb-stats-os').style.display = 'none';
     document.getElementById('tb-titulo').textContent = 'Controle de Frota';
@@ -3038,6 +3089,144 @@ function agendaVerDia() {
     });
 }
 
+
+// ═══════════════ RAIO-X FROTA ══════════════════════════════
+
+function iniciarDatasRaioX() {
+  var hoje = new Date();
+  var inicio = new Date(hoje.getFullYear(), 0, 1);
+  document.getElementById('rx-inicio').value = inicio.toISOString().substring(0,10);
+  document.getElementById('rx-fim').value = hoje.toISOString().substring(0,10);
+}
+
+async function carregarRaioX() {
+  var inicio = document.getElementById('rx-inicio').value || '2026-01-01';
+  var fim = document.getElementById('rx-fim').value || new Date().toISOString().substring(0,10);
+  document.getElementById('rx-veiculos').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Carregando...</div>';
+  document.getElementById('rx-cards').innerHTML = '';
+  try {
+    var dados = await api('/api/raiox/frota?inicio='+inicio+'&fim='+fim);
+    var criticos = dados.filter(function(v){ return v.semaforo==='vermelho'; }).length;
+    var atencao  = dados.filter(function(v){ return v.semaforo==='amarelo';  }).length;
+    var ok       = dados.filter(function(v){ return v.semaforo==='verde';    }).length;
+    var totalGasto = dados.reduce(function(s,v){ return s+(v.total_gasto||0); },0);
+    var totalOs    = dados.reduce(function(s,v){ return s+(v.total_os||0);    },0);
+    document.getElementById('rx-cards').innerHTML =
+      rxCard('Veiculos',  dados.length,  'var(--accent)')+
+      rxCard('Criticos',  criticos, '#ef4444')+
+      rxCard('Atencao',   atencao,  '#f59e0b')+
+      rxCard('Normal',    ok,       '#22c55e')+
+      rxCard('Gasto Total','R$ '+totalGasto.toLocaleString('pt-BR',{minimumFractionDigits:2}),'#8b5cf6')+
+      rxCard('OS Atendidas', totalOs, '#06b6d4');
+    var html = '';
+    dados.forEach(function(v) {
+      var cores = {verde:'#22c55e',amarelo:'#f59e0b',vermelho:'#ef4444',cinza:'#6b7280',azul:'#3b82f6'};
+      var emojis = {verde:'&#128994;',amarelo:'&#128993;',vermelho:'&#128308;',cinza:'&#9898;',azul:'&#128309;'};
+      var cor = cores[v.semaforo]||'#6b7280';
+      var emoji = emojis[v.semaforo]||'&#9898;';
+      var kmlTxt = v.tipo_combustivel==='eletrico' ? '<span style="color:#3b82f6;font-weight:700">Eletrico</span>'
+        : (v.consumo_real_kml ? '<span style="color:'+cor+';font-weight:700">'+v.consumo_real_kml+' km/l</span> <span style="color:var(--muted);font-size:.75rem">esp:'+v.consumo_esperado_kml+'</span>'
+        : '<span style="color:var(--muted)">Sem dados</span>');
+      var varTxt = (v.variacao_pct!==null&&v.variacao_pct!==undefined)
+        ? '<span style="background:'+cor+'22;color:'+cor+';padding:2px 8px;border-radius:20px;font-size:.75rem;font-weight:700">'+(v.variacao_pct>=0?'+':'')+v.variacao_pct+'%</span>' : '';
+      html += '<div style="background:var(--surface);border:2px solid '+cor+'44;border-radius:12px;padding:16px;cursor:pointer" onclick="abrirRaioXVeiculo('+v.id+','+inicio+"','"+fim+')">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+      html += '<div><div style="font-weight:800">'+emoji+' '+v.placa+'</div><div style="font-size:.75rem;color:var(--muted)">'+v.marca_modelo+'</div></div>'+varTxt+'</div>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.8rem">';
+      html += rxMini('Consumo Real', kmlTxt)+rxMini('KM Rodado','<b>'+(v.km_rodado||0).toLocaleString('pt-BR')+'</b> km');
+      html += rxMini('Gasto Total','<b style="color:#8b5cf6">R$ '+(v.total_gasto||0).toLocaleString('pt-BR',{minimumFractionDigits:2})+'</b>')+rxMini('OS / KM medio','<b>'+v.total_os+' OS</b> · '+v.km_por_os+' km');
+      html += '</div>';
+      if (v.condutor_atual) html += '<div style="margin-top:8px;font-size:.75rem;color:var(--muted)">Condutor: <b style="color:var(--text)">'+v.condutor_atual+'</b></div>';
+      html += '</div>';
+    });
+    document.getElementById('rx-veiculos').innerHTML = html||'<div style="text-align:center;padding:40px;color:var(--muted)">Nenhum dado</div>';
+  } catch(e) { document.getElementById('rx-veiculos').innerHTML = '<div style="color:#ef4444;padding:20px">Erro: '+e.message+'</div>'; }
+}
+
+function rxCard(label, valor, cor) {
+  return '<div style="background:var(--surface);border-radius:12px;padding:16px;border-left:4px solid '+cor+'">'+
+    '<div style="font-size:1.15rem;font-weight:800;margin-bottom:4px">'+valor+'</div>'+
+    '<div style="font-size:.75rem;color:var(--muted)">'+label+'</div></div>';
+}
+
+function rxMini(label, valor) {
+  return '<div style="background:var(--surface2);border-radius:8px;padding:8px"><div style="color:var(--muted);margin-bottom:2px">'+label+'</div><div>'+valor+'</div></div>';
+}
+
+function rxKpi(label, valor, cor) {
+  return '<div style="background:var(--surface2);border-radius:10px;padding:12px;border-top:3px solid '+cor+'">'+
+    '<div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">'+label+'</div>'+
+    '<div style="font-size:1rem;font-weight:800;color:'+cor+'">'+valor+'</div></div>';
+}
+
+async function abrirRaioXVeiculo(veiculoId, inicio, fim) {
+  document.getElementById('modal-raiox-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Carregando raio-x...</div>';
+  document.getElementById('modal-raiox').style.display = 'block';
+  try {
+    var d = await api('/api/raiox/veiculo/'+veiculoId+'?inicio='+inicio+'&fim='+fim);
+    var v = d.veiculo;
+    var esperado = v.consumo_esperado_kml;
+    var totalLitros=0, totalGasto=0, kmMin=0, kmMax=0;
+    d.abastecimentos.forEach(function(a){
+      totalLitros+=a.litros; totalGasto+=a.valor;
+      if (!kmMin||a.km<kmMin) kmMin=a.km;
+      if (a.km>kmMax) kmMax=a.km;
+    });
+    var kmTotal = kmMax>kmMin ? kmMax-kmMin : 0;
+    var kmlReal = totalLitros>0&&kmTotal>0 ? (kmTotal/totalLitros).toFixed(1) : null;
+    var varPct  = kmlReal&&esperado ? (((kmlReal-esperado)/esperado)*100).toFixed(1) : null;
+    var cor = '#6b7280';
+    if (v.tipo_comb==='eletrico') cor='#3b82f6';
+    else if (kmlReal&&esperado) cor = varPct>=-10?'#22c55e':(varPct>=-20?'#f59e0b':'#ef4444');
+    var html = '<div style="margin-bottom:16px"><div style="font-size:1.3rem;font-weight:800">'+v.placa+' - '+v.marca_modelo+'</div>';
+    html += '<div style="font-size:.8rem;color:var(--muted)">Periodo: '+inicio+' a '+fim+'</div></div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:20px">';
+    html += rxKpi('KM Rodado',(kmTotal||0).toLocaleString('pt-BR')+' km','#06b6d4');
+    html += rxKpi('Litros',totalLitros.toFixed(1)+' L','#f59e0b');
+    html += rxKpi('Gasto Total','R$ '+totalGasto.toLocaleString('pt-BR',{minimumFractionDigits:2}),'#8b5cf6');
+    html += rxKpi('KM/L Real',kmlReal?kmlReal+' km/l':'N/D',cor);
+    html += rxKpi('KM/L Esperado',esperado?esperado+' km/l':'N/D','#6b7280');
+    html += rxKpi('Variacao',varPct?(varPct>=0?'+':'')+varPct+'%':'N/D',cor);
+    html += rxKpi('OS Atendidas',d.os_stats.total_os+' OS','#22c55e');
+    html += rxKpi('KM/OS medio',d.os_stats.km_medio_por_os+' km','#22c55e');
+    html += '</div>';
+    if (d.despesas_por_tipo.length) {
+      html += '<div style="font-weight:700;margin-bottom:8px">Despesas por Tipo</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">';
+      d.despesas_por_tipo.forEach(function(t){
+        html += '<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;font-size:.82rem"><div style="color:var(--muted)">'+t.label+'</div><div style="font-weight:700">R$ '+t.total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div><div style="font-size:.72rem;color:var(--muted)">'+t.qtd+' lancamentos</div></div>';
+      });
+      html += '</div>';
+    }
+    if (d.score_condutores.length) {
+      html += '<div style="font-weight:700;margin-bottom:8px">Score de Condutores</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">';
+      d.score_condutores.forEach(function(c){
+        var cs = {bom:'#22c55e',atencao:'#f59e0b',critico:'#ef4444',ok:'#22c55e'}[c.status]||'#6b7280';
+        html += '<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">';
+        html += '<div><b>'+c.condutor+'</b><span style="font-size:.75rem;color:var(--muted);margin-left:8px">'+c.abastecimentos+' abast · '+c.litros.toFixed(1)+'L · R$ '+c.gasto.toFixed(2)+'</span></div>';
+        html += (c.kml ? '<span style="color:'+cs+';font-weight:700">'+c.kml+' km/l</span>' : '')+'</div>';
+      });
+      html += '</div>';
+    }
+    if (d.mensal.length) {
+      html += '<div style="font-weight:700;margin-bottom:8px">Evolucao Mensal</div>';
+      html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem">';
+      html += '<tr style="color:var(--muted);border-bottom:1px solid var(--border)"><th style="padding:6px;text-align:left">Mes</th><th style="padding:6px;text-align:right">KM</th><th style="padding:6px;text-align:right">Litros</th><th style="padding:6px;text-align:right">Gasto</th><th style="padding:6px;text-align:right">KM/L</th></tr>';
+      d.mensal.forEach(function(m){
+        var mc='#6b7280';
+        if (m.kml&&esperado) mc=m.kml>=esperado*0.9?'#22c55e':(m.kml>=esperado*0.8?'#f59e0b':'#ef4444');
+        html += '<tr style="border-bottom:1px solid var(--border)22"><td style="padding:6px">'+m.mes+'</td><td style="padding:6px;text-align:right">'+(m.km_rodado||0).toLocaleString('pt-BR')+'</td><td style="padding:6px;text-align:right">'+m.litros.toFixed(1)+'L</td><td style="padding:6px;text-align:right">R$ '+m.gasto.toFixed(2)+'</td><td style="padding:6px;text-align:right;font-weight:700;color:'+mc+'">'+(m.kml||'N/D')+'</td></tr>';
+      });
+      html += '</table></div>';
+    }
+    document.getElementById('modal-raiox-content').innerHTML = html;
+  } catch(e) { document.getElementById('modal-raiox-content').innerHTML = '<div style="color:#ef4444">Erro: '+e.message+'</div>'; }
+}
+
+function fecharRaioX() {
+  document.getElementById('modal-raiox').style.display = 'none';
+}
 </script>
 
 <!-- MODAL DESPESA -->
@@ -3151,18 +3340,3 @@ function agendaVerDia() {
   </div>
 </div>
 
-<!-- MODAL HISTÓRICO VEÍCULO -->
-<div class="modal-bg" id="modal-historico">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-title">
-      <span>📋 Histórico — <span id="hist-veiculo-titulo"></span></span>
-      <button class="modal-close" onclick="fecharHistorico()">✕</button>
-    </div>
-    <div id="hist-veiculo-body" style="max-height:400px;overflow-y:auto;padding-right:4px"></div>
-    <div style="margin-top:12px">
-      <button class="btn btn-o" style="width:100%" onclick="fecharHistorico()">Fechar</button>
-    </div>
-  </div>
-</div>
-</body>
-</html>

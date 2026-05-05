@@ -17,6 +17,7 @@ from app.routes import revisoes as revisoes_router
 from app.routes import agenda as agenda_router
 from app.routes import retiradas as retiradas_router
 from app.routes import tv as tv_router
+from app.routes import raiox_frota as raiox_router
 from app.bootstrap.create_tables import init as init_tables
 
 init_tables()
@@ -35,6 +36,7 @@ app.include_router(revisoes_router.router)
 app.include_router(tv_router.router)
 app.include_router(agenda_router.router)
 app.include_router(retiradas_router.router)
+app.include_router(raiox_router.router)
 
 STATIC_DIR = BASE_DIR / "static"
 UPLOADS_DIR = BASE_DIR / "uploads"
