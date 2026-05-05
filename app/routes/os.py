@@ -255,6 +255,14 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
     os_row = db.execute("SELECT * FROM ht_os WHERE ixc_os_id=?", (ixc_os_id,)).fetchone()
     if not os_row: raise HTTPException(404, "OS não encontrada")
 
+    # Bloqueia dupla finalização
+    if os_row["status_hub"] == "finalizada":
+        db.close()
+        raise HTTPException(400, "OS já finalizada — não é possível finalizar novamente")
+
+    # Remove materiais anteriores desta OS para evitar duplicação
+    db.execute("DELETE FROM ht_os_materiais WHERE ixc_os_id=?", (ixc_os_id,))
+
     # Atualiza execucao
     fotos = data.fotos if data.fotos else (data.fotos_antes + data.fotos_depois)
     db.execute("""
@@ -480,6 +488,58 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
         db.commit()
     except Exception as e:
         print(f"[WARN] Erro sync IXC OS {ixc_os_id}: {e}")
+
+    # ── EXCEDENTE DE FIBRA: OS 227 + fibra excedente → abre OS 249 ──
+    try:
+        if os_row["id_assunto"] == 227 and data.materiais:
+            # Busca produtos configurados como fibra com franquia
+            produtos_fibra = db2 = None
+            db2 = get_db()
+            fibra_cfg = db2.execute("""
+                SELECT pf.id_produto, pf.metros_franquia, p.nome
+                FROM ht_produtos_excedente_fibra pf
+                JOIN ht_produtos p ON p.id = pf.id_produto
+                WHERE pf.ativo = 1
+            """).fetchall()
+            db2.close()
+
+            ids_fibra = {row["id_produto"]: row for row in fibra_cfg}
+
+            # Soma metros usados dos produtos de fibra
+            metros_total = 0
+            for mat in data.materiais:
+                if mat.get("id_produto") in ids_fibra:
+                    metros_total += mat.get("quantidade", 0)
+
+            if metros_total > 0:
+                franquia = list(ids_fibra.values())[0]["metros_franquia"] if ids_fibra else 100
+                excedente = metros_total - franquia
+
+                if excedente > 0:
+                    obs_abertura = (
+                        "Excedente de fibra - OS #" + str(ixc_os_id) + " (" + str(os_row["cliente_nome"] or "") + ").\n"
+                        + "Total: " + str(metros_total) + "m | Franquia: " + str(franquia) + "m | Excedente: " + str(excedente) + "m\n"
+                        + "Tecnico: " + str(usuario["nome"] or "") + "\n"
+                        + "Obs: " + str(data.solucao or "")
+                    )
+                    ixc_insert("""
+                        INSERT INTO ixcprovedor.su_oss_chamado
+                            (id_cliente, id_contrato_kit, id_assunto, status,
+                             setor, mensagem, data_abertura, id_login,
+                             prioridade, id_tecnico, origem_cadastro, id_filial)
+                        VALUES (%s, %s, 249, 'A',
+                                2, %s, NOW(), 1,
+                                'N', 0, 'P', 1)
+                    """, (
+                        os_row["ixc_cliente_id"],
+                        os_row["id_contrato_kit"] or 0,
+                        obs_abertura
+                    ))
+                    print(f"[OS249] Aberta cliente {os_row['ixc_cliente_id']} excedente {excedente}m")
+    except Exception as e:
+        import traceback
+        print(f"[WARN] Erro excedente fibra OS {ixc_os_id}: {e}")
+        traceback.print_exc()
 
     db.close()
     return {"ok": True}
