@@ -238,6 +238,35 @@ textarea:focus,select:focus{border-color:var(--accent)}
     <div id="lista-historico"></div>
   </div>
 
+<!-- PAGE KM AVULSO -->
+  <div id="page-avulso" class="page" style="padding:16px;overflow-y:auto">
+    <div style="font-size:1.1rem;font-weight:800;margin-bottom:16px">🚗 Deslocamento Avulso</div>
+    <div id="avulso-ativo" style="display:none;background:rgba(249,115,22,.1);border:1px solid #f97316;border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="font-size:.8rem;color:#f97316;font-weight:700;margin-bottom:8px">EM ANDAMENTO</div>
+      <div id="avulso-ativo-tipo" style="font-weight:700;font-size:1rem;margin-bottom:4px"></div>
+      <div id="avulso-ativo-km" style="font-size:.85rem;color:var(--muted);margin-bottom:12px"></div>
+      <label style="display:block;font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">KM Final</label>
+      <input type="number" id="inp-km-avulso-fim" class="km-input" placeholder="Ex: 45300">
+      <button class="btn btn-primary" style="margin-top:10px" onclick="finalizarAvulso()">✅ Finalizar deslocamento</button>
+    </div>
+    <div id="avulso-novo">
+      <div style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Selecione o tipo de deslocamento:</div>
+      <div id="lista-tipos-avulso" style="display:grid;gap:8px;margin-bottom:16px"></div>
+      <div id="avulso-form" style="display:none">
+        <label style="display:block;font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">KM Inicial</label>
+        <input type="number" id="inp-km-avulso-ini" class="km-input" placeholder="Ex: 45200">
+        <div id="avulso-km-hint" style="font-size:.75rem;color:var(--muted);margin-top:4px;text-align:center"></div>
+        <button class="btn btn-primary" style="margin-top:10px" onclick="iniciarAvulso()">🚗 Iniciar deslocamento</button>
+        <button class="btn btn-outline" style="margin-top:8px" onclick="cancelarSelecaoAvulso()">Cancelar</button>
+      </div>
+    </div>
+    <div style="margin-top:20px">
+      <div style="font-size:.85rem;font-weight:700;margin-bottom:8px;color:var(--muted)">HOJE</div>
+      <div id="lista-avulso-hoje" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+
+
   <!-- PERFIL -->
   <div id="page-perfil" class="page">
     <div class="card">
@@ -280,7 +309,7 @@ textarea:focus,select:focus{border-color:var(--accent)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
       Estoque
     </button>
-    <button class="nav-btn" id="nav-avulso" onclick="navTo('avulso');carregarAvulso()">
+    <button class="nav-btn" id="nav-avulso" onclick="navTo('avulso');if(typeof carregarAvulso==='function')carregarAvulso();">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       <span>KM Avulso</span>
       <span id="badge-avulso" style="display:none;position:absolute;top:4px;right:4px;background:#f97316;color:#fff;border-radius:50%;width:10px;height:10px;font-size:.6rem"></span>
@@ -2089,6 +2118,116 @@ function toast(msg, tipo='ok') {
   document.body.appendChild(t);
   setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 2500);
 }
+
+// ═══════════════ KM AVULSO ══════════════════════════════════
+var _tiposAvulso = [];
+var _tipoSelecionado = null;
+
+async function carregarAvulso() {
+  try {
+    if (!_tiposAvulso.length) {
+      _tiposAvulso = await api('/api/km-avulso/tipos');
+    }
+    var ativo = await api('/api/km-avulso/ativo');
+    var divAtivo = document.getElementById('avulso-ativo');
+    var divNovo  = document.getElementById('avulso-novo');
+    var badge    = document.getElementById('badge-avulso');
+    if (ativo) {
+      divAtivo.style.display = 'block';
+      divNovo.style.display  = 'none';
+      if (badge) badge.style.display = 'block';
+      var tipo = _tiposAvulso.find(function(t){ return t.id === ativo.tipo; });
+      document.getElementById('avulso-ativo-tipo').textContent = tipo ? tipo.label : ativo.tipo;
+      document.getElementById('avulso-ativo-km').textContent  = 'KM inicial: ' + (ativo.km_inicial||0).toLocaleString('pt-BR') + ' km';
+      try {
+        var vAtual = await api('/api/os/veiculo-atual');
+        if (vAtual && vAtual.ultimo_km) document.getElementById('inp-km-avulso-fim').value = vAtual.ultimo_km;
+      } catch(e) {}
+    } else {
+      divAtivo.style.display = 'none';
+      divNovo.style.display  = 'block';
+      if (badge) badge.style.display = 'none';
+      renderTiposAvulso();
+    }
+    carregarHistoricoAvulsoHoje();
+  } catch(e) { console.error('Erro avulso:', e); }
+}
+
+function renderTiposAvulso() {
+  var lista = document.getElementById('lista-tipos-avulso');
+  if (!lista) return;
+  lista.innerHTML = _tiposAvulso.map(function(t) {
+    return '<button class="btn btn-outline" style="text-align:left;padding:12px 14px" id="tipo-btn-'+t.id+'" onclick="selecionarTipoAvulso(this)" data-tipo="'+t.id+'">'+t.label+'</button>';
+  }).join('');
+  document.getElementById('avulso-form').style.display = 'none';
+  _tipoSelecionado = null;
+}
+
+async function selecionarTipoAvulso(btn) {
+  var tipoId = btn.dataset ? btn.dataset.tipo : btn;
+  _tipoSelecionado = tipoId;
+  document.querySelectorAll('#lista-tipos-avulso button').forEach(function(b){
+    b.style.background = 'none'; b.style.borderColor = '';
+  });
+  btn.style.background   = 'rgba(249,115,22,.15)';
+  btn.style.borderColor  = '#f97316';
+  document.getElementById('avulso-form').style.display = 'block';
+  try {
+    var v = await api('/api/os/veiculo-atual');
+    if (v && v.ultimo_km) {
+      document.getElementById('inp-km-avulso-ini').value = v.ultimo_km;
+      document.getElementById('avulso-km-hint').textContent = 'Ultimo KM: ' + v.ultimo_km.toLocaleString('pt-BR') + ' km' + (v.placa ? ' - ' + v.placa : '');
+    }
+  } catch(e) {}
+}
+
+function cancelarSelecaoAvulso() {
+  _tipoSelecionado = null;
+  document.getElementById('avulso-form').style.display = 'none';
+  renderTiposAvulso();
+}
+
+async function iniciarAvulso() {
+  if (!_tipoSelecionado) { toast('Selecione o tipo de deslocamento','err'); return; }
+  var km = parseFloat(document.getElementById('inp-km-avulso-ini').value);
+  if (!km || km <= 0) { toast('Informe o KM inicial','err'); return; }
+  try {
+    var r = await api('/api/km-avulso/iniciar', {method:'POST', body:JSON.stringify({tipo:_tipoSelecionado, km_inicial:km})});
+    if (r.ok) { toast('Deslocamento iniciado!','ok'); carregarAvulso(); }
+    else toast(r.detail || 'Erro ao iniciar','err');
+  } catch(e) { toast('Erro: '+e.message,'err'); }
+}
+
+async function finalizarAvulso() {
+  var km = parseFloat(document.getElementById('inp-km-avulso-fim').value);
+  if (!km || km <= 0) { toast('Informe o KM final','err'); return; }
+  try {
+    var r = await api('/api/km-avulso/finalizar', {method:'POST', body:JSON.stringify({km_final:km})});
+    if (r.ok) { toast('Finalizado! '+r.km_deslocamento+' km','ok'); carregarAvulso(); }
+    else toast(r.detail || 'Erro','err');
+  } catch(e) { toast('Erro: '+e.message,'err'); }
+}
+
+async function carregarHistoricoAvulsoHoje() {
+  try {
+    var hoje = dataFiltro('hoje');
+    var rows = await api('/api/km-avulso/historico?inicio='+hoje+'&fim='+hoje);
+    var lista = document.getElementById('lista-avulso-hoje');
+    if (!lista) return;
+    if (!rows.length) { lista.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center">Nenhum deslocamento avulso hoje</div>'; return; }
+    lista.innerHTML = rows.map(function(r) {
+      var tipo  = _tiposAvulso.find(function(t){ return t.id === r.tipo; });
+      var label = tipo ? tipo.label : r.tipo;
+      var status = r.status === 'em_andamento'
+        ? '<span style="color:#f97316;font-size:.72rem">EM ANDAMENTO</span>'
+        : '<span style="color:#22c55e;font-size:.72rem">+' + parseFloat(r.km_deslocamento||0).toFixed(1) + ' km</span>';
+      return '<div style="background:var(--surface2);border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center">'
+        + '<div><div style="font-weight:700;font-size:.9rem">'+label+'</div>'
+        + '<div style="font-size:.75rem;color:var(--muted)">KM '+r.km_inicial+(r.km_final?' > '+r.km_final:'')+(r.placa?' - '+r.placa:'')+'</div></div>'
+        + status + '</div>';
+    }).join('');
+  } catch(e) {}
+}
 </script>
 
 <!-- MODAL REQUISICAO -->
@@ -2142,9 +2281,7 @@ function toast(msg, tipo='ok') {
       <button onclick="editReqEnviar()" style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-size:.88rem;font-weight:700;cursor:pointer">✅ Salvar</button>
     </div>
   </div>
-</div>
 
-<script>
 var _editReqId = null;
 var _editReqItens = {};
 
@@ -2209,57 +2346,6 @@ async function editReqEnviar() {
       carregarMinhasRequisicoes();
     } else { toast(r.detail||'Erro','err'); }
   } catch(e) { toast('Erro de rede','err'); }
-}
-</script>
-
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/static/sw.js')
-      .then(reg => {
-        console.log('[PWA] SW registrado:', reg.scope);
-        // Notifica atualização disponível
-        reg.addEventListener('updatefound', () => {
-          const newSW = reg.installing;
-          newSW.addEventListener('statechange', () => {
-            if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-              showToast('🔄 Atualização disponível! Feche e abra o app.', 'ok');
-            }
-          });
-        });
-      })
-      .catch(err => console.warn('[PWA] SW erro:', err));
-  });
-}
-
-// Banner de instalação Android
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  // Mostra botão de instalar se não estiver instalado
-  if (!window.matchMedia('(display-mode: standalone)').matches) {
-    setTimeout(() => {
-      const banner = document.createElement('div');
-      banner.id = 'pwa-banner';
-      banner.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1c2230;border:1px solid #e8521a;border-radius:12px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:.85rem;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:320px;width:90%';
-      banner.innerHTML = '<img src="/static/icons/icon-72x72.png" style="width:36px;height:36px;border-radius:8px"><div style="flex:1"><div style="font-weight:700;color:#e8eaf0">Instalar CliqueDf Técnico</div><div style="color:#6b7590;font-size:.75rem">Adicionar à tela inicial</div></div><button onclick="instalarPWA()" style="background:#e8521a;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:.8rem">Instalar</button><button onclick="document.getElementById('pwa-banner').remove()" style="background:transparent;border:none;color:#6b7590;cursor:pointer;padding:4px;font-size:1.2rem">✕</button>';
-      document.body.appendChild(banner);
-    }, 3000);
-  }
-});
-
-function instalarPWA() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(r => {
-    if (r.outcome === 'accepted') showToast('✅ App instalado!', 'ok');
-    deferredPrompt = null;
-    const b = document.getElementById('pwa-banner');
-    if (b) b.remove();
-  });
-}
-
 // ═══════════════ KM AVULSO ══════════════════════════════════
 var _tiposAvulso = [];
 var _tipoSelecionado = null;
@@ -2301,21 +2387,21 @@ async function carregarAvulso() {
 function renderTiposAvulso() {
   const lista = document.getElementById('lista-tipos-avulso');
   lista.innerHTML = _tiposAvulso.map(function(t) {
-    return '<button class="btn btn-outline" style="text-align:left;padding:12px 14px" onclick="selecionarTipoAvulso(''+t.id+'')">'+t.label+'</button>';
+    return '<button class="btn btn-outline" style="text-align:left;padding:12px 14px" id="tipo-btn-'+t.id+'" onclick="selecionarTipoAvulso(this.dataset.tipo)" data-tipo="'+t.id+'">'+t.label+'</button>';
   }).join('');
   document.getElementById('avulso-form').style.display = 'none';
   _tipoSelecionado = null;
 }
 
-async function selecionarTipoAvulso(tipoId) {
+function selecionarTipoAvulso(btn) { var tipoId = btn.dataset ? btn.dataset.tipo : btn;
   _tipoSelecionado = tipoId;
   // Destaca botao selecionado
   document.querySelectorAll('#lista-tipos-avulso button').forEach(function(b){
     b.style.background = 'none';
     b.style.borderColor = '';
   });
-  event.target.style.background = 'rgba(249,115,22,.15)';
-  event.target.style.borderColor = '#f97316';
+  var btn = document.getElementById('tipo-btn-'+tipoId);
+  if (btn) { btn.style.background = 'rgba(249,115,22,.15)'; btn.style.borderColor = '#f97316'; }
   // Mostra form KM
   document.getElementById('avulso-form').style.display = 'block';
   // Busca ultimo KM
@@ -2380,33 +2466,60 @@ async function carregarHistoricoAvulsoHoje() {
     }).join('');
   } catch(e) {}
 }
+}
+
+</div>
+
+
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/static/sw.js')
+      .then(reg => {
+        console.log('[PWA] SW registrado:', reg.scope);
+        // Notifica atualização disponível
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+              showToast('🔄 Atualização disponível! Feche e abra o app.', 'ok');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[PWA] SW erro:', err));
+  });
+}
+
+// Banner de instalação Android
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Mostra botão de instalar se não estiver instalado
+  if (!window.matchMedia('(display-mode: standalone)').matches) {
+    setTimeout(() => {
+      const banner = document.createElement('div');
+      banner.id = 'pwa-banner';
+      banner.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1c2230;border:1px solid #e8521a;border-radius:12px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:.85rem;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:320px;width:90%';
+      banner.innerHTML = '<img src="/static/icons/icon-72x72.png" style="width:36px;height:36px;border-radius:8px"><div style="flex:1"><div style="font-weight:700;color:#e8eaf0">Instalar CliqueDf Técnico</div><div style="color:#6b7590;font-size:.75rem">Adicionar à tela inicial</div></div><button onclick="instalarPWA()" style="background:#e8521a;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:.8rem">Instalar</button><button onclick="document.getElementById('pwa-banner').remove()" style="background:transparent;border:none;color:#6b7590;cursor:pointer;padding:4px;font-size:1.2rem">✕</button>';
+      document.body.appendChild(banner);
+    }, 3000);
+  }
+});
+
+function instalarPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') showToast('✅ App instalado!', 'ok');
+    deferredPrompt = null;
+    const b = document.getElementById('pwa-banner');
+    if (b) b.remove();
+  });
+}
+
 </script>
-  <!-- PAGE KM AVULSO -->
-  <div id="page-avulso" class="page" style="display:none;padding:16px">
-    <div style="font-size:1.1rem;font-weight:800;margin-bottom:16px">🚗 Deslocamento Avulso</div>
-    <div id="avulso-ativo" style="display:none;background:rgba(249,115,22,.1);border:1px solid #f97316;border-radius:12px;padding:16px;margin-bottom:16px">
-      <div style="font-size:.8rem;color:#f97316;font-weight:700;margin-bottom:8px">EM ANDAMENTO</div>
-      <div id="avulso-ativo-tipo" style="font-weight:700;font-size:1rem;margin-bottom:4px"></div>
-      <div id="avulso-ativo-km" style="font-size:.85rem;color:var(--muted);margin-bottom:12px"></div>
-      <label style="display:block;font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">KM Final</label>
-      <input type="number" id="inp-km-avulso-fim" class="km-input" placeholder="Ex: 45300">
-      <button class="btn btn-primary" style="margin-top:10px" onclick="finalizarAvulso()">✅ Finalizar deslocamento</button>
-    </div>
-    <div id="avulso-novo">
-      <div style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Selecione o tipo de deslocamento:</div>
-      <div id="lista-tipos-avulso" style="display:grid;gap:8px;margin-bottom:16px"></div>
-      <div id="avulso-form" style="display:none">
-        <label style="display:block;font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">KM Inicial</label>
-        <input type="number" id="inp-km-avulso-ini" class="km-input" placeholder="Ex: 45200">
-        <div id="avulso-km-hint" style="font-size:.75rem;color:var(--muted);margin-top:4px;text-align:center"></div>
-        <button class="btn btn-primary" style="margin-top:10px" onclick="iniciarAvulso()">🚗 Iniciar deslocamento</button>
-        <button class="btn btn-outline" style="margin-top:8px" onclick="cancelarSelecaoAvulso()">Cancelar</button>
-      </div>
-    </div>
-    <div style="margin-top:20px">
-      <div style="font-size:.85rem;font-weight:700;margin-bottom:8px;color:var(--muted)">HOJE</div>
-      <div id="lista-avulso-hoje" style="display:flex;flex-direction:column;gap:8px"></div>
-    </div>
-  </div>
 </body>
 </html>
