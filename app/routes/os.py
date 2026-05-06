@@ -99,7 +99,14 @@ def historico_os(inicio: Optional[str] = None, fim: Optional[str] = None, usuari
                v.placa AS veiculo_placa
         FROM ht_os o
         LEFT JOIN ht_os_execucao e ON e.ixc_os_id = o.ixc_os_id
-        LEFT JOIN ht_km_os k ON k.ixc_os_id = o.ixc_os_id AND k.id_tecnico = o.id_tecnico
+        LEFT JOIN (
+            SELECT ixc_os_id, id_tecnico, veiculo_id,
+                   SUM(km_deslocamento) as km_deslocamento,
+                   MIN(km_saida) as km_saida,
+                   MAX(km_chegada) as km_chegada
+            FROM ht_km_os
+            GROUP BY ixc_os_id, id_tecnico
+        ) k ON k.ixc_os_id = o.ixc_os_id AND k.id_tecnico = o.id_tecnico
         LEFT JOIN ht_veiculos v ON v.id = k.veiculo_id
         WHERE o.id_tecnico = ?
           AND o.status_hub = 'finalizada'
@@ -659,7 +666,15 @@ def iniciar_deslocamento_km(ixc_os_id: int, data: KmInput, usuario=Depends(reque
         db.close()
         raise HTTPException(400, f"Você tem OS #{ativa['ixc_os_id']} em andamento. Finalize ou reagende primeiro.")
 
-    # Registrar KM saida com veiculo_id
+    # Registrar KM saida com veiculo_id (protecao contra duplo clique)
+    ja_existe = db.execute(
+        "SELECT id FROM ht_km_os WHERE ixc_os_id=? AND id_tecnico=?",
+        (ixc_os_id, id_tecnico)
+    ).fetchone()
+    if ja_existe:
+        db.close()
+        return {"ok": True, "veiculo_id": veiculo_id,
+                "placa": veiculo["placa"] if veiculo else None}
     db.execute("""
         INSERT INTO ht_km_os (ixc_os_id, id_tecnico, veiculo_id, km_saida, dt_saida)
         VALUES (?,?,?,?,?)
