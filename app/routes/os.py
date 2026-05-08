@@ -404,7 +404,7 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
                          importando_dfe, ultima_situacao_patrimonio, id_tipo_documento,
                          id_login, aliquota_fcp, gera_3020, bfcp,
                          faturado_pedido_os, pedido_os_faturado, origem_movimento, forma_tributacao)
-                        VALUES (%s, 0, 0, 0,
+                        VALUES (%s, %s, 0, 0,
                                 0, 1, 0, 0,
                                 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
                                 \'S\', 0, 0, %s, %s, %s,
@@ -419,6 +419,7 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
                                 \'N\', \'N\', \'I\', \'P\')
                     """, (
                         prod_row["ixc_produto_id"],
+                        qtd_usar,
                         qtd_usar,
                         brt()[:10],
                         prod_row["nome"],

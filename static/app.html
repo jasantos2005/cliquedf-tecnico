@@ -409,6 +409,7 @@ async function carregarEstoqueCache() {
     const rows = await api('/api/estoque/meu');
     estoqueAtual = {};
     (rows||[]).forEach(item => { estoqueAtual[item.id || item.id_produto] = item.quantidade; });
+  window._produtosEstoque = rows || [];
   } catch(e) {}
 }
 
@@ -582,6 +583,58 @@ function navTo(page) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   document.getElementById('nav-'+page)?.classList.add('active');
+  if (page === 'estoque') { setTimeout(function(){ _bipEstoqueBaixo(); }, 400); }
+}
+// ── AUDIO BIPS ─────────────────────────────────────────────
+function _bip(tipo) {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (tipo === 'os') {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = 520;
+      g.gain.setValueAtTime(0.4, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.5);
+    } else if (tipo === 'estoque') {
+      [0, 0.35].forEach(function(t) {
+        var o2 = ctx.createOscillator(), g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.type = 'sine'; o2.frequency.value = 880;
+        g2.gain.setValueAtTime(0.35, ctx.currentTime + t);
+        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+        o2.start(ctx.currentTime + t); o2.stop(ctx.currentTime + t + 0.25);
+      });
+    }
+  } catch(e) {}
+}
+function _falar(texto) {
+  try {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(texto);
+    u.lang = 'pt-BR';
+    u.rate = 0.95;
+    u.pitch = 1.1;
+    u.volume = 1.0;
+    // Preferir voz feminina pt-BR se disponivel
+    var vozes = window.speechSynthesis.getVoices();
+    var voz = vozes.find(function(v){ return v.lang === 'pt-BR' && v.name.toLowerCase().includes('female'); })
+           || vozes.find(function(v){ return v.lang === 'pt-BR'; })
+           || vozes.find(function(v){ return v.lang.startsWith('pt'); });
+    if (voz) u.voice = voz;
+    window.speechSynthesis.speak(u);
+  } catch(e) {}
+}
+function _bipEstoqueBaixo() {
+  if (!estoqueAtual || !Object.keys(estoqueAtual).length) return;
+  var baixo = false;
+  Object.keys(estoqueAtual).forEach(function(id) {
+    var item = (window._produtosEstoque||[]).find(function(p){ return p.id == id; });
+    var minimo = (item && item.estoque_minimo != null) ? item.estoque_minimo : 1;
+    if (estoqueAtual[id] <= minimo) baixo = true;
+  });
+  if (baixo) _bip('estoque');
 }
 
 // ── OS ───────────────────────────────────────────────────────
@@ -591,7 +644,7 @@ async function carregarOS() {
     rows.sort((a,b)=>(a.data_reservada||a.data_agenda||a.data_abertura||'9999').localeCompare(b.data_reservada||b.data_agenda||b.data_abertura||'9999'));
     let ordem=1;
     rows.forEach(o=>{if(['pendente','agendada','reagendada'].includes(o.status_hub))o._ordem=ordem++;else o._ordem=0;});
-    osData=rows; _registrarOsAtuais(); renderOS(); renderHome(); renderAlertaEstoque();
+    osData=rows; _registrarOsAtuais(); renderOS(); renderHome(); renderAlertaEstoque(); _bipNovaOsSeNecessario();
   } catch(e) { console.log('Offline — usando cache'); }
 }
 
@@ -1510,6 +1563,18 @@ let _ultimasOsIds = new Set();
 function _registrarOsAtuais() {
   _ultimasOsIds = new Set((osData||[]).map(o=>o.ixc_os_id));
 }
+var _bipOsJaDisparado = false;
+function _bipNovaOsSeNecessario() {
+  var pendentes = (osData||[]).filter(function(o){
+    return ['pendente','agendada','reagendada'].includes(o.status_hub);
+  });
+  if (pendentes.length > 0 && !_bipOsJaDisparado) {
+    _bip('os');
+    _bipOsJaDisparado = true;
+  }
+  // Salvar produtos para bipEstoqueBaixo usar minimo
+  if (!window._produtosEstoque) window._produtosEstoque = [];
+}
 setInterval(async function() {
   if (modoOffline || !isOnline) return;
   try {
@@ -1519,6 +1584,7 @@ setInterval(async function() {
     const novas = (osData||[]).filter(o => !idsAntes.has(o.ixc_os_id));
     if (novas.length > 0) {
       toast('📋 ' + novas.length + ' nova(s) OS recebida(s)!', 'ok');
+      _bip('os');
     }
     // Verificar requisições aprovadas no background
     try {
@@ -1981,11 +2047,22 @@ async function marcarTodasLidas() {
   } catch(e) {}
 }
 
+var _notifAnterior = null;
 async function verificarBadgeNotif() {
   try {
     const r = await api('/api/os/notificacoes/nao-lidas');
     const badge = document.getElementById('badge-notif');
     if (badge) { badge.textContent = r.total; badge.style.display = r.total > 0 ? 'inline-flex' : 'none'; }
+    // Falar apenas se aumentou (nao na primeira carga)
+    if (_notifAnterior !== null && r.total > _notifAnterior) {
+      var novas = r.total - _notifAnterior;
+      if (novas === 1) {
+        _falar('Nova mensagem');
+      } else {
+        _falar(novas + ' novas mensagens');
+      }
+    }
+    _notifAnterior = r.total;
   } catch(e) {}
 }
 
