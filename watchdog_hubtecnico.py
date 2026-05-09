@@ -168,7 +168,8 @@ def check_cron_sync_os():
 
 
 def check_tecnicos_sem_gps():
-    """Avisa quando tecnico ativo fica mais de 2h sem enviar GPS em dia util."""
+    """Avisa quando tecnico ativo fica mais de 2h sem enviar GPS em dia util.
+    Envia no maximo 1x por hora para nao encher o Telegram."""
     from datetime import datetime, timedelta
     agora_brt = datetime.utcnow() - timedelta(hours=3)
     hora_brt = agora_brt.hour
@@ -177,6 +178,14 @@ def check_tecnicos_sem_gps():
     # Só verifica em horario comercial (7h-19h) dias uteis (seg-sab)
     if not (7 <= hora_brt <= 19 and dia_semana <= 5):
         return True
+
+    # Controle de frequencia: envia no maximo 1x por hora
+    import time as _time
+    heartbeat_gps = "/tmp/watchdog_gps_ultimo_aviso"
+    if os.path.exists(heartbeat_gps):
+        minutos_desde_aviso = (_time.time() - os.path.getmtime(heartbeat_gps)) / 60
+        if minutos_desde_aviso < 60:
+            return True  # ja avisou na ultima hora
 
     try:
         conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -215,6 +224,8 @@ def check_tecnicos_sem_gps():
                 log(f"check_gps parse erro {r['nome']}: {e}")
 
         if sem_gps:
+            # Gravar heartbeat ANTES de enviar
+            with open("/tmp/watchdog_gps_ultimo_aviso", "w") as _f: _f.write(str(agora_brt))
             lista = "\n".join(sem_gps)
             telegram(
                 f"📡 <b>HubTecnico — Técnicos sem GPS</b>\n\n"
