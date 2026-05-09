@@ -1798,13 +1798,12 @@ function renderMapa() {
     var modelo   = t.marca_modelo || '—';
     var iniHoje  = t.primeiro_gps_hoje ? t.primeiro_gps_hoje.substring(11,16) : '—';
     var ultHoje  = t.registrado_em ? t.registrado_em.substring(11,16) : '—';
-
-    // Calcular KM aproximado do dia
-    var kmHoje = '—';
-    if (t.km_hoje) kmHoje = t.km_hoje.toFixed(1)+' km';
+    var kmHoje   = t.km_hoje != null ? t.km_hoje.toFixed(1)+' km' : '—';
+    var emMovimento = t.pontos_movimento_hoje || 0;
+    var tipoEmoji = {moto:'🏍️',pickup:'🛻',eletrico:'⚡',carro:'🚗',outros:'🔧'}[t.veiculo_tipo||'carro']||'🚗';
 
     var popupHtml =
-      '<div style="min-width:220px;font-family:sans-serif;font-size:.82rem">' +
+      '<div style="min-width:230px;font-family:sans-serif;font-size:.82rem">' +
       '<div style="font-weight:900;font-size:.95rem;margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">'+
         '👷 '+t.tecnico_nome+
       '</div>' +
@@ -1822,15 +1821,25 @@ function renderMapa() {
           '<div style="font-size:.65rem;color:#64748b">Em execução</div>' +
         '</div>' +
         '<div style="background:#f8fafc;border-radius:6px;padding:5px 7px;text-align:center">' +
-          '<div style="font-size:1rem;font-weight:900;color:#10b981">'+velMax+' km/h</div>' +
+          '<div style="font-size:1rem;font-weight:900;color:#10b981">'+kmHoje+'</div>' +
+          '<div style="font-size:.65rem;color:#64748b">KM hoje</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">' +
+        '<div style="background:#f8fafc;border-radius:6px;padding:5px 7px;text-align:center">' +
+          '<div style="font-size:.9rem;font-weight:900;color:#ef4444">'+velMax+' km/h</div>' +
           '<div style="font-size:.65rem;color:#64748b">Vel. máx</div>' +
+        '</div>' +
+        '<div style="background:#f8fafc;border-radius:6px;padding:5px 7px;text-align:center">' +
+          '<div style="font-size:.9rem;font-weight:900;color:#06b6d4">'+pontos+'</div>' +
+          '<div style="font-size:.65rem;color:#64748b">Pts GPS hoje</div>' +
         '</div>' +
       '</div>' +
       '<div style="font-size:.75rem;line-height:1.8;color:#374151">' +
-        '<div>🚗 <b>'+placa+'</b> — '+modelo+'</div>' +
+        '<div>'+tipoEmoji+' <b>'+placa+'</b> — '+modelo+'</div>' +
         '<div>📍 '+statusTxt+'</div>' +
-        '<div>📡 '+pontos+' pontos GPS hoje</div>' +
         '<div>🕐 Início: '+iniHoje+' · Último: '+ultHoje+'</div>' +
+        (emMovimento > 0 ? '<div>🏃 Em movimento: '+emMovimento+' registros hoje</div>' : '') +
       '</div>' +
       '</div>';
 

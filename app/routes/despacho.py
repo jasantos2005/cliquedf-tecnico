@@ -48,6 +48,21 @@ def dados_mapa(usuario=Depends(requer_supervisor)):
                 WHERE g2.id_tecnico = g.id_tecnico
                 AND g2.registrado_em >= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 00:00:00'
                 ORDER BY g2.id ASC LIMIT 1) AS primeiro_gps_hoje,
+               -- KM real do dia pelo odometro Traccar
+               (SELECT ROUND(
+                   (MAX(g2.total_distance_m) - MIN(g2.total_distance_m)) / 1000.0, 2
+                ) FROM ht_gps_track g2
+                WHERE g2.id_tecnico = g.id_tecnico
+                AND g2.status_tecnico = 'traccar'
+                AND g2.registrado_em >= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 00:00:00'
+                AND g2.total_distance_m > 0
+               ) AS km_hoje,
+               -- Tempo em movimento hoje (pontos com motion=1)
+               (SELECT COUNT(*) FROM ht_gps_track g2
+                WHERE g2.id_tecnico = g.id_tecnico
+                AND g2.motion = 1
+                AND g2.registrado_em >= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 00:00:00'
+               ) AS pontos_movimento_hoje,
                -- OS do dia
                (SELECT COUNT(*) FROM ht_os o2
                 WHERE o2.id_tecnico = g.id_tecnico

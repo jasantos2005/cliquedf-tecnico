@@ -69,7 +69,7 @@ def sync():
             # Buscar posicoes novas do Traccar para este device
             cur.execute("""
                 SELECT p.LATITUDE, p.LONGITUDE, p.SPEED, p.FIXTIME, p.COURSE,
-                       p.ATTRIBUTES, d.NAME
+                       p.ATTRIBUTES, d.NAME, p.ADDRESS
                 FROM TC_POSITIONS p
                 JOIN TC_DEVICES d ON d.ID = p.DEVICEID
                 WHERE d.UNIQUEID = ?
@@ -87,17 +87,35 @@ def sync():
             log(f"  {posicoes[0][6]}: {len(posicoes)} posicoes novas")
 
             for pos in posicoes:
-                lat    = float(pos[0])
-                lon    = float(pos[1])
-                speed  = float(pos[2]) * 1.852 if pos[2] else 0.0  # knots → km/h
-                fixtime = str(pos[3])[:19].replace("T", " ")
-                course = float(pos[4]) if pos[4] else 0.0
+                lat       = float(pos[0])
+                lon       = float(pos[1])
+                speed     = float(pos[2]) * 1.852 if pos[2] else 0.0  # knots → km/h
+                fixtime   = str(pos[3])[:19].replace("T", " ")
+                attrs_raw = pos[5]
+                endereco  = pos[7]
+
+                # Parse attributes JSON
+                dist_m    = 0.0
+                total_m   = 0.0
+                motion    = 0
+                bateria   = 0.0
+                if attrs_raw:
+                    try:
+                        import json as _json
+                        attrs = _json.loads(str(attrs_raw))
+                        dist_m  = float(attrs.get('distance', 0) or 0)
+                        total_m = float(attrs.get('totalDistance', 0) or 0)
+                        motion  = 1 if attrs.get('motion', False) else 0
+                        bateria = float(attrs.get('batteryLevel', 0) or 0)
+                    except: pass
 
                 hub.execute("""
                     INSERT INTO ht_gps_track
-                        (id_tecnico, lat, lon, velocidade, registrado_em, status_tecnico)
-                    VALUES (?, ?, ?, ?, ?, 'traccar')
-                """, (id_tecnico, lat, lon, round(speed, 1), fixtime))
+                        (id_tecnico, lat, lon, velocidade, registrado_em, status_tecnico,
+                         distancia_m, total_distance_m, motion, endereco, bateria)
+                    VALUES (?, ?, ?, ?, ?, 'traccar', ?, ?, ?, ?, ?)
+                """, (id_tecnico, lat, lon, round(speed, 1), fixtime,
+                      round(dist_m, 2), round(total_m, 2), motion, endereco, bateria))
                 total += 1
 
             hub.commit()
