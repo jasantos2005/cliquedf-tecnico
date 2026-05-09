@@ -82,8 +82,14 @@ async def traccar_setup():
 
 @app.get("/painel", response_class=HTMLResponse)
 async def despacho_page():
+    from fastapi.responses import HTMLResponse as _HR
     p = STATIC_DIR / "painel.html"
-    return p.read_text() if p.exists() else "<h2>Despacho em construcao</h2>"
+    content = p.read_text() if p.exists() else "<h2>Despacho em construcao</h2>"
+    return _HR(content=content, headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    })
 
 @app.get("/health")
 async def health():
