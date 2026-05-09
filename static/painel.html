@@ -1789,7 +1789,7 @@ function renderMapa() {
     var vel = parseFloat(t.velocidade) || 0;
     var statusTxt = vel > 3 ? 'Em movimento ('+Math.round(vel)+' km/h)' : (minParado >= 30 ? 'Parado ha '+minParado+' min' : 'Parado');
     // Popup rico com dados do tecnico/veiculo
-    var velMax   = t.vel_max_hoje || 0;
+    var velMax   = t.vel_max_hoje != null ? t.vel_max_hoje : '—';
     var pontos   = t.pontos_hoje || 0;
     var osFin    = t.os_finalizadas || 0;
     var osAgen   = t.os_agendadas || 0;
