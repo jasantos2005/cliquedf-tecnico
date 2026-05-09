@@ -1788,56 +1788,9 @@ function renderMapa() {
     var minParado = minSemGps;
     var vel = parseFloat(t.velocidade) || 0;
     var statusTxt = vel > 3 ? 'Em movimento ('+Math.round(vel)+' km/h)' : (minParado >= 30 ? 'Parado ha '+minParado+' min' : 'Parado');
-    // Popup rico com dados do tecnico/veiculo
-    var velMax   = t.vel_max_hoje || 0;
-    var pontos   = t.pontos_hoje || 0;
-    var osFin    = t.os_finalizadas || 0;
-    var osAgen   = t.os_agendadas || 0;
-    var osExec   = t.os_execucao || 0;
-    var placa    = t.placa || '—';
-    var modelo   = t.marca_modelo || '—';
-    var iniHoje  = t.primeiro_gps_hoje ? t.primeiro_gps_hoje.substring(11,16) : '—';
-    var ultHoje  = t.registrado_em ? t.registrado_em.substring(11,16) : '—';
-
-    // Calcular KM aproximado do dia
-    var kmHoje = '—';
-    if (t.km_hoje) kmHoje = t.km_hoje.toFixed(1)+' km';
-
-    var popupHtml =
-      '<div style="min-width:220px;font-family:sans-serif;font-size:.82rem">' +
-      '<div style="font-weight:900;font-size:.95rem;margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">'+
-        '👷 '+t.tecnico_nome+
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">' +
-        '<div style="background:#f8fafc;border-radius:6px;padding:5px 7px;text-align:center">' +
-          '<div style="font-size:1rem;font-weight:900;color:#3b82f6">'+osFin+'</div>' +
-          '<div style="font-size:.65rem;color:#64748b">Finalizadas</div>' +
-        '</div>' +
-        '<div style="background:#f8fafc;border-radius:6px;padding:5px 7px;text-align:center">' +
-          '<div style="font-size:1rem;font-weight:900;color:#8b5cf6">'+osAgen+'</div>' +
-          '<div style="font-size:.65rem;color:#64748b">Agendadas</div>' +
-        '</div>' +
-        '<div style="background:#f8fafc;border-radius:6px;padding:5px 7px;text-align:center">' +
-          '<div style="font-size:1rem;font-weight:900;color:#f59e0b">'+osExec+'</div>' +
-          '<div style="font-size:.65rem;color:#64748b">Em execução</div>' +
-        '</div>' +
-        '<div style="background:#f8fafc;border-radius:6px;padding:5px 7px;text-align:center">' +
-          '<div style="font-size:1rem;font-weight:900;color:#10b981">'+velMax+' km/h</div>' +
-          '<div style="font-size:.65rem;color:#64748b">Vel. máx</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="font-size:.75rem;line-height:1.8;color:#374151">' +
-        '<div>🚗 <b>'+placa+'</b> — '+modelo+'</div>' +
-        '<div>📍 '+statusTxt+'</div>' +
-        '<div>📡 '+pontos+' pontos GPS hoje</div>' +
-        '<div>🕐 Início: '+iniHoje+' · Último: '+ultHoje+'</div>' +
-      '</div>' +
-      '</div>';
-
     var m = L.marker([t.lat, t.lon], {icon: iconeTecnico(t), zIndexOffset:1000})
       .addTo(mapa)
-      .bindPopup(popupHtml, {maxWidth:260, className:'popup-tecnico'})
-      .bindTooltip(t.tecnico_nome+(placa!=='—'?' · '+placa:''), {direction:'top'});
+      .bindTooltip('<b>'+t.tecnico_nome+'</b><br>'+statusTxt+'<br>'+(t.registrado_em||''), {direction:'top'});
     marcadoresTec[t.id_tecnico] = m;
   });
 }

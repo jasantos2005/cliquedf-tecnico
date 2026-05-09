@@ -26,39 +26,13 @@ def dados_mapa(usuario=Depends(requer_supervisor)):
         ORDER BY o.data_abertura ASC
     """).fetchall()
 
-    # Posicoes GPS atuais + stats do dia
+    # Posicoes GPS atuais
     gps_rows = db.execute("""
         SELECT g.id_tecnico, g.lat, g.lon, g.velocidade,
                g.status_tecnico, g.ixc_os_id, g.registrado_em,
-               u.nome AS tecnico_nome,
-               -- Veiculo com posse ativa
-               v.placa, v.marca_modelo, v.tipo AS veiculo_tipo,
-               -- Stats GPS do dia
-               (SELECT COUNT(*) FROM ht_gps_track g2
-                WHERE g2.id_tecnico = g.id_tecnico
-                AND date(g2.registrado_em) = date('now','-3 hours')) AS pontos_hoje,
-               (SELECT ROUND(MAX(g2.velocidade),1) FROM ht_gps_track g2
-                WHERE g2.id_tecnico = g.id_tecnico
-                AND date(g2.registrado_em) = date('now','-3 hours')) AS vel_max_hoje,
-               (SELECT g2.registrado_em FROM ht_gps_track g2
-                WHERE g2.id_tecnico = g.id_tecnico
-                AND date(g2.registrado_em) = date('now','-3 hours')
-                ORDER BY g2.id ASC LIMIT 1) AS primeiro_gps_hoje,
-               -- OS do dia
-               (SELECT COUNT(*) FROM ht_os o2
-                WHERE o2.id_tecnico = g.id_tecnico
-                AND o2.status_hub = 'finalizada'
-                AND date(o2.data_abertura) = date('now','-3 hours')) AS os_finalizadas,
-               (SELECT COUNT(*) FROM ht_os o2
-                WHERE o2.id_tecnico = g.id_tecnico
-                AND o2.status_hub IN ('agendada','reagendada')) AS os_agendadas,
-               (SELECT COUNT(*) FROM ht_os o2
-                WHERE o2.id_tecnico = g.id_tecnico
-                AND o2.status_hub = 'execucao') AS os_execucao
+               u.nome AS tecnico_nome
         FROM ht_gps_track g
         JOIN ht_usuarios u ON u.id = g.id_tecnico
-        LEFT JOIN ht_veiculo_posse p ON p.id_tecnico = g.id_tecnico AND p.entregue_em IS NULL
-        LEFT JOIN ht_veiculos v ON v.id = p.id_veiculo
         WHERE g.id IN (
             SELECT MAX(id) FROM ht_gps_track GROUP BY id_tecnico
         )
