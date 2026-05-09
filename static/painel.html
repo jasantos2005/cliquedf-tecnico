@@ -1632,9 +1632,9 @@ function iconeTecnico(tec) {
 async function carregarDados() {
   try {
     var dados = await api('/api/despacho/mapa');
-    var gps = await api('/api/gps/posicoes');
     osCache = dados.os || [];
-    tecnicosCache = gps || [];
+    // Usar tecnicos do mapa (com placa, pontos_hoje, etc) em vez de /api/gps/posicoes
+    tecnicosCache = dados.tecnicos || [];
     rotasTecnicos = {};
     try {
       var ids = [];
