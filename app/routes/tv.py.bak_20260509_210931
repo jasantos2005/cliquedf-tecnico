@@ -424,13 +424,12 @@ def tv_historico(id_veiculo: int, horas: int = 24):
     """Rastro historico de um veiculo nas ultimas X horas."""
     db  = get_db()
     cur = db.cursor()
-    # Busca tecnicos vinculados ao veiculo (posse ativa ou recente)
+    # Busca tecnicos que usaram esse veiculo
     cur.execute("""
-        SELECT DISTINCT p.id_tecnico
-        FROM ht_veiculo_posse p
-        WHERE p.id_veiculo = ?
-          AND (p.entregue_em IS NULL
-               OR p.entregue_em >= datetime('now','-3 hours','-7 days'))
+        SELECT DISTINCT tv.id_tecnico
+        FROM ht_tecnico_veiculo tv
+        WHERE tv.id_veiculo = ?
+        AND tv.data >= date('now','-3 hours','-7 days')
     """, (id_veiculo,))
     tids = [r["id_tecnico"] for r in cur.fetchall()]
     if not tids:
@@ -564,23 +563,20 @@ def tv_historico(id_veiculo: int, horas: int = 24):
 
 @router.get("/api/tv/veiculos-ativos")
 def veiculos_ativos():
-    """Veiculos com posse ativa que tiveram GPS nos ultimos 7 dias."""
+    """Veiculos que rodaram nos ultimos 7 dias."""
     db  = get_db()
     cur = db.cursor()
-    # Usar ht_veiculo_posse (posse ativa) em vez de ht_tecnico_veiculo (diario)
     cur.execute("""
         SELECT DISTINCT v.id, v.placa, v.marca_modelo, v.tipo,
                MAX(g.registrado_em) as ultimo_gps,
-               u.nome as tecnico_nome,
-               p.id_tecnico
-        FROM ht_veiculo_posse p
-        JOIN ht_usuarios u ON u.id = p.id_tecnico
-        JOIN ht_veiculos v ON v.id = p.id_veiculo
-        LEFT JOIN ht_gps_track g ON g.id_tecnico = p.id_tecnico
-            AND g.registrado_em >= datetime('now','-3 hours','-7 days')
-        WHERE p.entregue_em IS NULL
-          AND v.ativo = 1
-          AND v.placa NOT IN ('GERADOR1','GERADOR2','MOTOPODA')
+               u.nome as tecnico_nome
+        FROM ht_gps_track g
+        JOIN ht_tecnico_veiculo tv ON tv.id_tecnico = g.id_tecnico
+            AND tv.data >= date('now','-3 hours','-7 days')
+        JOIN ht_veiculos v ON v.id = tv.id_veiculo
+        JOIN ht_usuarios u ON u.id = g.id_tecnico
+        WHERE g.registrado_em >= datetime('now','-3 hours','-7 days')
+        AND v.ativo = 1
         GROUP BY v.id
         ORDER BY ultimo_gps DESC
     """)
