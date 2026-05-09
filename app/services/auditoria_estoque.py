@@ -5,7 +5,7 @@ Roda a cada hora via cron. Envia alerta no Telegram se encontrar divergência.
 import sqlite3
 from datetime import datetime, timedelta
 from collections import defaultdict
-from app.services.ixc_db import ixc_select
+from app.services.ixc_db import ixc_select, ixc_insert
 from app.services.notificador import enviar_telegram
 
 DB_PATH = "/opt/automacoes/cliquedf/tecnico/hub_tecnico.db"
@@ -40,24 +40,50 @@ def auditar_materiais(dias=7):
     os_ids = list(set(r['ixc_os_id'] for r in os_mats))
     placeholders = ','.join(['%s'] * len(os_ids))
 
+    # Buscar movimentos detalhados para permitir auto-correção
     mov_ixc = ixc_select(f"""
-        SELECT id_oss_chamado, id_produto,
-               SUM(quantidade) as qtd_total
+        SELECT id, id_oss_chamado, id_produto, quantidade, qtde_saida
         FROM ixcprovedor.movimento_produtos
         WHERE id_oss_chamado IN ({placeholders})
         AND tipo = 'S'
-        GROUP BY id_oss_chamado, id_produto
+        ORDER BY id_oss_chamado, id_produto
     """, tuple(os_ids))
 
-    ixc_idx = {(r['id_oss_chamado'], r['id_produto']): float(r['qtd_total']) for r in mov_ixc}
+    # Agrupar por OS+produto (soma quantidade real)
+    from collections import defaultdict
+    ixc_idx = defaultdict(float)
+    ixc_corrigiveis = defaultdict(list)  # ids com quantidade=0 mas qtde_saida>0
+    for r in mov_ixc:
+        key = (r['id_oss_chamado'], r['id_produto'])
+        ixc_idx[key] += float(r['quantidade'])
+        if float(r['quantidade']) == 0 and float(r['qtde_saida']) > 0:
+            ixc_corrigiveis[key].append(r['id'])
+
+    # Auto-corrigir quantidade=0
+    corrigidos = []
+    for key, ids in ixc_corrigiveis.items():
+        ph = ','.join(['%s'] * len(ids))
+        ixc_insert(f"""
+            UPDATE ixcprovedor.movimento_produtos
+            SET quantidade = qtde_saida
+            WHERE id IN ({ph}) AND quantidade = 0 AND qtde_saida > 0
+        """, tuple(ids))
+        # Recalcular após correção
+        rows_fix = ixc_select(f"""
+            SELECT SUM(quantidade) as qtd FROM ixcprovedor.movimento_produtos
+            WHERE id IN ({ph})
+        """, tuple(ids))
+        nova_qtd = float(rows_fix[0]['qtd'] or 0)
+        ixc_idx[key] += nova_qtd
+        corrigidos.append({'os': key[0], 'id_produto': key[1], 'ids': ids})
 
     divergencias = []
     for r in os_mats:
         key = (r['ixc_os_id'], r['ixc_produto_id'])
-        ixc_qtd = ixc_idx.get(key)
+        ixc_qtd = ixc_idx.get(key, None)
         hub_qtd = float(r['hub_qtd'])
 
-        if ixc_qtd is None:
+        if key not in ixc_idx:
             divergencias.append({
                 'tipo': 'MATERIAL_NAO_BAIXADO',
                 'os': r['ixc_os_id'],
@@ -78,7 +104,7 @@ def auditar_materiais(dias=7):
                 'finalizada_em': r['finalizada_em'],
             })
 
-    return divergencias
+    return divergencias, corrigidos
 
 def auditar_comodatos(dias=7):
     """Verifica se comodatos registrados no Hub existem no IXC."""
@@ -169,11 +195,20 @@ def auditar_duplicatas(dias=7):
 
 def rodar_auditoria():
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
-    divs_mat = auditar_materiais(dias=7)
+    divs_mat, autocorrigidos = auditar_materiais(dias=7)
     divs_cod = auditar_comodatos(dias=7)
     divs_dup = auditar_duplicatas(dias=7)
 
     total = len(divs_mat) + len(divs_cod) + len(divs_dup)
+
+    # Notificar auto-correções
+    if autocorrigidos:
+        linhas_fix = [f"🔧 <b>AUTO-CORREÇÃO — {now}</b>"]
+        linhas_fix.append(f"✅ {len(autocorrigidos)} item(s) corrigidos automaticamente no IXC:")
+        for ac in autocorrigidos:
+            linhas_fix.append(f"  • OS #{ac['os']} prod_id={ac['id_produto']} ({len(ac['ids'])} registro(s))")
+        enviar_telegram("\n".join(linhas_fix))
+        print(f"[{now}] Auto-corrigidos: {len(autocorrigidos)} itens")
 
     if total == 0:
         print(f"[{now}] Auditoria OK — sem divergências")
