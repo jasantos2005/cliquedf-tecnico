@@ -33,22 +33,27 @@ def dados_mapa(usuario=Depends(requer_supervisor)):
                u.nome AS tecnico_nome,
                -- Veiculo com posse ativa
                v.placa, v.marca_modelo, v.tipo AS veiculo_tipo,
-               -- Stats GPS do dia
+               -- Stats GPS do dia (BRT = UTC-3)
                (SELECT COUNT(*) FROM ht_gps_track g2
                 WHERE g2.id_tecnico = g.id_tecnico
-                AND date(g2.registrado_em) = date('now','-3 hours')) AS pontos_hoje,
+                AND g2.registrado_em >= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 00:00:00'
+                AND g2.registrado_em <= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 23:59:59'
+               ) AS pontos_hoje,
                (SELECT ROUND(MAX(g2.velocidade),1) FROM ht_gps_track g2
                 WHERE g2.id_tecnico = g.id_tecnico
-                AND date(g2.registrado_em) = date('now','-3 hours')) AS vel_max_hoje,
+                AND g2.registrado_em >= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 00:00:00'
+                AND g2.registrado_em <= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 23:59:59'
+               ) AS vel_max_hoje,
                (SELECT g2.registrado_em FROM ht_gps_track g2
                 WHERE g2.id_tecnico = g.id_tecnico
-                AND date(g2.registrado_em) = date('now','-3 hours')
+                AND g2.registrado_em >= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 00:00:00'
                 ORDER BY g2.id ASC LIMIT 1) AS primeiro_gps_hoje,
                -- OS do dia
                (SELECT COUNT(*) FROM ht_os o2
                 WHERE o2.id_tecnico = g.id_tecnico
                 AND o2.status_hub = 'finalizada'
-                AND date(o2.data_abertura) = date('now','-3 hours')) AS os_finalizadas,
+                AND o2.data_abertura >= strftime('%Y-%m-%d',datetime('now','-3 hours'))||' 00:00:00'
+               ) AS os_finalizadas,
                (SELECT COUNT(*) FROM ht_os o2
                 WHERE o2.id_tecnico = g.id_tecnico
                 AND o2.status_hub IN ('agendada','reagendada')) AS os_agendadas,

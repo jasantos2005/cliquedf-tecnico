@@ -1609,7 +1609,7 @@ function iconeTecnico(tec) {
   var agora = new Date();
   var regEm = tec.registrado_em ? new Date(tec.registrado_em) : null;
   var minSemGps = regEm ? Math.floor((agora - regEm) / 60000) : 99999;
-  if (minSemGps > 120) return; // oculta tecnico sem GPS ha mais de 2h
+  if (minSemGps > 43200) return; // oculta tecnico sem GPS ha mais de 30 dias
   var minParado = minSemGps;
   var vel = parseFloat(tec.velocidade) || 0;
   var cor, emoji;
@@ -1784,7 +1784,7 @@ function renderMapa() {
     var agora = new Date();
     var regEm = t.registrado_em ? new Date(t.registrado_em) : null;
     var minSemGps = regEm ? Math.floor((agora - regEm) / 60000) : 99999;
-    if (minSemGps > 120) return; // oculta tecnico sem GPS ha mais de 2h
+    if (minSemGps > 43200) return; // oculta tecnico sem GPS ha mais de 30 dias
     var minParado = minSemGps;
     var vel = parseFloat(t.velocidade) || 0;
     var statusTxt = vel > 3 ? 'Em movimento ('+Math.round(vel)+' km/h)' : (minParado >= 30 ? 'Parado ha '+minParado+' min' : 'Parado');
@@ -2213,7 +2213,7 @@ function renderMapaFrota(gps, vinculos) {
     var agora = new Date();
     var regEm = t.registrado_em ? new Date(t.registrado_em) : null;
     var minSemGps = regEm ? Math.floor((agora - regEm) / 60000) : 99999;
-    if (minSemGps > 120) return; // oculta tecnico sem GPS ha mais de 2h
+    if (minSemGps > 43200) return; // oculta tecnico sem GPS ha mais de 30 dias
     var minParado = minSemGps;
     var vel = parseFloat(t.velocidade) || 0;
     var cor = vel > 3 ? '#00e5a0' : (minParado >= 30 ? '#ff4d6a' : '#ffb83f');
