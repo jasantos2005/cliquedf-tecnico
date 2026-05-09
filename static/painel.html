@@ -1608,7 +1608,9 @@ function iconeOS(status) {
 function iconeTecnico(tec) {
   var agora = new Date();
   var regEm = tec.registrado_em ? new Date(tec.registrado_em) : null;
-  var minParado = regEm ? Math.floor((agora - regEm) / 60000) : 999;
+  var minSemGps = regEm ? Math.floor((agora - regEm) / 60000) : 99999;
+  if (minSemGps > 120) return; // oculta tecnico sem GPS ha mais de 2h
+  var minParado = minSemGps;
   var vel = parseFloat(tec.velocidade) || 0;
   var cor, emoji;
   if (vel > 3) {
@@ -1781,7 +1783,9 @@ function renderMapa() {
     if (!t.lat || !t.lon) return;
     var agora = new Date();
     var regEm = t.registrado_em ? new Date(t.registrado_em) : null;
-    var minParado = regEm ? Math.floor((agora - regEm) / 60000) : 999;
+    var minSemGps = regEm ? Math.floor((agora - regEm) / 60000) : 99999;
+    if (minSemGps > 120) return; // oculta tecnico sem GPS ha mais de 2h
+    var minParado = minSemGps;
     var vel = parseFloat(t.velocidade) || 0;
     var statusTxt = vel > 3 ? 'Em movimento ('+Math.round(vel)+' km/h)' : (minParado >= 30 ? 'Parado ha '+minParado+' min' : 'Parado');
     var m = L.marker([t.lat, t.lon], {icon: iconeTecnico(t), zIndexOffset:1000})
@@ -2161,7 +2165,9 @@ function renderMapaFrota(gps, vinculos) {
     if (!t.lat || !t.lon) return;
     var agora = new Date();
     var regEm = t.registrado_em ? new Date(t.registrado_em) : null;
-    var minParado = regEm ? Math.floor((agora - regEm) / 60000) : 999;
+    var minSemGps = regEm ? Math.floor((agora - regEm) / 60000) : 99999;
+    if (minSemGps > 120) return; // oculta tecnico sem GPS ha mais de 2h
+    var minParado = minSemGps;
     var vel = parseFloat(t.velocidade) || 0;
     var cor = vel > 3 ? '#00e5a0' : (minParado >= 30 ? '#ff4d6a' : '#ffb83f');
     var emoji = vel > 3 ? '🚗' : (minParado >= 30 ? '⏱️' : '🅿️');
