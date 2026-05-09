@@ -169,10 +169,10 @@ def check_cron_sync_os():
 
 def check_tecnicos_sem_gps():
     """Avisa quando tecnico ativo fica mais de 2h sem enviar GPS em dia util."""
-    from datetime import datetime, timezone, timedelta
-    agora_utc = datetime.now(timezone.utc)
-    hora_brt = (agora_utc - timedelta(hours=3)).hour
-    dia_semana = (agora_utc - timedelta(hours=3)).weekday()  # 0=seg, 6=dom
+    from datetime import datetime, timedelta
+    agora_brt = datetime.utcnow() - timedelta(hours=3)
+    hora_brt = agora_brt.hour
+    dia_semana = agora_brt.weekday()  # 0=seg, 6=dom
 
     # Só verifica em horario comercial (7h-19h) dias uteis (seg-sab)
     if not (7 <= hora_brt <= 19 and dia_semana <= 5):
@@ -194,7 +194,7 @@ def check_tecnicos_sem_gps():
         conn.close()
 
         sem_gps = []
-        agora_brt = agora_utc - timedelta(hours=3)
+        agora_brt = datetime.utcnow() - timedelta(hours=3)
 
         for r in rows:
             if not r["registrado_em"]:
@@ -242,6 +242,7 @@ def main():
         check_tabelas_criticas()
         check_erros_recentes_log()
         check_cron_sync_os()
+        check_tecnicos_sem_gps()
         log("=== Watchdog concluído ===")
     except Exception as e:
         log(f"ERRO INESPERADO: {e}")
