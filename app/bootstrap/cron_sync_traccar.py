@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-cron_sync_traccar.py — Sincroniza GPS do Traccar → ht_gps_track
-Para o Traccar brevemente, lê o H2, reinicia o Traccar.
-Roda a cada 2 minutos via crontab.
+cron_sync_traccar.py — Sincroniza HISTORICO COMPLETO do Traccar → ht_gps_track
+Roda a cada 2 minutos. Na primeira vez importa tudo, depois só o novo.
 """
 import sqlite3, jaydebeapi, os, subprocess, time
 from datetime import datetime, timedelta
@@ -25,14 +24,11 @@ MAPA = {
     "94729840":            11,  # WELLINGTON PIACABUCU
 }
 
-def brt():
-    return (datetime.now() - timedelta(hours=0)).strftime("%Y-%m-%d %H:%M:%S")
-
 def log(msg):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}")
 
 def sync():
-    # Evitar execucoes simultaneas
+    # Lock
     if os.path.exists(LOCK_FILE):
         if time.time() - os.path.getmtime(LOCK_FILE) < 100:
             log("Lock ativo — saindo")
@@ -43,7 +39,7 @@ def sync():
     total = 0
 
     try:
-        # Parar Traccar para liberar o banco H2
+        # Parar Traccar para liberar H2
         log("Parando Traccar...")
         subprocess.run(["systemctl", "stop", "traccar"], timeout=15)
         time.sleep(2)
@@ -56,52 +52,64 @@ def sync():
             H2_JAR
         )
         cur = conn.cursor()
-        cur.execute("""
-            SELECT d.UNIQUEID, d.NAME, p.LATITUDE, p.LONGITUDE, p.SPEED, p.FIXTIME
-            FROM TC_DEVICES d
-            JOIN TC_POSITIONS p ON p.ID = d.POSITIONID
-            WHERE d.DISABLED = FALSE
-              AND p.LATITUDE IS NOT NULL
-              AND p.LONGITUDE IS NOT NULL
-        """)
-        rows = cur.fetchall()
-        conn.close()
-        log(f"Devices com posicao: {len(rows)}")
 
-        # Gravar no HubTecnico
+        # Abrir HubTecnico
         hub = sqlite3.connect(HUB_DB, timeout=15)
         hub.execute("PRAGMA journal_mode=WAL")
         hub.execute("PRAGMA busy_timeout=10000")
 
-        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        for row in rows:
-            uniqueid = str(row[0])
-            nome     = str(row[1])
-            lat      = float(row[2]) if row[2] else 0.0
-            lon      = float(row[3]) if row[3] else 0.0
-            speed    = float(row[4]) if row[4] else 0.0
-            fixtime  = str(row[5])[:19] if row[5] else agora
+        for uniqueid, id_tecnico in MAPA.items():
+            # Buscar ultimo registro ja importado para este tecnico
+            row = hub.execute("""
+                SELECT MAX(registrado_em) FROM ht_gps_track
+                WHERE id_tecnico = ?
+            """, (id_tecnico,)).fetchone()
+            ultimo_importado = row[0] if row and row[0] else "2000-01-01 00:00:00"
 
-            id_tecnico = MAPA.get(uniqueid)
-            if not id_tecnico:
-                log(f"  SKIP {nome} ({uniqueid})")
+            # Buscar posicoes novas do Traccar para este device
+            cur.execute("""
+                SELECT p.LATITUDE, p.LONGITUDE, p.SPEED, p.FIXTIME, p.COURSE,
+                       p.ATTRIBUTES, d.NAME
+                FROM TC_POSITIONS p
+                JOIN TC_DEVICES d ON d.ID = p.DEVICEID
+                WHERE d.UNIQUEID = ?
+                  AND p.FIXTIME > ?
+                  AND p.VALID = TRUE
+                  AND p.LATITUDE IS NOT NULL
+                  AND p.LATITUDE != 0
+                ORDER BY p.FIXTIME ASC
+            """, (uniqueid, ultimo_importado))
+            posicoes = cur.fetchall()
+
+            if not posicoes:
                 continue
 
-            hub.execute("""
-                INSERT INTO ht_gps_track (id_tecnico, lat, lon, velocidade, registrado_em, status_tecnico)
-                VALUES (?, ?, ?, ?, ?, 'online')
-            """, (id_tecnico, lat, lon, speed, fixtime))
-            total += 1
-            log(f"  ✅ {nome} → {lat:.5f},{lon:.5f} {speed:.1f}km/h @ {fixtime}")
+            log(f"  {posicoes[0][6]}: {len(posicoes)} posicoes novas")
 
-        hub.commit()
+            for pos in posicoes:
+                lat    = float(pos[0])
+                lon    = float(pos[1])
+                speed  = float(pos[2]) * 1.852 if pos[2] else 0.0  # knots → km/h
+                fixtime = str(pos[3])[:19].replace("T", " ")
+                course = float(pos[4]) if pos[4] else 0.0
+
+                hub.execute("""
+                    INSERT INTO ht_gps_track
+                        (id_tecnico, lat, lon, velocidade, registrado_em, status_tecnico)
+                    VALUES (?, ?, ?, ?, ?, 'traccar')
+                """, (id_tecnico, lat, lon, round(speed, 1), fixtime))
+                total += 1
+
+            hub.commit()
+
+        conn.close()
         hub.close()
-        log(f"=== Sync concluido: {total} posicoes inseridas ===")
+        log(f"=== Sync concluido: {total} posicoes importadas ===")
 
     except Exception as e:
         log(f"ERRO: {e}")
+        import traceback; traceback.print_exc()
     finally:
-        # Sempre reiniciar o Traccar
         log("Reiniciando Traccar...")
         subprocess.run(["systemctl", "start", "traccar"], timeout=15)
         time.sleep(2)
