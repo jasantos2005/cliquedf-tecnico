@@ -11,7 +11,7 @@ def brt():
     return (datetime.now(timezone.utc)-timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
 
 @router.get("/veiculos")
-def listar_veiculos(usuario=Depends(requer_admin)):
+def listar_veiculos(usuario=Depends(requer_supervisor)):
     db = get_db()
     rows = db.execute("SELECT * FROM ht_veiculos ORDER BY tipo, marca_modelo").fetchall()
     db.close()

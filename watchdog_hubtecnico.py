@@ -228,6 +228,28 @@ def check_tecnicos_sem_gps():
         log(f"check_tecnicos_sem_gps erro: {e}")
     return True
 
+
+def check_traccar_sync():
+    """Verifica se o sync Traccar esta rodando. Corrige se atrasado."""
+    import time as _time
+    heartbeat = "/tmp/hubtecnico_traccar_sync_ok"
+    if not os.path.exists(heartbeat):
+        return True
+    minutos = (_time.time() - os.path.getmtime(heartbeat)) / 60
+    if minutos > 10:
+        def corrigir():
+            result = subprocess.run(
+                f"cd {APP_DIR} && venv/bin/python3 app/bootstrap/cron_sync_traccar.py",
+                shell=True, capture_output=True, text=True, timeout=60)
+            return f"Sync Traccar executado manualmente. Ultima saida: {result.stdout[-150:]}"
+        notificar_e_corrigir(
+            "Sync Traccar Atrasado",
+            f"Último sync Traccar há <b>{minutos:.0f} minutos</b> (esperado a cada 2 min).",
+            corrigir
+        )
+        return False
+    return True
+
 def main():
     if os.path.exists(LOCK_FILE):
         if time.time() - os.path.getmtime(LOCK_FILE) < 240:
@@ -243,6 +265,7 @@ def main():
         check_erros_recentes_log()
         check_cron_sync_os()
         check_tecnicos_sem_gps()
+        check_traccar_sync()
         log("=== Watchdog concluído ===")
     except Exception as e:
         log(f"ERRO INESPERADO: {e}")
