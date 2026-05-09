@@ -3,7 +3,7 @@ Detector de desvio de rota — roda a cada 5min via cron.
 Alerta quando técnico em deslocamento se afasta muito da rota esperada.
 """
 import sqlite3, math, os, logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from app.services.notificador import enviar_telegram
 from pathlib import Path
 from dotenv import load_dotenv
@@ -45,7 +45,7 @@ def _desvio_rota(ax, ay, bx, by, px, py):
 def verificar_desvios():
     db  = get_db()
     cur = db.cursor()
-    agora = datetime.utcnow() - timedelta(hours=3)
+    agora = datetime.now(timezone.utc) - timedelta(hours=3)
 
     if not (7 <= agora.hour < 19):
         db.close()

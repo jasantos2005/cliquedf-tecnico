@@ -171,7 +171,7 @@ def check_tecnicos_sem_gps():
     """Avisa quando tecnico ativo fica mais de 2h sem enviar GPS em dia util.
     Envia no maximo 1x por hora para nao encher o Telegram."""
     from datetime import datetime, timedelta
-    agora_brt = datetime.utcnow() - timedelta(hours=3)
+    agora_brt = datetime.now(timezone.utc) - timedelta(hours=3)
     hora_brt = agora_brt.hour
     dia_semana = agora_brt.weekday()  # 0=seg, 6=dom
 
@@ -203,7 +203,7 @@ def check_tecnicos_sem_gps():
         conn.close()
 
         sem_gps = []
-        agora_brt = datetime.utcnow() - timedelta(hours=3)
+        agora_brt = datetime.now(timezone.utc) - timedelta(hours=3)
 
         for r in rows:
             if not r["registrado_em"]:
@@ -263,9 +263,16 @@ def check_traccar_sync():
 
 def main():
     if os.path.exists(LOCK_FILE):
-        if time.time() - os.path.getmtime(LOCK_FILE) < 240:
-            log("Watchdog já rodando (lock ativo). Saindo.")
-            return
+        try:
+            age = time.time() - os.path.getmtime(LOCK_FILE)
+            pid = int(open(LOCK_FILE).read().strip())
+            # Verificar se o processo ainda existe
+            os.kill(pid, 0)
+            if age < 240:
+                log("Watchdog já rodando (lock ativo). Saindo.")
+                return
+        except (OSError, ValueError):
+            pass  # processo morreu, pode continuar
     with open(LOCK_FILE, "w") as f: f.write(str(os.getpid()))
     try:
         log("=== Watchdog iniciado ===")

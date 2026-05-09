@@ -272,3 +272,8 @@ def verificar_estoque_baixo():
         print(f"[ESTOQUE_BAIXO] {e}")
 
 verificar_estoque_baixo()
+
+# Heartbeat para watchdog
+import time as _time_hb
+with open('/tmp/hubtecnico_cron_sync_ok', 'w') as _f:
+    _f.write(str(_time_hb.time()))

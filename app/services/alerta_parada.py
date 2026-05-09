@@ -3,7 +3,7 @@ Monitor de paradas suspeitas — roda a cada 5min via cron.
 Alerta se técnico parar >20min em local sem OS vinculada.
 """
 import sqlite3, math, os, logging, json
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from app.services.notificador import enviar_telegram
 from app.services.geocoder import geocoder as _geo
 
@@ -28,7 +28,7 @@ def _dist_m(la1, lo1, la2, lo2):
 def verificar_paradas():
     db  = get_db()
     cur = db.cursor()
-    agora = datetime.utcnow() - timedelta(hours=3)
+    agora = datetime.now(timezone.utc) - timedelta(hours=3)
 
     # Só horário comercial
     if not (7 <= agora.hour < 19):

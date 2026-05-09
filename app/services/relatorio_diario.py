@@ -3,7 +3,7 @@ Relatório diário de frota — enviado às 19h via cron.
 Resumo por técnico: KM, OS, paradas longas, vel máxima.
 """
 import sqlite3, math, os, logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from app.services.notificador import enviar_telegram
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def _dist(la1, lo1, la2, lo2):
 def gerar_relatorio():
     db  = get_db()
     cur = db.cursor()
-    hoje = (datetime.utcnow() - timedelta(hours=3)).strftime("%Y-%m-%d")
+    hoje = (datetime.now(timezone.utc) - timedelta(hours=3)).strftime("%Y-%m-%d")
 
     # Técnicos ativos hoje (com GPS)
     cur.execute("""
@@ -107,7 +107,7 @@ def gerar_relatorio():
             f"  {icone_par} Paradas longas: <b>{paradas_longas}</b>"
         )
 
-    linhas.append(f"\n{'─'*28}\n🤖 HubTecnico · {(datetime.utcnow() - timedelta(hours=3)).strftime('%H:%M')}")
+    linhas.append(f"\n{'─'*28}\n🤖 HubTecnico · {(datetime.now(timezone.utc) - timedelta(hours=3)).strftime('%H:%M')}")
     msg = "\n".join(linhas)
     enviar_telegram(msg)
     logger.info("Relatório diário enviado.")
