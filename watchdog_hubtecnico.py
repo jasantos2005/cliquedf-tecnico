@@ -166,6 +166,68 @@ def check_cron_sync_os():
             return False
     return True
 
+
+def check_tecnicos_sem_gps():
+    """Avisa quando tecnico ativo fica mais de 2h sem enviar GPS em dia util."""
+    from datetime import datetime, timezone, timedelta
+    agora_utc = datetime.now(timezone.utc)
+    hora_brt = (agora_utc - timedelta(hours=3)).hour
+    dia_semana = (agora_utc - timedelta(hours=3)).weekday()  # 0=seg, 6=dom
+
+    # Só verifica em horario comercial (7h-19h) dias uteis (seg-sab)
+    if not (7 <= hora_brt <= 19 and dia_semana <= 5):
+        return True
+
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=10)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("""
+            SELECT u.nome, g.lat, g.lon, g.velocidade, g.registrado_em
+            FROM ht_gps_track g
+            JOIN ht_usuarios u ON u.id = g.id_tecnico
+            WHERE g.id IN (
+                SELECT MAX(id) FROM ht_gps_track GROUP BY id_tecnico
+            )
+            AND u.nivel = 10
+            AND u.ativo = 1
+        """).fetchall()
+        conn.close()
+
+        sem_gps = []
+        agora_brt = agora_utc - timedelta(hours=3)
+
+        for r in rows:
+            if not r["registrado_em"]:
+                sem_gps.append(f"• {r['nome']} — sem registro algum")
+                continue
+            try:
+                reg = datetime.strptime(r["registrado_em"], "%Y-%m-%d %H:%M:%S")
+                minutos = int((agora_brt - reg).total_seconds() / 60)
+                if minutos > 120:
+                    if minutos >= 1440:
+                        tempo = f"{minutos//1440}d {(minutos%1440)//60}h"
+                    elif minutos >= 60:
+                        tempo = f"{minutos//60}h {minutos%60}min"
+                    else:
+                        tempo = f"{minutos}min"
+                    sem_gps.append(f"• {r['nome']} — parado há {tempo} (último: {r['registrado_em'][11:16]})")
+            except Exception as e:
+                log(f"check_gps parse erro {r['nome']}: {e}")
+
+        if sem_gps:
+            lista = "\n".join(sem_gps)
+            telegram(
+                f"📡 <b>HubTecnico — Técnicos sem GPS</b>\n\n"
+                f"Os seguintes técnicos estão sem atualizar localização há mais de 2h:\n\n"
+                f"{lista}\n\n"
+                f"🕐 {brt()}"
+            )
+            log(f"GPS ausente: {len(sem_gps)} tecnicos")
+
+    except Exception as e:
+        log(f"check_tecnicos_sem_gps erro: {e}")
+    return True
+
 def main():
     if os.path.exists(LOCK_FILE):
         if time.time() - os.path.getmtime(LOCK_FILE) < 240:
