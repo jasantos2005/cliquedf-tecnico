@@ -9,7 +9,7 @@ router = APIRouter()
 DB = "/opt/automacoes/cliquedf/tecnico/hub_tecnico.db"
 
 def get_db():
-    con = sqlite3.connect(DB)
+    con = sqlite3.connect(DB, timeout=30)
     con.row_factory = sqlite3.Row
     try:
         yield con

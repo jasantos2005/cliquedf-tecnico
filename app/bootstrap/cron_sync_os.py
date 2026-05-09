@@ -47,7 +47,7 @@ def _geocode_endereco(endereco):
     return None, None, cidade
 
 def get_db():
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=30)
     conn.row_factory = sqlite3.Row
     return conn
 

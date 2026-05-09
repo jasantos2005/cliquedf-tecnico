@@ -11,8 +11,10 @@ from app.services.notificador import enviar_telegram
 DB_PATH = "/opt/automacoes/cliquedf/tecnico/hub_tecnico.db"
 
 def _db():
-    db = sqlite3.connect(DB_PATH)
+    db = sqlite3.connect(DB_PATH, timeout=30)
     db.row_factory = sqlite3.Row
+    db.execute("PRAGMA journal_mode=WAL")
+    db.execute("PRAGMA busy_timeout=30000")
     return db
 
 def auditar_materiais(dias=7):

@@ -60,7 +60,7 @@ def _sync_estoque_tecnico(id_tecnico: int, ixc_almox_id: int):
         from app.services.ixc_db import ixc_select
         import sqlite3, os as _os
         DB = _os.path.join(_os.path.dirname(__file__), "../../hub_tecnico.db")
-        conn = sqlite3.connect(DB)
+        conn = sqlite3.connect(DB, timeout=30)
         prod_map = {
             r[0]: r[1]
             for r in conn.execute("SELECT ixc_produto_id, id FROM ht_produtos WHERE ixc_produto_id > 0").fetchall()

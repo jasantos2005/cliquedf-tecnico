@@ -5,7 +5,7 @@ DB = os.path.join(os.path.dirname(__file__), "../../hub_tecnico.db")
 def sha256(s): return hashlib.sha256(s.encode()).hexdigest()
 
 def init():
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=30)
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS ht_usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -203,7 +203,7 @@ def init():
 
 def migrate():
     """Adiciona colunas faltantes em BDs ja existentes (idempotente)."""
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=30)
     alteracoes = [
         ("ht_usuarios",         "ixc_almox_id",      "INTEGER DEFAULT 0"),
         ("ht_produtos",         "ixc_produto_id",     "INTEGER DEFAULT 0"),
@@ -238,7 +238,7 @@ def _sync_ixc_ids():
         print(f"[SYNC_IXC] Import falhou: {e}")
         return
 
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=30)
 
     # Almox por tecnico: pega o mais frequente nas requisicoes de material
     try:

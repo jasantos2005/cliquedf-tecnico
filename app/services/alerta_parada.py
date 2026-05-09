@@ -15,7 +15,7 @@ GARAGEM_LON = -36.579507
 RAIO_GARAGEM = 500    # metros — parada na garagem não alerta
 
 def get_db():
-    con = sqlite3.connect(DB)
+    con = sqlite3.connect(DB, timeout=30)
     con.row_factory = sqlite3.Row
     return con
 

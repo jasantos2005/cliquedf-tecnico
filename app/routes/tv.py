@@ -21,7 +21,7 @@ def brt():
     return datetime.now(timezone.utc) - timedelta(hours=3)
 
 def get_db():
-    con = sqlite3.connect(DB)
+    con = sqlite3.connect(DB, timeout=30)
     con.row_factory = sqlite3.Row
     return con
 

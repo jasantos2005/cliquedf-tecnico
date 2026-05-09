@@ -14,7 +14,7 @@ def brt():
     return (datetime.now(timezone.utc) - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
 
 def sync_despesas():
-    db = sqlite3.connect(DB)
+    db = sqlite3.connect(DB, timeout=30)
     db.row_factory = sqlite3.Row
 
     try:

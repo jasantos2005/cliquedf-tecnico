@@ -793,7 +793,7 @@ def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico))
     import os as _os
     DB = _os.path.join(_os.path.dirname(__file__), "../../hub_tecnico.db")
     import sqlite3
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=30)
     conn.row_factory = sqlite3.Row
 
     km_chegada = data.get("km_chegada")

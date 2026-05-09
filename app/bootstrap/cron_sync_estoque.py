@@ -10,7 +10,7 @@ from datetime import datetime
 DB = "/opt/automacoes/cliquedf/tecnico/hub_tecnico.db"
 
 def run():
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=30)
     conn.row_factory = sqlite3.Row
 
     prod_map = {r["ixc_produto_id"]: r["id"] for r in conn.execute(
