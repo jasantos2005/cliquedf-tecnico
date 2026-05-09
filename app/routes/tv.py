@@ -448,6 +448,27 @@ def tv_historico(id_veiculo: int, horas: int = 24):
     """, tids)
     pontos = [dict(r) for r in cur.fetchall()]
 
+    # Calcular velocidade por deslocamento quando speed=0
+    import math as _math
+    def _dist_m(la1,lo1,la2,lo2):
+        R=6371000
+        dlat=_math.radians(la2-la1); dlon=_math.radians(lo2-lo1)
+        a=_math.sin(dlat/2)**2+_math.cos(_math.radians(la1))*_math.cos(_math.radians(la2))*_math.sin(dlon/2)**2
+        return R*2*_math.atan2(_math.sqrt(a),_math.sqrt(1-a))
+
+    from datetime import datetime as _dt2
+    for i in range(1, len(pontos)):
+        p0, p1 = pontos[i-1], pontos[i]
+        if (p1.get("velocidade") or 0) < 1 and p0.get("lat") and p1.get("lat"):
+            try:
+                dist = _dist_m(p0["lat"], p0["lon"], p1["lat"], p1["lon"])
+                t0 = _dt2.fromisoformat(p0["registrado_em"])
+                t1 = _dt2.fromisoformat(p1["registrado_em"])
+                secs = max((t1-t0).total_seconds(), 1)
+                pontos[i]["velocidade"] = round((dist / secs) * 3.6, 1)  # m/s → km/h
+            except:
+                pass
+
     # Resumo + paradas enriquecidas
     paradas_lista = []
     if pontos:
