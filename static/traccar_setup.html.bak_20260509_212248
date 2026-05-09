@@ -213,66 +213,19 @@
   <div class="config-item">
     <div>
       <div class="config-label">Frequência de Envio</div>
-      <div class="config-value" style="color:var(--green);font-weight:800">30 segundos</div>
+      <div class="config-value">30 segundos</div>
     </div>
-    <span style="font-size:.65rem;color:var(--text3)">recomendado</span>
   </div>
   <div class="config-item">
     <div>
-      <div class="config-label">Distância mínima</div>
-      <div class="config-value" style="color:var(--green);font-weight:800">50 metros</div>
+      <div class="config-label">Precisão</div>
+      <div class="config-value">Alta</div>
     </div>
-    <span style="font-size:.65rem;color:var(--text3)">recomendado</span>
-  </div>
-  <div class="config-item">
-    <div>
-      <div class="config-label">Ângulo mínimo</div>
-      <div class="config-value" style="color:var(--green);font-weight:800">45 graus</div>
-    </div>
-    <span style="font-size:.65rem;color:var(--text3)">recomendado</span>
-  </div>
-  <div class="config-item">
-    <div>
-      <div class="config-label">Precisão de localização</div>
-      <div class="config-value" style="color:var(--green);font-weight:800">Alta</div>
-    </div>
-  </div>
-  <div class="alert" style="margin-top:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2)">
-    <span>📍</span>
-    <span>Estas configurações garantem trajeto preciso no mapa com menor consumo de bateria.</span>
-  </div>
-</div>
-<div class="card">
-  <div class="card-title">🔋 Passo 3 — Liberar bateria (importante!)</div>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-content">
-      <b>Desativar otimização de bateria</b>
-      <span>Configurações → Bateria → Otimização → Traccar → Não otimizar</span>
-    </div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-content">
-      <b>Permitir atividade em segundo plano</b>
-      <span>Configurações → Apps → Traccar → Bateria → Irrestrito</span>
-    </div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-content">
-      <b>Samsung/Xiaomi/Huawei</b>
-      <span>Adicione o Traccar à lista de apps protegidos para não ser encerrado automaticamente</span>
-    </div>
-  </div>
-  <div class="alert">
-    <span>⚠️</span>
-    <span>Sem isso o app pode ser encerrado pelo sistema e parar de enviar localização.</span>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-title">▶️ Passo 4 — Ativar rastreamento</div>
+  <div class="card-title">▶️ Passo 3 — Ativar rastreamento</div>
   <div class="step">
     <div class="step-num">1</div>
     <div class="step-content">
