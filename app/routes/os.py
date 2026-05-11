@@ -292,9 +292,13 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
     if not os_row: raise HTTPException(404, "OS não encontrada")
 
     # Bloqueia dupla finalização
-    if os_row["status_hub"] == "finalizada":
+    if os_row["status_hub"] in ("finalizada", "finalizando"):
         db.close()
         raise HTTPException(400, "OS já finalizada — não é possível finalizar novamente")
+
+    # Marcar como finalizada ANTES de processar IXC (evita dupla chamada concorrente)
+    db.execute("UPDATE ht_os SET status_hub='finalizando' WHERE ixc_os_id=?", (ixc_os_id,))
+    db.commit()
 
     # Remove materiais anteriores desta OS para evitar duplicação
     db.execute("DELETE FROM ht_os_materiais WHERE ixc_os_id=?", (ixc_os_id,))

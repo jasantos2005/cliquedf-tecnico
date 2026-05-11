@@ -209,7 +209,9 @@ def rodar_auditoria():
         linhas_fix.append(f"✅ {len(autocorrigidos)} item(s) corrigidos automaticamente no IXC:")
         for ac in autocorrigidos:
             linhas_fix.append(f"  • OS #{ac['os']} prod_id={ac['id_produto']} ({len(ac['ids'])} registro(s))")
-        enviar_telegram("\n".join(linhas_fix))
+        import os
+        chat_pessoal = os.getenv("TELEGRAM_AILTON")
+        enviar_telegram("\n".join(linhas_fix), chat_id=chat_pessoal)
         print(f"[{now}] Auto-corrigidos: {len(autocorrigidos)} itens")
 
     if total == 0:
@@ -237,7 +239,9 @@ def rodar_auditoria():
             linhas.append(f"  ⚠️ OS #{d['os']} prod_id={d['id_produto_ixc']} — {d['ocorrencias']}x registrado")
 
     msg = "\n".join(linhas)
-    enviar_telegram(msg)
+    import os
+    chat_pessoal = os.getenv("TELEGRAM_AILTON")
+    enviar_telegram(msg, chat_id=chat_pessoal)
     print(f"[{now}] Alerta enviado — {total} divergências")
 
 if __name__ == "__main__":
