@@ -58,13 +58,22 @@ def gerar_relatorio():
         if not pontos:
             continue
 
-        # KM total
-        km = 0.0
-        for i in range(1, len(pontos)):
-            km += _dist(pontos[i-1]["lat"], pontos[i-1]["lon"], pontos[i]["lat"], pontos[i]["lon"])
+        # KM total via ht_km_os (mais preciso que GPS)
+        cur.execute("""
+            SELECT COALESCE(SUM(km_deslocamento), 0) as km_total
+            FROM ht_km_os
+            WHERE id_tecnico = ? AND DATE(dt_saida) = ?
+            AND km_deslocamento IS NOT NULL AND km_deslocamento > 0
+        """, (tid, hoje))
+        km_row = cur.fetchone()
+        km = float(km_row["km_total"] if km_row else 0)
+        # KM GPS como fallback se não houver registros
+        if km == 0:
+            for i in range(1, len(pontos)):
+                km += _dist(pontos[i-1]["lat"], pontos[i-1]["lon"], pontos[i]["lat"], pontos[i]["lon"])
 
         # Vel máxima
-        vel_max = max((p["velocidade"] or 0) * 3.6 for p in pontos)
+        vel_max = max((p["velocidade"] or 0) for p in pontos)  # velocidade já em km/h
 
         # Paradas longas (>20min fora de OS)
         cur.execute("""
