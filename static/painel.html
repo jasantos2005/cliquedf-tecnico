@@ -1197,7 +1197,9 @@ function api(path, opts) {
   opts = opts || {};
   return fetch(path, Object.assign({}, opts, {
     headers: Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+token()}, opts.headers||{})
-  })).then(function(r){ return r.json(); });
+  })).then(function(r){
+    return r.json();
+  });
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────
