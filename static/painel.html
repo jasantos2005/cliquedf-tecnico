@@ -1198,6 +1198,7 @@ function api(path, opts) {
   return fetch(path, Object.assign({}, opts, {
     headers: Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+token()}, opts.headers||{})
   })).then(function(r){
+    if (!r.ok) return r.json().then(function(e){ throw new Error(e.detail || r.status); });
     return r.json();
   });
 }
