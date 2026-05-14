@@ -194,6 +194,19 @@ def init():
     for k,v in configs:
         conn.execute("INSERT OR IGNORE INTO ht_configuracoes VALUES (?,?)",(k,v))
 
+    
+    CREATE TABLE IF NOT EXISTS ht_revisoes_historico (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ht_veiculo_id INTEGER NOT NULL,
+        revisao_id INTEGER REFERENCES ht_revisoes(id),
+        data_realizada DATE NOT NULL,
+        km_realizado INTEGER,
+        itens_realizados TEXT DEFAULT '[]',
+        itens_extras TEXT DEFAULT '[]',
+        custo_total REAL DEFAULT 0,
+        observacao TEXT DEFAULT '',
+        criado_em DATETIME DEFAULT (datetime('now','-3 hours'))
+    );
     conn.commit()
     conn.close()
     print("OK — Tabelas criadas | admin/admin123 | tecnicos/tecnico123")

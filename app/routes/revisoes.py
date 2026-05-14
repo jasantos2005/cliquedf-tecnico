@@ -224,3 +224,96 @@ def listar_veiculos(db: sqlite3.Connection = Depends(get_db)):
     cur = db.cursor()
     cur.execute("SELECT id, placa, marca_modelo, tipo, ano_fab, cor FROM ht_veiculos WHERE ativo=1 ORDER BY placa")
     return [dict(r) for r in cur.fetchall()]
+
+# ── HISTÓRICO DE REALIZAÇÕES ──────────────────────────────────
+from pydantic import BaseModel as _BM
+from typing import List as _List, Optional as _Opt
+
+class ItemExtra(_BM):
+    descricao: str
+    custo: float = 0.0
+
+class InformarRevisao(_BM):
+    data_realizada: str
+    km_realizado: _Opt[int] = None
+    itens_realizados: _List[str] = []
+    itens_extras: _List[dict] = []
+    custo_total: float = 0.0
+    observacao: str = ''
+
+@router.post("/api/frota/revisoes/{id}/informar")
+def informar_revisao(id: int, data: InformarRevisao, db: sqlite3.Connection = Depends(get_db)):
+    import json
+    cur = db.cursor()
+    cur.execute("SELECT * FROM ht_revisoes WHERE id=?", (id,))
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Revisao nao encontrada")
+    r = dict(row)
+
+    # Calcular proximas datas
+    from datetime import date, timedelta
+    proxima_data = None
+    proximo_km = None
+    if r["intervalo_dias"] and r["intervalo_dias"] > 0:
+        try:
+            base = date.fromisoformat(data.data_realizada)
+            proxima_data = str(base + timedelta(days=r["intervalo_dias"]))
+        except: pass
+    if r["intervalo_km"] and r["intervalo_km"] > 0 and data.km_realizado:
+        proximo_km = data.km_realizado + r["intervalo_km"]
+
+    agora = brt().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Atualizar revisao principal
+    cur.execute("""
+        UPDATE ht_revisoes SET
+            ultima_data=?, ultimo_km=?,
+            data_prevista=?, km_previsto=?,
+            obs=?, atualizado_em=?
+        WHERE id=?
+    """, (data.data_realizada, data.km_realizado,
+          proxima_data, proximo_km,
+          data.observacao or r["obs"], agora, id))
+
+    # Registrar no histórico
+    cur.execute("""
+        INSERT INTO ht_revisoes_historico
+            (ht_veiculo_id, revisao_id, data_realizada, km_realizado,
+             itens_realizados, itens_extras, custo_total, observacao, criado_em)
+        VALUES (?,?,?,?,?,?,?,?,?)
+    """, (r["ht_veiculo_id"], id, data.data_realizada, data.km_realizado,
+          json.dumps(data.itens_realizados, ensure_ascii=False),
+          json.dumps(data.itens_extras, ensure_ascii=False),
+          data.custo_total, data.observacao, agora))
+
+    # Registrar custo como despesa se houver
+    if data.custo_total and data.custo_total > 0:
+        cur.execute("""
+            INSERT INTO ht_despesas
+                (id_veiculo, tipo, descricao, valor, data, kilometragem, observacao)
+            VALUES (?,?,?,?,?,?,?)
+        """, (r["ht_veiculo_id"], 'revisao',
+              f"Revisao: {r['item']}",
+              data.custo_total, data.data_realizada,
+              data.km_realizado, data.observacao))
+
+    db.commit()
+    return {"ok": True, "proxima_data": proxima_data, "proximo_km": proximo_km}
+
+@router.get("/api/frota/revisoes/{id}/historico")
+def historico_revisao(id: int, db: sqlite3.Connection = Depends(get_db)):
+    import json
+    cur = db.cursor()
+    cur.execute("""
+        SELECT * FROM ht_revisoes_historico
+        WHERE revisao_id=? ORDER BY data_realizada DESC
+    """, (id,))
+    rows = cur.fetchall()
+    result = []
+    for r in rows:
+        d = dict(r)
+        d['itens_realizados'] = json.loads(d.get('itens_realizados') or '[]')
+        d['itens_extras'] = json.loads(d.get('itens_extras') or '[]')
+        result.append(d)
+    return result
