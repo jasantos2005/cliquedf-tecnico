@@ -109,7 +109,8 @@ def gerar_relatorio():
 
     linhas.append(f"\n{'─'*28}\n🤖 HubTecnico · {(datetime.now(timezone.utc) - timedelta(hours=3)).strftime('%H:%M')}")
     msg = "\n".join(linhas)
-    enviar_telegram(msg)
+    import os
+    enviar_telegram(msg, chat_id=os.getenv("TELEGRAM_AILTON"))
     logger.info("Relatório diário enviado.")
     db.close()
 
