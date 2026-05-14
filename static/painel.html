@@ -2799,23 +2799,14 @@ function fecharModalRevisao() { document.getElementById('modal-revisao').style.d
 
 async function realizarRapido(id, item) {
   var hoje = new Date().toISOString().substring(0,10);
-  // Buscar KM atual do veículo via ultimo_km
-  var kmAtual = null;
-  try {
-    var veics = await api('/api/frota/veiculos');
-    if (veics && veics.length) {
-      // Pegar km do primeiro veiculo ativo como referencia
-      kmAtual = veics[0].km_atual || null;
-    }
-  } catch(e) {}
   try {
     var r = await api('/api/frota/revisoes/'+id+'/realizar', {
       method: 'POST',
-      body: JSON.stringify({ data_realizada: hoje, km_realizado: kmAtual, obs: '' })
+      body: JSON.stringify({ data_realizada: hoje, km_realizado: null, obs: '' })
     });
     carregarRevisoes();
     toast('Revisao registrada!'+(r.proxima_data?' Proxima: '+r.proxima_data:''), 'ok');
-  } catch(e) { toast('Erro ao registrar','err'); }
+  } catch(e) { toast('Erro ao registrar: '+e,'err'); }
 }
 function abrirModalRealizar(id, item) {
   document.getElementById('realizar-id').value = id;
