@@ -2724,9 +2724,11 @@ async function carregarRevisoes() {
   }
 }
 
+var _revisoesCache = [];
 function renderRevisoes(dados) {
   var stats = dados.stats || {};
   var revisoes = dados.revisoes || [];
+  _revisoesCache = revisoes;
   var el = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
   el('rsc-num-vencido', stats.vencidos||0);
   el('rsc-num-urgente', stats.urgentes||0);
@@ -2774,7 +2776,7 @@ function renderRevisoes(dados) {
         +'<span style="font-size:.72rem;font-weight:800">'+urgLabels[r.urgencia]+'</span>'
         +'<span style="font-size:.72rem">'+diasTxt+'</span></div></div>'
         +'<div style="display:flex;gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:8px">'
-        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px;background:var(--accent);color:#fff" onclick="abrirInformarRevisao('+r.id+','+JSON.stringify(r)+')"}>📋 Informar</button>'
+        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px;background:var(--accent);color:#fff" onclick="abrirInformarRevisao('+r.id+')">📋 Informar</button>'
         +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px" onclick="editarRevisao('+r.id+')">✏️ Editar</button>'
         +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px;color:var(--red)" onclick="excluirRevisao('+r.id+')">🗑️</button>'
         +'</div></div>';
@@ -3403,8 +3405,10 @@ function fecharRaioX() {
 var _informarRevId = null;
 var _informarRevItens = [];
 
-function abrirInformarRevisao(id, rev) {
+function abrirInformarRevisao(id) {
   _informarRevId = id;
+  // Buscar dados da revisão do cache já carregado na tela
+  var rev = (_revisoesCache || []).find(function(r){ return r.id == id; }) || {};
   var itens = (rev.item || '').split(',').map(function(i){ return i.trim(); }).filter(Boolean);
   _informarRevItens = itens;
   document.getElementById('informar-rev-titulo').textContent = rev.item || '';
