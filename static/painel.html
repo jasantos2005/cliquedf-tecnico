@@ -2723,7 +2723,7 @@ function renderRevisoes(dados) {
         +'<span style="font-size:.72rem;font-weight:800">'+urgLabels[r.urgencia]+'</span>'
         +'<span style="font-size:.72rem">'+diasTxt+'</span></div></div>'
         +'<div style="display:flex;gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:8px">'
-        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px" onclick="abrirModalRealizar('+r.id+','+JSON.stringify(r.item)+')">✅ Realizada</button>'
+        +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px" onclick="realizarRapido('+r.id+','+JSON.stringify(r.item)+')">✅ Realizada</button>'
         +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px" onclick="editarRevisao('+r.id+')">✏️ Editar</button>'
         +'<button class="btn btn-o" style="font-size:.72rem;padding:3px 10px;color:var(--red)" onclick="excluirRevisao('+r.id+')">🗑️</button>'
         +'</div></div>';
@@ -2797,6 +2797,26 @@ async function salvarRevisao() {
 
 function fecharModalRevisao() { document.getElementById('modal-revisao').style.display='none'; }
 
+async function realizarRapido(id, item) {
+  var hoje = new Date().toISOString().substring(0,10);
+  // Buscar KM atual do veículo via ultimo_km
+  var kmAtual = null;
+  try {
+    var veics = await api('/api/frota/veiculos');
+    if (veics && veics.length) {
+      // Pegar km do primeiro veiculo ativo como referencia
+      kmAtual = veics[0].km_atual || null;
+    }
+  } catch(e) {}
+  try {
+    var r = await api('/api/frota/revisoes/'+id+'/realizar', {
+      method: 'POST',
+      body: JSON.stringify({ data_realizada: hoje, km_realizado: kmAtual, obs: '' })
+    });
+    carregarRevisoes();
+    toast('Revisao registrada!'+(r.proxima_data?' Proxima: '+r.proxima_data:''), 'ok');
+  } catch(e) { toast('Erro ao registrar','err'); }
+}
 function abrirModalRealizar(id, item) {
   document.getElementById('realizar-id').value = id;
   document.getElementById('realizar-info').textContent = item;
