@@ -670,6 +670,7 @@ function renderOS() {
         <span class="os-assunto">${o.assunto_nome||'—'}</span>
         <span style="font-size:.75rem;color:var(--muted)">${o.status_hub==='agendada'?(o.data_reservada||o.data_agenda||'').substring(0,16):(o.data_agenda||o.data_abertura||'').substring(0,16)}</span>
       </div>
+      ${o.motivo_reagendamento?'<div style="font-size:.72rem;color:#f59e0b;margin-top:4px;padding:4px 8px;background:rgba(245,158,11,.1);border-radius:6px;border-left:3px solid #f59e0b">📅 '+o.motivo_reagendamento+'</div>':''}
     </div>`).join('');
 }
 
@@ -904,11 +905,11 @@ function mostrarReagendar(ixc_os_id) {
             style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.88rem;box-sizing:border-box">
         </div>
       </div>
-      <button class="btn btn-primary" style="width:100%" onclick="confirmarReagendar(${ixc_os_id})">✅ Confirmar reagendamento</button>
+      <button class="btn btn-primary" style="width:100%" onclick="confirmarReagendarClienteAusente(${ixc_os_id})">✅ Confirmar reagendamento</button>
     </div>`;
 }
 
-async function confirmarReagendar(ixc_os_id) {
+async function confirmarReagendarClienteAusente(ixc_os_id) {
   const km = document.getElementById('ca-km')?.value;
   const data = document.getElementById('ca-data')?.value;
   const hora = document.getElementById('ca-hora')?.value;
