@@ -1133,9 +1133,10 @@ function renderStep() {
       const btnSerie = (isComodato && qtdUsada > 0) ? '<button onclick="matEditarSerie('+p.id+')" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--accent2);cursor:pointer;font-size:.65rem">S/N</button>' : '';
       const serie = adicionado && adicionado.numero_serie ? '<div style="font-size:.68rem;color:var(--accent2)">S/N: '+adicionado.numero_serie+'</div>' : '';
       const destaque = _termoBusca ? p.produto_nome.replace(new RegExp('('+_termoBusca+')', 'gi'), '<mark style="background:rgba(249,115,22,.3);color:var(--text);border-radius:2px">$1</mark>') : p.produto_nome;
+      const codigoBadge = (_termoBusca && p.ixc_produto_id && String(p.ixc_produto_id).includes(_termoBusca)) ? ' <span style="font-size:.65rem;background:var(--accent);color:#fff;border-radius:4px;padding:1px 5px">cód: '+p.ixc_produto_id+'</span>' : '';
       return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
         '<div style="flex:1;min-width:0">' +
-          '<div style="font-size:.82rem;font-weight:600">' + destaque + '</div>' +
+          '<div style="font-size:.82rem;font-weight:600">' + destaque + codigoBadge + '</div>' +
           '<div style="font-size:.7rem;color:var(--muted)">' + (isComodato?'📦 Patrimônio':'🔧 Insumo') + ' · Disp: ' + p.quantidade + ' ' + (p.unidade||'') + '</div>' +
           serie +
         '</div>' +
@@ -1155,7 +1156,12 @@ function renderStep() {
     if (!meuEstoque.length) {
       listaEstoque = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px">Estoque vazio</div>';
     } else if (_termoBusca) {
-      const filtrado = meuEstoque.filter(p => p.produto_nome.toLowerCase().includes(_termoBusca.toLowerCase()));
+      const termo = _termoBusca.toLowerCase();
+      const filtrado = meuEstoque.filter(p =>
+        p.produto_nome.toLowerCase().includes(termo) ||
+        String(p.id).includes(termo) ||
+        String(p.ixc_produto_id || '').includes(termo)
+      );
       listaEstoque = filtrado.length
         ? '<div style="font-size:.72rem;color:var(--muted);padding:4px 0 6px">' + filtrado.length + ' produto(s) encontrado(s)</div>' + filtrado.map(_renderItemMat).join('')
         : '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px">Nenhum produto encontrado</div>';
