@@ -1959,7 +1959,7 @@ async function carregarHistorico() {
     document.getElementById('hist-resumo').style.display = rows.length?'block':'none';
     if (!rows.length) { lista.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">Nenhuma OS finalizada no período</div>'; return; }
     lista.innerHTML = rows.map(o =>
-      '<div class="os-card">' +
+      '<div class="os-card" onclick="abrirDetalhesHistorico('+o.ixc_os_id+')"> ' +
       '<div class="os-card-top"><div class="os-num">OS #'+o.ixc_os_id+'</div>' +
       '<span class="os-status finalizada">✅ Finalizada</span></div>' +
       '<div class="os-cliente">'+o.cliente_nome+'</div>' +
@@ -2827,6 +2827,55 @@ function instalarPWA() {
   });
 }
 
+
+async function abrirDetalhesHistorico(ixc_os_id) {
+  var modal = document.getElementById('modal-hist-os');
+  var content = document.getElementById('modal-hist-os-content');
+  content.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Carregando...</div>';
+  modal.style.display = 'flex';
+  try {
+    var r = await api('/api/os/' + ixc_os_id);
+    var exec = r.execucao || {};
+    var mats = r.materiais || [];
+    var html = '';
+    html += '<div style="font-weight:800;font-size:1rem;margin-bottom:4px">OS #' + ixc_os_id + '</div>';
+    html += '<div style="font-size:.85rem;color:var(--accent);font-weight:700;margin-bottom:12px">' + (r.cliente_nome||'') + '</div>';
+    html += '<div style="font-size:.78rem;color:var(--muted);margin-bottom:12px">📅 ' + (exec.finalizada_em||'').substring(0,16) + '</div>';
+
+    // Solução
+    if (exec.solucao_registrada) {
+      html += '<div style="margin-bottom:12px">';
+      html += '<div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Solução registrada</div>';
+      html += '<div style="font-size:.82rem;background:var(--surface2);border-radius:8px;padding:10px">' + exec.solucao_registrada + '</div>';
+      html += '</div>';
+    }
+
+    // Materiais
+    if (mats.length > 0) {
+      html += '<div style="margin-bottom:12px">';
+      html += '<div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Materiais utilizados (' + mats.length + ')</div>';
+      mats.forEach(function(m) {
+        html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:.82rem">';
+        html += '<span>' + (m.produto_nome||'—') + '</span>';
+        html += '<span style="color:var(--accent2);font-weight:700">' + m.quantidade + ' ' + (m.unidade||'un') + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Nenhum material registrado</div>';
+    }
+
+    // KM
+    if (r.km_deslocamento) {
+      html += '<div style="font-size:.82rem;color:var(--accent2);margin-bottom:8px">🚗 ' + parseFloat(r.km_deslocamento).toFixed(1) + ' km nesta OS</div>';
+    }
+
+    content.innerHTML = html;
+  } catch(e) {
+    content.innerHTML = '<div style="color:var(--red);padding:20px">Erro ao carregar detalhes</div>';
+  }
+}
+
 </script>
 
   <!-- PAGE VISTORIA -->
@@ -2852,5 +2901,13 @@ function instalarPWA() {
       <button class="btn btn-primary" onclick="enviarVistoria()">✅ Confirmar Vistoria</button>
     </div>
   </div>
+
+<!-- MODAL DETALHES OS HISTÓRICO -->
+<div id="modal-hist-os" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:20px">
+    <div id="modal-hist-os-content"></div>
+    <button onclick="document.getElementById('modal-hist-os').style.display='none'" class="btn btn-o" style="width:100%;margin-top:12px">Fechar</button>
+  </div>
+</div>
 </body>
 </html>
