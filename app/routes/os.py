@@ -815,13 +815,21 @@ def cliente_ausente(ixc_os_id: int, data: dict, usuario=Depends(requer_tecnico))
             ).fetchone()
             km_saida = ultimo["km_saida"] if ultimo else 0
             km_desloc = float(km_chegada) - float(km_saida) if km_saida else 0
-            conn.execute("""
-                INSERT INTO ht_km_os (ixc_os_id, id_tecnico, km_chegada, km_deslocamento, criado_em)
-                VALUES (?,?,?,?,datetime('now','-3 hours'))
-                ON CONFLICT(ixc_os_id) DO UPDATE SET
-                    km_chegada=excluded.km_chegada,
-                    km_deslocamento=excluded.km_deslocamento
-            """, (ixc_os_id, usuario["id"], km_chegada, km_desloc))
+            existe = conn.execute(
+                "SELECT id FROM ht_km_os WHERE ixc_os_id=? AND id_tecnico=?",
+                (ixc_os_id, usuario["id"])
+            ).fetchone()
+            if existe:
+                conn.execute("""
+                    UPDATE ht_km_os SET km_chegada=?, km_deslocamento=?,
+                    dt_chegada=datetime('now','-3 hours')
+                    WHERE ixc_os_id=? AND id_tecnico=?
+                """, (km_chegada, km_desloc, ixc_os_id, usuario["id"]))
+            else:
+                conn.execute("""
+                    INSERT INTO ht_km_os (ixc_os_id, id_tecnico, km_chegada, km_deslocamento, criado_em)
+                    VALUES (?,?,?,?,datetime('now','-3 hours'))
+                """, (ixc_os_id, usuario["id"], km_chegada, km_desloc))
 
         os_row = conn.execute("SELECT * FROM ht_os WHERE ixc_os_id=?", (ixc_os_id,)).fetchone()
         cliente_nome = os_row["cliente_nome"] if os_row else f"OS #{ixc_os_id}"
