@@ -58,7 +58,10 @@ async def root():
 @app.get("/app", response_class=HTMLResponse)
 async def app_tecnico():
     p = STATIC_DIR / "app.html"
-    return HTMLResponse(p.read_text())
+    return HTMLResponse(p.read_text(), headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache", "Expires": "0"
+    })
 
 @app.get("/hub", response_class=HTMLResponse)
 async def hub_page():
