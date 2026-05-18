@@ -1969,6 +1969,7 @@ async function carregarHistorico() {
       '<span style="font-size:.75rem;color:var(--muted)">'+(o.finalizada_em||'').substring(0,16)+'</span></div>' +
       (o.km_deslocamento ? '<div style="font-size:.75rem;color:var(--accent2);margin-top:4px">🚗 '+parseFloat(o.km_deslocamento).toFixed(1)+' km nesta OS</div>' : '') +
       (o.veiculo_placa ? '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">🚙 '+o.veiculo_placa+'</div>' : '') +
+      '<div style="margin-top:8px"><a href="/api/os/'+o.ixc_os_id+'/detalhes-html" target="_blank" style="display:block;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:.78rem;color:var(--text);text-decoration:none">📋 Ver detalhes</a></div>'+
       '</div>'
     ).join('');
   } catch(e) { lista.innerHTML = '<div style="text-align:center;color:var(--red);padding:20px">Erro ao carregar</div>'; }

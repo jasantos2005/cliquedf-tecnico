@@ -57,10 +57,15 @@ async def root():
 
 @app.get("/app", response_class=HTMLResponse)
 async def app_tecnico():
+    import time
     p = STATIC_DIR / "app.html"
-    return HTMLResponse(p.read_text(), headers={
+    content = p.read_text()
+    # Injeta timestamp para invalidar cache do SW
+    content = content.replace("</head>", "<meta name=version content=" + str(int(time.time())) + "></head>")
+    return HTMLResponse(content, headers={
         "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache", "Expires": "0"
+        "Pragma": "no-cache", "Expires": "0",
+        "Clear-Site-Data": "\"cache\""
     })
 
 @app.get("/hub", response_class=HTMLResponse)
