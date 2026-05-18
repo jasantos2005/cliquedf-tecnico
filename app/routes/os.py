@@ -288,19 +288,19 @@ class FinalizarInput(BaseModel):
 @router.post("/{ixc_os_id}/finalizar")
 def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_tecnico)):
     db = get_db()
-    # Lock atômico: UPDATE só afeta se status ainda não for finalizada/finalizando
-    cur = db.execute(
-        "UPDATE ht_os SET status_hub='finalizando' WHERE ixc_os_id=? AND status_hub NOT IN ('finalizada','finalizando')",
-        (ixc_os_id,)
-    )
-    db.commit()
-    if cur.rowcount == 0:
-        db.close()
-        raise HTTPException(400, "OS já finalizada — não é possível finalizar novamente")
+    # Lock exclusivo — impede leituras/escritas concorrentes
+    db.execute("BEGIN EXCLUSIVE")
     os_row = db.execute("SELECT * FROM ht_os WHERE ixc_os_id=?", (ixc_os_id,)).fetchone()
     if not os_row:
+        db.execute("ROLLBACK")
         db.close()
         raise HTTPException(404, "OS não encontrada")
+    if os_row["status_hub"] in ("finalizada", "finalizando"):
+        db.execute("ROLLBACK")
+        db.close()
+        raise HTTPException(400, "OS já finalizada — não é possível finalizar novamente")
+    db.execute("UPDATE ht_os SET status_hub='finalizando' WHERE ixc_os_id=?", (ixc_os_id,))
+    db.execute("COMMIT")
 
     # Remove materiais anteriores desta OS para evitar duplicação
     db.execute("DELETE FROM ht_os_materiais WHERE ixc_os_id=?", (ixc_os_id,))
