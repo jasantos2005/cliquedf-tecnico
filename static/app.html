@@ -1959,7 +1959,7 @@ async function carregarHistorico() {
     document.getElementById('hist-resumo').style.display = rows.length?'block':'none';
     if (!rows.length) { lista.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">Nenhuma OS finalizada no período</div>'; return; }
     lista.innerHTML = rows.map(o =>
-      '<div class="os-card" onclick="abrirDetalhesHistorico('+o.ixc_os_id+')">' +
+      '<div class="os-card">' +
       '<div class="os-card-top"><div class="os-num">OS #'+o.ixc_os_id+'</div>' +
       '<span class="os-status finalizada">✅ Finalizada</span></div>' +
       '<div class="os-cliente">'+o.cliente_nome+'</div>' +
@@ -1969,7 +1969,6 @@ async function carregarHistorico() {
       '<span style="font-size:.75rem;color:var(--muted)">'+(o.finalizada_em||'').substring(0,16)+'</span></div>' +
       (o.km_deslocamento ? '<div style="font-size:.75rem;color:var(--accent2);margin-top:4px">🚗 '+parseFloat(o.km_deslocamento).toFixed(1)+' km nesta OS</div>' : '') +
       (o.veiculo_placa ? '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">🚙 '+o.veiculo_placa+'</div>' : '') +
-      '<div style="margin-top:8px"><a href="/api/os/'+o.ixc_os_id+'/detalhes-html" target="_blank" style="display:block;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:.78rem;color:var(--text);text-decoration:none">📋 Ver detalhes</a></div>'+
       '</div>'
     ).join('');
   } catch(e) { lista.innerHTML = '<div style="text-align:center;color:var(--red);padding:20px">Erro ao carregar</div>'; }
@@ -2828,44 +2827,6 @@ function instalarPWA() {
   });
 }
 
-
-async function abrirDetalhesHistorico(id) {
-  var m = document.getElementById('mdh');
-  if (!m) {
-    m = document.createElement('div');
-    m.id = 'mdh';
-    m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:16px';
-    m.innerHTML = '<div style="background:var(--card);border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:20px"><div id="mdhc"></div><button onclick="document.getElementById(\'mdh\').style.display=\'none\'" class="btn btn-o" style="width:100%;margin-top:12px">Fechar</button></div>';
-    document.body.appendChild(m);
-  }
-  var box = document.getElementById('mdhc');
-  box.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Carregando...</div>';
-  m.style.display = 'flex';
-  try {
-    var r = await api('/api/os/' + id);
-    var ex = r.execucao || {};
-    var mats = r.materiais || [];
-    var h = '<div style="font-weight:800;font-size:1rem;margin-bottom:4px">OS #' + id + '</div>';
-    h += '<div style="font-size:.85rem;color:var(--accent);font-weight:700;margin-bottom:8px">' + (r.cliente_nome||'') + '</div>';
-    h += '<div style="font-size:.75rem;color:var(--muted);margin-bottom:12px">📅 ' + (ex.finalizada_em||'').substring(0,16) + '</div>';
-    if (ex.solucao_registrada) {
-      h += '<div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Solução</div>';
-      h += '<div style="font-size:.82rem;background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:12px">' + ex.solucao_registrada + '</div>';
-    }
-    if (mats.length) {
-      h += '<div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Materiais (' + mats.length + ')</div>';
-      mats.forEach(function(mat) {
-        h += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.82rem"><span>' + (mat.produto_nome||'') + '</span><span style="color:var(--accent2);font-weight:700">' + mat.quantidade + ' ' + (mat.unidade||'un') + '</span></div>';
-      });
-    } else {
-      h += '<div style="font-size:.82rem;color:var(--muted)">Nenhum material registrado</div>';
-    }
-    if (r.km_deslocamento) h += '<div style="font-size:.82rem;color:var(--accent2);margin-top:8px">🚗 ' + parseFloat(r.km_deslocamento).toFixed(1) + ' km</div>';
-    box.innerHTML = h;
-  } catch(e) {
-    box.innerHTML = '<div style="color:var(--red)">Erro ao carregar</div>';
-  }
-}
 </script>
 
   <!-- PAGE VISTORIA -->
