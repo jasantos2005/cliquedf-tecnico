@@ -287,20 +287,31 @@ class FinalizarInput(BaseModel):
 
 @router.post("/{ixc_os_id}/finalizar")
 def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_tecnico)):
-    db = get_db()
-    # Lock exclusivo — impede leituras/escritas concorrentes
-    db.execute("BEGIN EXCLUSIVE")
-    os_row = db.execute("SELECT * FROM ht_os WHERE ixc_os_id=?", (ixc_os_id,)).fetchone()
-    if not os_row:
-        db.execute("ROLLBACK")
-        db.close()
-        raise HTTPException(404, "OS não encontrada")
-    if os_row["status_hub"] in ("finalizada", "finalizando"):
-        db.execute("ROLLBACK")
-        db.close()
-        raise HTTPException(400, "OS já finalizada — não é possível finalizar novamente")
-    db.execute("UPDATE ht_os SET status_hub='finalizando' WHERE ixc_os_id=?", (ixc_os_id,))
-    db.execute("COMMIT")
+    import threading
+    if not hasattr(finalizar_os, '_locks'):
+        finalizar_os._locks = {}
+    if not hasattr(finalizar_os, '_meta_lock'):
+        finalizar_os._meta_lock = threading.Lock()
+    with finalizar_os._meta_lock:
+        if ixc_os_id not in finalizar_os._locks:
+            finalizar_os._locks[ixc_os_id] = threading.Lock()
+        lock = finalizar_os._locks[ixc_os_id]
+    if not lock.acquire(blocking=False):
+        raise HTTPException(400, "OS já está sendo finalizada — aguarde")
+    try:
+        db = get_db()
+        os_row = db.execute("SELECT * FROM ht_os WHERE ixc_os_id=?", (ixc_os_id,)).fetchone()
+        if not os_row:
+            db.close()
+            raise HTTPException(404, "OS não encontrada")
+        if os_row["status_hub"] in ("finalizada", "finalizando"):
+            db.close()
+            raise HTTPException(400, "OS já finalizada — não é possível finalizar novamente")
+        db.execute("UPDATE ht_os SET status_hub='finalizando' WHERE ixc_os_id=?", (ixc_os_id,))
+        db.commit()
+    except HTTPException:
+        lock.release()
+        raise
 
     # Remove materiais anteriores desta OS para evitar duplicação
     db.execute("DELETE FROM ht_os_materiais WHERE ixc_os_id=?", (ixc_os_id,))
@@ -585,6 +596,7 @@ def finalizar_os(ixc_os_id: int, data: FinalizarInput, usuario=Depends(requer_te
         traceback.print_exc()
 
     db.close()
+    lock.release()
     return {"ok": True}
 
 @router.post("/{ixc_os_id}/atribuir")
