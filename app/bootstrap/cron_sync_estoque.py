@@ -25,13 +25,16 @@ def run():
     for tec in tecnicos:
         # FIX: SUM(saldo) + GROUP BY para consolidar múltiplas linhas do mesmo produto
         saldos = ixc_select(
-            """SELECT id_produto, SUM(saldo) AS saldo,
-                      MAX(produto_descricao) AS produto_descricao,
-                      MAX(produto_unidade)   AS produto_unidade,
-                      MAX(produto_tipo)      AS produto_tipo
-               FROM estoque_produtos_almox_filial
-               WHERE id_almox = %s AND produto_ativo = 'S'
-               GROUP BY id_produto""",
+            """SELECT mp.id_produto,
+                      COALESCE(SUM(CASE WHEN mp.tipo='E' THEN mp.quantidade ELSE -mp.quantidade END),0) AS saldo,
+                      MAX(p.descricao) AS produto_descricao,
+                      MAX(p.unidade) AS produto_unidade,
+                      MAX(p.tipo) AS produto_tipo
+               FROM ixcprovedor.movimento_produtos mp
+               JOIN ixcprovedor.produtos p ON p.id = mp.id_produto
+               WHERE mp.id_almox = %s
+               GROUP BY mp.id_produto
+               HAVING saldo > 0""",
             (tec['ixc_almox_id'],)
         )
 
