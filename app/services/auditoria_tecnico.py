@@ -84,7 +84,8 @@ def auditar_estoque_tecnico(id_tecnico, nome_tecnico, ixc_almox_id):
         hub_qtd = float(r['quantidade'])
         ixc_qtd = ixc_map.get(r['ixc_produto_id'], 0)
         diff = abs(hub_qtd - ixc_qtd)
-        if diff > 1:  # tolerância de 1 unidade
+        tolerancia = max(5, hub_qtd * 0.10)  # 10% ou 5 unidades
+        if diff > tolerancia:  # tolerância de 10%
             divergencias.append({
                 'produto': r['nome'],
                 'hub': hub_qtd,

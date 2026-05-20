@@ -1,3 +1,4 @@
+import json
 """
 auditoria_estoque.py — Valida sincronismo Hub ↔ IXC para materiais e comodatos
 Roda a cada hora via cron. Envia alerta no Telegram se encontrar divergência.
@@ -195,13 +196,88 @@ def auditar_duplicatas(dias=7):
 
     return divergencias
 
+
+def auditar_fotos(dias=7):
+    """Detecta OS com fotos no Hub mas não enviadas ao IXC e envia automaticamente."""
+    import os as _os, base64, requests as _req
+    from dotenv import load_dotenv
+    load_dotenv('/opt/automacoes/cliquedf/tecnico/.env')
+
+    ixc_url = _os.getenv('IXC_API_URL')
+    ixc_user = _os.getenv('IXC_API_USER')
+    ixc_token = _os.getenv('IXC_API_TOKEN')
+    auth = base64.b64encode(f'{ixc_user}:{ixc_token}'.encode()).decode()
+
+    db = _db()
+    desde = (datetime.now() - timedelta(days=dias)).strftime('%Y-%m-%d')
+    rows = db.execute("""
+        SELECT e.ixc_os_id, e.fotos_json, o.cliente_nome, u.nome as tecnico
+        FROM ht_os_execucao e
+        JOIN ht_os o ON o.ixc_os_id = e.ixc_os_id
+        JOIN ht_usuarios u ON u.id = o.id_tecnico
+        WHERE e.fotos_enviadas_ixc IS NULL
+        AND e.fotos_json != '[]' AND e.fotos_json IS NOT NULL
+        AND DATE(e.finalizada_em) >= ?
+    """, (desde,)).fetchall()
+    db.close()
+
+    if not rows:
+        return []
+
+    corrigidas = []
+    for row in rows:
+        fotos = json.loads(row['fotos_json'] or '[]')
+        fotos_validas = [f for f in fotos if f.startswith('data:image')]
+        if not fotos_validas:
+            continue
+
+        enviadas = 0
+        for i, foto in enumerate(fotos_validas):
+            try:
+                header, b64data = foto.split(',', 1)
+                nome = f'os_{row["ixc_os_id"]}_{i+1}.jpg'
+                resp = _req.post(
+                    f'{ixc_url}/webservice/v1/su_oss_chamado_arquivos',
+                    headers={'Authorization': f'Basic {auth}', 'Content-Type': 'application/json'},
+                    json={'id_oss_chamado': str(row['ixc_os_id']),
+                          'descricao': f'Foto OS #{row["ixc_os_id"]} - {i+1}',
+                          'classificacao_arquivo': 'O', 'tipo': 'imagem',
+                          'local_arquivo': b64data, 'nome_arquivo': nome},
+                    timeout=30
+                )
+                if resp.ok and resp.json().get('type') == 'success':
+                    enviadas += 1
+            except Exception as e:
+                print(f'[WARN] Foto OS {row["ixc_os_id"]}: {e}')
+
+        if enviadas == len(fotos_validas):
+            db2 = _db()
+            db2.execute('UPDATE ht_os_execucao SET fotos_enviadas_ixc=1 WHERE ixc_os_id=?', (row['ixc_os_id'],))
+            db2.commit()
+            db2.close()
+            corrigidas.append({'os': row['ixc_os_id'], 'tecnico': row['tecnico'],
+                               'cliente': row['cliente_nome'], 'fotos': enviadas})
+
+    return corrigidas
+
 def rodar_auditoria():
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
     divs_mat, autocorrigidos = auditar_materiais(dias=7)
+    fotos_corrigidas = auditar_fotos(dias=7)
     divs_cod = auditar_comodatos(dias=7)
     divs_dup = auditar_duplicatas(dias=7)
 
     total = len(divs_mat) + len(divs_cod) + len(divs_dup)
+
+    # Notificar fotos corrigidas
+    if fotos_corrigidas:
+        linhas_fotos = [f'📸 AUTO-ENVIO FOTOS — {now}']
+        linhas_fotos.append(f'{len(fotos_corrigidas)} OS com fotos enviadas ao IXC:')
+        for f in fotos_corrigidas:
+            linhas_fotos.append(f'  OS #{f["os"]} [{f["tecnico"]}] — {f["cliente"][:30]} ({f["fotos"]} fotos)')
+        import os as _os
+        enviar_telegram('\n'.join(linhas_fotos), chat_id=_os.getenv('TELEGRAM_AILTON'))
+        print(f'[{now}] Fotos auto-enviadas: {len(fotos_corrigidas)} OS')
 
     # Notificar auto-correções
     if autocorrigidos:
