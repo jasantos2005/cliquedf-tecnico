@@ -1907,10 +1907,14 @@ async function enviarRequisicaoNova() {
     return {id_produto:parseInt(e[0]), qtd_solicitada:e[1].qtd, obs:e[1].obs||''};
   });
   if (!itens.length) { toast('Adicione ao menos um item','err'); return; }
+  var emergencia = document.getElementById('req-emergencia')?.checked || false;
+  var obs = emergencia ? '🚨 EMERGÊNCIA — solicitado em campo' : '';
   try {
-    var r = await api('/api/estoque/requisicao', {method:'POST', body:JSON.stringify({itens:itens, obs:''})});
-    if (r.ok) { toast('Requisicao enviada!','ok'); fecharRequisicao(); }
-    else { toast(r.detail||'Erro ao enviar','err'); }
+    var r = await api('/api/estoque/requisicao', {method:'POST', body:JSON.stringify({itens:itens, obs:obs, emergencia:emergencia})});
+    if (r.ok) { 
+      toast(emergencia ? '🚨 Requisição de emergência enviada!' : 'Requisição enviada!','ok');
+      fecharRequisicao();
+    } else { toast(r.detail||'Erro ao enviar','err'); }
   } catch(e) { toast('Erro de rede','err'); }
 }
 
@@ -2572,6 +2576,7 @@ async function verDetalhesOS(ixc_os_id) {
     </div>
     <div style="padding:12px 20px;border-top:1px solid var(--border)">
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Itens: <span id="req-count" style="color:var(--accent2);font-weight:700">0</span></div>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.78rem;cursor:pointer"><input type="checkbox" id="req-emergencia" style="width:14px;height:14px;accent-color:#ef4444"><span style="color:#ef4444;font-weight:700">🚨 Emergência — prioridade máxima</span></label>
       <button class="btn btn-primary" onclick="enviarRequisicaoNova()">✅ Enviar Requisição</button>
     </div>
   </div>

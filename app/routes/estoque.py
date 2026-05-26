@@ -25,6 +25,7 @@ class ItemRequisicao(BaseModel):
 class CriarRequisicaoBody(BaseModel):
     itens: List[ItemRequisicao]
     obs: Optional[str] = ""
+    emergencia: Optional[bool] = False
 
 class AprovarItemBody(BaseModel):
     id_item: int
@@ -193,6 +194,22 @@ def criar_requisicao(body: CriarRequisicaoBody, usuario=Depends(requer_tecnico))
             )
             db.commit()
 
+        # Notificar se emergência
+        if getattr(body, "emergencia", False):
+            import os as _os
+            from app.services.notificador import enviar_telegram
+            tec_nome = usuario.get("nome", "Técnico")
+            TELEGRAM_AILTON = _os.getenv("TELEGRAM_AILTON", "2135602169")
+            TELEGRAM_GRUPO  = _os.getenv("TELEGRAM_GRUPO", "")
+            itens_txt = "\n".join([f"  • ID:{i.id_produto} qtd:{i.qtd_solicitada}" for i in body.itens[:5]])
+            msg = (f"🚨 <b>REQUISIÇÃO DE EMERGÊNCIA</b>\n"
+                   f"👤 Técnico: <b>{tec_nome}</b>\n"
+                   f"📋 Req #{req_id}\n"
+                   f"⚡ Solicitado em campo — prioridade máxima!\n\n"
+                   f"Itens:\n{itens_txt}")
+            enviar_telegram(msg, chat_id=TELEGRAM_AILTON)
+            if TELEGRAM_GRUPO:
+                enviar_telegram(msg, chat_id=TELEGRAM_GRUPO)
         return {"ok": True, "id_requisicao": req_id, "msg": "Requisição criada com sucesso"}
     finally:
         db.close()
