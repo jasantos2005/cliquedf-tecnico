@@ -500,3 +500,59 @@ def buscar_patrimonio(id_patrimonio: int, usuario=Depends(requer_tecnico)):
         }
     finally:
         db.close()
+
+@router.get("/verificar-material-dia")
+def verificar_material_dia(usuario=Depends(requer_tecnico)):
+    """Verifica se técnico tem material confirmado para as instalações do dia."""
+    from datetime import datetime, timedelta
+    hoje = (datetime.now() - timedelta(hours=3)).strftime("%Y-%m-%d")
+
+    db = get_db()
+    try:
+        # Buscar ixc_funcionario_id do técnico
+        tec = db.execute(
+            "SELECT ixc_funcionario_id FROM ht_usuarios WHERE id=?",
+            (usuario["id"],)
+        ).fetchone()
+        if not tec:
+            return {"bloqueado": False}
+
+        ixc_func_id = tec["ixc_funcionario_id"]
+
+        # Verificar se tem OS de instalação hoje
+        os_inst = db.execute("""
+            SELECT COUNT(*) as total FROM ht_os
+            WHERE id_tecnico=? AND id_assunto=227
+            AND status_hub IN ('pendente','agendada','deslocamento')
+            AND DATE(data_agenda)=?
+        """, (usuario["id"], hoje)).fetchone()
+
+        if not os_inst or os_inst["total"] == 0:
+            return {"bloqueado": False}
+
+        # Verificar requisições automáticas aprovadas hoje
+        import sys
+        sys.path.insert(0, "/opt/automacoes/cliquedf/estoque")
+        try:
+            import sqlite3 as _sq
+            db_est = _sq.connect("/opt/automacoes/cliquedf/estoque/data/estoque.db", timeout=10)
+            db_est.row_factory = _sq.Row
+            req = db_est.execute("""
+                SELECT status FROM ht_requisicoes_auto
+                WHERE ixc_tecnico_id=?
+                AND data_referencia=?
+                ORDER BY criado_em DESC LIMIT 1
+            """, (ixc_func_id, hoje)).fetchone()
+            db_est.close()
+
+            if not req:
+                return {"bloqueado": True, "status": "sem requisição automática"}
+            if req["status"] == "pendente":
+                return {"bloqueado": True, "status": "requisição pendente de aprovação"}
+            if req["status"] == "aprovada":
+                return {"bloqueado": False, "status": "aprovada"}
+            return {"bloqueado": False}
+        except:
+            return {"bloqueado": False}
+    finally:
+        db.close()

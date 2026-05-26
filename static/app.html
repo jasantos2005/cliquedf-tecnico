@@ -950,6 +950,26 @@ function renderModalFinalizada(os) {
 }
 
 async function iniciarDeslocamento(ixc_os_id) {
+  // Verificar se OS é instalação e se material foi confirmado
+  const os = osData.find(o => o.ixc_os_id === ixc_os_id);
+  if (os && os.id_assunto === 227) {
+    try {
+      const req = await api('/api/estoque/verificar-material-dia');
+      if (req && req.bloqueado) {
+        document.getElementById('modal-os-content').innerHTML =
+          '<div class="modal-title">⚠️ Material não confirmado</div>' +
+          '<div style="font-size:.85rem;color:var(--muted);margin-bottom:16px">' +
+          'Esta é uma OS de instalação. Você ainda não confirmou a retirada do material para hoje.</div>' +
+          '<div style="background:rgba(255,184,63,.1);border:1px solid var(--yellow);border-radius:8px;padding:12px;margin-bottom:16px;font-size:.82rem">' +
+          '📦 Requisição pendente: <b>' + (req.status||'sem requisição') + '</b></div>' +
+          '<div style="display:grid;gap:8px">' +
+          '<button class="btn btn-primary" onclick="iniciarDeslocamentoForcar(' + ixc_os_id + ')">🚗 Iniciar mesmo assim</button>' +
+          '<button class="btn btn-outline" onclick="fecharModal()">Cancelar</button></div>';
+        abrirModal();
+        return;
+      }
+    } catch(e) {}
+  }
   let ultimoKm = 0, placa = '', modelo = '';
   if (navigator.onLine && !modoOffline) {
     try {
@@ -2848,6 +2868,27 @@ async function confirmarRetirada(notif_id) {
   } catch(e) {
     toast('Erro ao confirmar retirada', 'err');
   }
+}
+
+
+async function iniciarDeslocamentoForcar(ixc_os_id) {
+  fecharModal();
+  // Chamar diretamente sem verificação
+  let ultimoKm = 0, placa = '', modelo = '';
+  try {
+    const v = await api('/api/os/veiculo-atual');
+    ultimoKm = v.ultimo_km||0; placa = v.placa||''; modelo = v.modelo||'';
+  } catch(e){}
+  const infoVeiculo = placa
+    ? '<div style="background:var(--surf2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.82rem;display:flex;align-items:center;gap:8px"><span>🚗</span><div><b>'+placa+'</b><span style="color:var(--muted)"> · '+modelo+'</span></div></div>'
+    : '<div style="font-size:.78rem;color:var(--yellow);margin-bottom:10px">⚠️ Sem veículo atribuído</div>';
+  document.getElementById('modal-os-content').innerHTML =
+    '<div class="modal-title">🚗 Iniciar Deslocamento</div>' + infoVeiculo +
+    '<div style="margin-bottom:16px"><label style="display:block;font-size:.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px">KM do veículo agora</label>' +
+    '<input class="km-input" type="number" id="inp-km-saida" placeholder="Ex: 45230" min="'+ultimoKm+'" value="'+(ultimoKm>0?ultimoKm:'')+'">' +
+    '</div><div style="display:grid;gap:8px">' +
+    '<button class="btn btn-primary" onclick="confirmarDeslocamento('+ixc_os_id+')">🚗 Confirmar e partir</button>' +
+    '<button class="btn btn-outline" onclick="fecharModal()">Cancelar</button></div>';
 }
 
 </script>
