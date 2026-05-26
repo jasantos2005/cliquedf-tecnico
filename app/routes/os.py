@@ -975,3 +975,25 @@ def sync_fotos_ixc(usuario=Depends(requer_tecnico)):
         return {"ok": True, "msg": f"{total_enviadas} fotos enviadas"}
     finally:
         db.close()
+
+@router.post("/confirmar-retirada")
+def confirmar_retirada(data: dict, usuario=Depends(requer_tecnico)):
+    """Técnico confirma que retirou os materiais do almoxarifado."""
+    import os as _os
+    from app.services.notificador import enviar_telegram
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    tecnico = usuario["nome"]
+    TELEGRAM_AILTON = _os.getenv("TELEGRAM_AILTON", "2135602169")
+    TELEGRAM_GRUPO  = _os.getenv("TELEGRAM_GRUPO", "")
+
+    msg = (f"📦 <b>MATERIAL RETIRADO</b>\n"
+           f"👤 {tecnico} confirmou a retirada dos materiais.\n"
+           f"🕐 {__import__('datetime').datetime.now().strftime('%d/%m/%Y %H:%M')}")
+
+    enviar_telegram(msg, chat_id=TELEGRAM_AILTON)
+    if TELEGRAM_GRUPO:
+        enviar_telegram(msg, chat_id=TELEGRAM_GRUPO)
+
+    return {"ok": True}
