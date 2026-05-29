@@ -71,14 +71,19 @@ class PosicaoInput(BaseModel):
 @router.post("/posicao")
 def salvar_posicao(data: PosicaoInput):
     db = get_db()
-    db.execute("""
-        INSERT INTO ht_gps_track
-            (id_tecnico, lat, lon, velocidade, status_tecnico, ixc_os_id)
-        VALUES (?,?,?,?,?,?)
-    """, (data.id_tecnico, data.lat, data.lon,
-          data.velocidade, data.status, data.ixc_os_id))
-    db.commit()
-    db.close()
+    try:
+        db.execute("""
+            INSERT INTO ht_gps_track
+                (id_tecnico, lat, lon, velocidade, status_tecnico, ixc_os_id)
+            VALUES (?,?,?,?,?,?)
+        """, (data.id_tecnico, data.lat, data.lon,
+              data.velocidade, data.status, data.ixc_os_id))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise
+    finally:
+        db.close()
     return {"ok": True}
 
 @router.get("/rota/{id_tecnico}")
